@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PluginDescriptor>
+	<WebModulePlugin>
+		<identifier>testviewer</identifier>
+		<name>testviewer</name>
+		<description>Test viewer</description>
+	</WebModulePlugin>
+</PluginDescriptor>
