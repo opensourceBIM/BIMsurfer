@@ -9,16 +9,17 @@
  */
 
 export default class BufferManager {
-	constructor(settings, renderer) {
+	constructor(settings, renderer, bufferSetPool) {
 		this.settings = settings;
 		this.renderer = renderer;
+		this.bufferSetPool = bufferSetPool;
 		
 		/*
 		 * Speed/size tradeoff. Allocating huge buffers here means less calls to the GPU to flush, but especially when using the BufferManagerPerColor, 
 		 * models with a lot of unique colors could potentially create a lot of buffers, each of MAX_BUFFER_SIZE. Smaller buffers also results in more updates 
 		 * to the screen (good for progress indication)
 		 */		
-		this.MAX_BUFFER_SIZE = 45000; // In number of vertex numbers, must be a multiple of 9
+		this.MAX_BUFFER_SIZE = 450000; // In number of vertex numbers, must be a multiple of 9
 
 		// An average factor, amount of index numbers per vertex number
 		this.indicesVerticesFactor = 0.5;
@@ -27,7 +28,7 @@ export default class BufferManager {
 		this.colorBufferFactor = 1.33;
 		
 		// Map of buffers
-		this.buffers = new Map();
+		this.bufferSets = new Map();
 		
 		this.defaultSizes = {
 			vertices: this.MAX_BUFFER_SIZE,
@@ -54,37 +55,39 @@ export default class BufferManager {
 	/*
 	 * Get a buffer based on the given arguments, different implementations might not use all arguments
 	 */
-	getBuffer(transparency, color, sizes) {
+	getBufferSet(transparency, color, sizes, node) {
+		// TODO Last argument (node) is a bit of a hack, it's needed by the flushBuffer method of TilingRenderLayer, should probably implement with a listener
+		
 		if (this.shouldFlush(sizes, null)) {
 			// The amount of geometry is more than the default buffer size, so this geometry gets its own buffer which also gets flushed right away
-			var buffer = this.createBuffer(transparency, color, sizes);
+			var bufferSet = this.createBufferSet(transparency, color, sizes);
 			// The renderer is responsable for flushing this buffer after it's populated, this flag tells it to do so
-			buffer.needsToFlush = true;
+			bufferSet.needsToFlush = true;
 			// We return immediately, and do _not_ store this buffer in the map, no need to
-			return buffer;
+			return bufferSet;
 		}
 		var key = this.getKey(transparency, color, sizes);
 
-		var buffer = this.buffers.get(key);
-		if (buffer == null) {
+		var bufferSet = this.bufferSets.get(key);
+		if (bufferSet == null) {
 			// Create a new buffer according to the defaults and store it in the buffers Map
-			buffer = this.createBuffer(transparency, color, this.defaultSizes);
-			this.buffers.set(key, buffer);
+			bufferSet = this.createBufferSetPooled(transparency, color, this.defaultSizes);
+			this.bufferSets.set(key, bufferSet);
 		} else {
-			if (this.shouldFlush(sizes, buffer)) {
-				// In this case we flush the buffer right away (it's already populated with data). We than reset it and return immediately after this.
-				this.renderer.flushBuffer(buffer);
-				this.resetBuffer(buffer);
+			if (this.shouldFlush(sizes, bufferSet)) {
+				// In this case we flush the buffer right away (it's already populated with data). We then reset it and return immediately after this.
+				this.renderer.flushBuffer(bufferSet, node);
+				this.resetBuffer(bufferSet);
 			}
 		}
-		return buffer;
+		return bufferSet;
 	}
 	
 	/*
 	 * Default implementation to create a buffer, subclasses can add other buffers
 	 */
-	createBuffer(hasTransparency, color, sizes) {
-		var buffer = {
+	createBufferSet(hasTransparency, color, sizes) {
+		var bufferSet = {
 			positions: this.settings.quantizeVertices ? new Int16Array(sizes.vertices) : new Float32Array(sizes.vertices),
 			positionsIndex: 0,
 			normals: this.settings.quantizeNormals ? new Int8Array(sizes.normals) : new Float32Array(sizes.normals),
@@ -95,21 +98,30 @@ export default class BufferManager {
 			hasTransparency: hasTransparency,
 			color: color
 		};
-		return buffer;
+		return bufferSet;
+	}
+	
+	createBufferSetPooled(hasTransparency, color, sizes) {
+		var bufferSet = this.bufferSetPool.lease(this, hasTransparency, color, sizes);
+		bufferSet.hasTransparency = hasTransparency;
+		bufferSet.color = color;
+		return bufferSet;
 	}
 	
 	clear() {
 		this.buffers = null;
 	}
 	
-	resetBuffer(buffer) {
-		buffer.positionsIndex = 0;
-		buffer.normalsIndex = 0;
-		buffer.indicesIndex = 0;
-		buffer.nrIndices = 0;
+	resetBuffer(bufferSet) {
+		this.bufferSetPool.release(bufferSet);
+		
+		bufferSet.positionsIndex = 0;
+		bufferSet.normalsIndex = 0;
+		bufferSet.indicesIndex = 0;
+		bufferSet.nrIndices = 0;
 	}
 	
 	getAllBuffers() {
-		return this.buffers.values();
+		return this.bufferSets.values();
 	}
 }

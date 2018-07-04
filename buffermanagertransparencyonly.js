@@ -6,8 +6,8 @@ import BufferManager from './buffermanager.js'
  * 
  */
 export default class BufferManagerTransparencyOnly extends BufferManager {
-	constructor(settings, renderer) {
-		super(settings, renderer);
+	constructor(settings, renderer, bufferSetPool) {
+		super(settings, renderer, bufferSetPool);
 	}
 
 	/*
@@ -27,7 +27,7 @@ export default class BufferManagerTransparencyOnly extends BufferManager {
 	/* 
 	 * In addition to a default buffer, also add a color buffer
 	 */
-	createBuffer(transparency, color, sizes) {
+	createBufferSet(transparency, color, sizes) {
 		var buffer = super.createBuffer(transparency, color, sizes);
 		buffer.colors = new Float32Array(sizes.colors);
 		buffer.colorsIndex = 0;

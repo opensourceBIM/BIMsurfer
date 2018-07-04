@@ -51,7 +51,7 @@ export default class BimServerViewer {
 
 			this.bimServerApi.call("ServiceInterface", "getDensityThreshold", {
 				roid: project.lastRevisionId,
-				nrTriangles: 10000,
+				nrTriangles: 0,
 				excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"]
 			}, (densityAtThreshold) => {
 				this.densityThreshold = densityAtThreshold.density;
@@ -251,10 +251,9 @@ export default class BimServerViewer {
 		});
 		
 		executor.awaitTermination().then(() => {
-			this.viewer.stats.setParameter("Timing", "Loadtime geometry", performance.now() - start);
-			this.viewer.stats.setParameter("Timing", "Loadtime total", performance.now() - this.totalStart);
+			this.viewer.stats.setParameter("Loading time", "Layer 1", performance.now() - start);
 			defaultRenderLayer.completelyDone();
-			this.viewer.stats.update();
+			this.viewer.stats.requestUpdate();
 			document.getElementById("progress").style.display = "none";
 		});
 		return executor.awaitTermination();
@@ -263,7 +262,7 @@ export default class BimServerViewer {
 	loadTilingLayer(tilingLayer, projects, totalBounds) {
 		document.getElementById("progress").style.display = "block";
 
-		var start = performance.now();
+		var layer2Start = performance.now();
 		
 		var roids = [];
 		for (var project of projects) {
@@ -271,13 +270,18 @@ export default class BimServerViewer {
 		}
 
 		var p = tilingLayer.load(this.bimServerApi, this.densityThreshold, roids);
-//		p.then(() => {
+		p.then(() => {
+			this.viewer.stats.setParameter("Loading time", "Layer 2", performance.now() - layer2Start);
+			this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
+			
+			this.viewer.bufferSetPool.cleanup();
+
 //			tilingLayer.octree.traverse((node) => {
 //				if (node.liveBuffers.length > 0) {
 //					console.log(node.getBounds(), node.liveBuffers.length);
 //				}
 //			}, true);
-//		});
+		});
 		return p;
 	}
 }

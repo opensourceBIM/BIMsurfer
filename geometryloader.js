@@ -72,10 +72,7 @@ export default class GeometryLoader {
 		return this.promise;
 	}
 
-	binaryDataListener(data) {
-		var stream = new DataInputStream(data);
-		
-		var channel = stream.readLong();
+	processMessage(stream) {
 		var messageType = stream.readByte();
 		
 		if (messageType == 0) {
@@ -85,6 +82,18 @@ export default class GeometryLoader {
 		} else {
 			this.readObject(stream, messageType);
 		}
+		if (stream.remaining() > 0) {
+			this.processMessage(stream);
+//			console.log("Remaining", stream.remaining());
+		}
+	}
+	
+	binaryDataListener(data) {
+		var stream = new DataInputStream(data);
+		var channel = stream.readLong();
+
+		this.processMessage(stream);
+		
 		this.stats.inc("Network", "Bytes OTL", stream.pos);
 	}
 

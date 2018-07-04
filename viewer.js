@@ -1,5 +1,6 @@
 import ProgramManager from './programmanager.js'
 import Lighting from './lighting.js'
+import BufferSetPool from './buffersetpool.js'
 
 /*
  * Main viewer class, too many responsibilities:
@@ -19,6 +20,8 @@ export default class Viewer {
 		
 		this.width = width;
 		this.height = height;
+		
+		this.bufferSetPool = new BufferSetPool(1000);
 		
 		this.renderLayers = [];
 		this.animationListeners = [];
@@ -95,17 +98,22 @@ export default class Viewer {
 
 		this.fps++;
 
+		var wasDirty = this.dirty;
 		if (this.dirty) {
 			this.dirty = false;
-
-			if (now - this.timeLast >= 1) {
-				this.stats.setParameter("Timing", "Fps", Number(this.fps / (now - this.timeLast)).toPrecision( 5 ));
-				this.timeLast = now;
-				this.fps = 0;
-				this.stats.update();
-			}
-
 			this.drawScene(this.buffers, deltaTime);
+		}
+
+		if (now - this.timeLast >= 1) {
+			if (wasDirty) {
+				this.stats.setParameter("Rendering", "FPS", Number(this.fps / (now - this.timeLast)).toPrecision( 5 ));
+			} else {
+				this.stats.setParameter("Rendering", "FPS", "Off");
+			}
+			this.timeLast = now;
+			this.fps = 0;
+			this.stats.requestUpdate();
+			this.stats.update();
 		}
 
 		if (this.running) {
@@ -149,7 +157,7 @@ export default class Viewer {
 			mat4.rotate(this.modelViewMatrix, this.modelViewMatrix, this.modelRotation, [0, 1, 0]);
 			
 			// Get the orientation right
-			mat4.rotate(this.modelViewMatrix, this.modelViewMatrix, (1.5 * Math.PI), [1, 0, 0]);
+			mat4.rotate(this.modelViewMatrix, this.modelViewMatrix, (1.5 * Math.PI), [1, 0.5, 0]);
 			
 			// Scale to -1,1 and scale by zoomLevel
 			mat4.scale(this.modelViewMatrix, this.modelViewMatrix, [this.zoomLevel, this.zoomLevel, this.zoomLevel]);

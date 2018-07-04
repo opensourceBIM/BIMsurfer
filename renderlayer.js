@@ -74,4 +74,17 @@ export default class RenderLayer {
 			geometries: {}
 		});
 	}
+	
+	sortBuffers(buffers) {
+		buffers.sort((a, b) => {
+			for (var i=0; i<4; i++) {
+				if (a.color[i] == b.color[i]) {
+					continue;
+				}
+				return a.color[i] - b.color[i];
+			}
+			// Colors are the same
+			return 0;
+		});
+	}
 }

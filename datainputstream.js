@@ -13,6 +13,10 @@ export default class DataInputStream {
 		this.dataView = new DataView(arrayBuffer);
 		this.pos = 0;
 	}
+	
+	remaining() {
+		return this.arrayBuffer.byteLength - this.pos;
+	}
 
 	readUTF8() {
 		var length = this.dataView.getInt16(this.pos);

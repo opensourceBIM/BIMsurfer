@@ -20,9 +20,9 @@ export default class DefaultRenderLayer extends RenderLayer {
 		super(viewer);
 		
 		if (this.settings.useObjectColors) {
-			this.bufferManager = new BufferManagerPerColor(this.settings, this);
+			this.bufferManager = new BufferManagerPerColor(this.settings, this, this.viewer.bufferSetPool);
 		} else {
-			this.bufferManager = new BufferManagerTransparencyOnly(this.settings, this);
+			this.bufferManager = new BufferManagerTransparencyOnly(this.settings, this, this.viewer.bufferSetPool);
 		}
 
 		this.bufferTransformer = new BufferTransformer(settings, viewer.vertexQuantization);
@@ -237,7 +237,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 			colors: (geometry.colors != null ? geometry.colors.length : 0)
 		};
 		
-		var buffer = this.bufferManager.getBuffer(geometry.hasTransparency, geometry.color, sizes);
+		var buffer = this.bufferManager.getBufferSet(geometry.hasTransparency, geometry.color, sizes);
 
 		var startIndex = buffer.positionsIndex / 3;
 
@@ -343,19 +343,6 @@ export default class DefaultRenderLayer extends RenderLayer {
 		this.bufferManager.clear();
 	}
 	
-	sortBuffers(buffers) {
-		buffers.sort((a, b) => {
-			for (var i=0; i<4; i++) {
-				if (a.color[i] == b.color[i]) {
-					continue;
-				}
-				return a.color[i] - b.color[i];
-			}
-			// Colors are the same
-			return 0;
-		});
-	}
-
 	flushAllBuffers() {
 		for (var buffer of this.bufferManager.getAllBuffers()) {
 			this.flushBuffer(buffer);

@@ -4,14 +4,21 @@
 export default class Stats {
 	constructor() {
 		this.parameters = {};
+		this.dirty = true;
+		this.updateRequested = true;
+		
 		this.groups = {
 			"Tiling": [
 				"Renderable tiles"
 			],
-			"Timing": [
-				"Loadtime total",
-				"Loadtime geometry",
-				"Fps"
+			"Loading time": [
+				"Layer 1",
+				"Layer 2",
+				"Total"
+			], "Rendering": [
+				"FPS"
+			], "Stats": [
+				"Updates"
 			], "Models": [
 				"Name",
 				"Models to load",
@@ -63,7 +70,11 @@ export default class Stats {
 
 	setParameter(group, key, value) {
 		var group = this.parameters[group];
+		if (group[key] == value) {
+			return;
+		}
 		group[key] = value;
+		this.dirty = true;
 	}
 
 	inc(groupName, key, value) {
@@ -76,13 +87,23 @@ export default class Stats {
 		} else {
 			group[key] = group[key] + value;
 		}
+		this.dirty = true;
 	}
 
 	numberWithCommas(x) {
 		return Number(x).toLocaleString();
 	}
 
+	requestUpdate() {
+		this.updateRequested = true;
+	}
+	
 	update() {
+		if (!this.updateRequested) {
+			return;
+		}
+		this.inc("Stats", "Updates");
+		this.updates++;
 		for (var groupName in this.groups) {
 			var group = this.groups[groupName];
 			var groupElement = document.getElementById(groupName + "-group");
@@ -115,6 +136,8 @@ export default class Stats {
 				}
 			}
 		}
+		this.updateRequested = false;
+		this.dirty = false;
 	}
 	
 	cleanup() {
@@ -122,5 +145,6 @@ export default class Stats {
 		while (stats.firstChild) {
 			stats.removeChild(stats.firstChild);
 		}
+		this.dirty = true;
 	}
 }
