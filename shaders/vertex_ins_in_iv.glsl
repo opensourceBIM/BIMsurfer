@@ -27,11 +27,10 @@ out mediump vec3 normal;
 void main(void) {
   vec4 floatVertex = vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
   floatVertex = vertexQuantizationMatrix * floatVertex;
-  vertex = vec3( projectionMatrix * modelViewMatrix * instances * floatVertex);
-
+  gl_Position = projectionMatrix * modelViewMatrix * instances * floatVertex;
+  vertex = vec3(gl_Position);
+  
   normal = vec3( normalMatrix * instances * vec4(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0, 0.0));
 
   color = vertexColor;
-
-  gl_Position = projectionMatrix * modelViewMatrix * instances * floatVertex;
 }

@@ -23,11 +23,11 @@ out mediump vec3 vertex;
 out mediump vec3 normal;
 
 void main(void) {
-  vertex = vec3( projectionMatrix * modelViewMatrix * vec4(vertexPosition, 1));
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(vertexPosition, 1);
+  
+  vertex = vec3(gl_Position);
 
   normal = vec3( normalMatrix * vec4(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0, 0.0));
 
   color = vertexColor;
-
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(vertexPosition, 1);
 }

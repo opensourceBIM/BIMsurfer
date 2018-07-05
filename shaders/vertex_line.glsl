@@ -14,9 +14,9 @@ out mediump vec4 color;
 out mediump vec3 vertex;
 
 void main(void) {
-  vertex = vec3( projectionMatrix * modelViewMatrix * matrix * vec4(vertexPosition, 1));
-
-  color = inputColor;
-
   gl_Position = projectionMatrix * modelViewMatrix * matrix * vec4(vertexPosition, 1);
+
+  vertex = vec3(gl_Position);
+  
+  color = inputColor;
 }
