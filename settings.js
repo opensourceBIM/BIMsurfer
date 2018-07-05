@@ -18,7 +18,17 @@ export default class Settings {
 		};
 		
 		var settingsObject = localStorage.getItem("settings") == null ? null : localStorage.getItem("settings");
-		this.settings = settingsObject == null ? {} : JSON.parse(settingsObject);
+		this.settings = settingsObject == null ? {
+			quantizeNormals: true,
+			quantizeVertices: true,
+			useObjectColors: true,
+			useSmallIndicesIfPossible: true,
+			loaderSettings: {
+				quantizeNormals: true,
+				quantizeVertices: true,
+				useObjectColors: true
+			}
+		} : JSON.parse(settingsObject);
 		console.log("settings loaded", this.settings);
 		this.processSettings(element, settingsDefinition, null, this.settings);
 	}
