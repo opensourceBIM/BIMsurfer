@@ -8,20 +8,39 @@ class OctreeNode {
 		this.height = height;
 		this.depth = depth;
 		
-		this.id = Math.floor(Math.random() * Math.floor(100000));
+		this.center = vec4.fromValues(this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2, 1);
+		this.radius = (Math.sqrt(Math.pow(this.width, 2) + Math.pow(this.height, 2) + Math.pow(this.depth, 2))) / 2;
+		
+		this.matrix = mat4.create();
+		mat4.translate(this.matrix, this.matrix, [this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2]);
+		mat4.scale(this.matrix, this.matrix, [this.width, this.height, this.depth]);
+		
+		this.bounds = [this.x, this.y, this.z, this.width, this.height, this.depth];
 	}
 	
 	getBounds() {
-		return [this.x, this.y, this.z, this.width, this.height, this.depth];
+		return this.bounds;
 	}
 	
 	getMatrix() {
-		if (this.matrix == null) {
-			this.matrix = mat4.create();
-			mat4.translate(this.matrix, this.matrix, [this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2]);
-			mat4.scale(this.matrix, this.matrix, [this.width, this.height, this.depth]);
-		}
 		return this.matrix;
+	}
+
+	traverseBreathFirstInternal(fn) {
+		if (this.quadrants == null) {
+			return;
+		}
+		for (var node of this.quadrants) {
+			fn(node);
+		}
+		for (var node of this.quadrants) {
+			node.traverseBreathFirstInternal(fn);
+		}
+	}
+	
+	traverseBreathFirst(fn) {
+		fn(this);
+		this.traverseBreathFirstInternal(fn);
 	}
 	
 	traverse(fn, onlyLeafs) {
@@ -37,11 +56,11 @@ class OctreeNode {
 	}
 	
 	getCenter() {
-		return vec4.fromValues(this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2, 1);
+		return this.center;
 	}
 	
 	getBoundingSphereRadius() {
-		return (Math.sqrt(Math.pow(this.width, 2) + Math.pow(this.height, 2) + Math.pow(this.depth, 2))) / 2;
+		return this.radius;
 	}
 	
 	split(level) {
