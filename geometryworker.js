@@ -1,5 +1,5 @@
 // Not used yet
 
-onmessage = function(event) {
-	
-};
+addEventListener("message", function(event) {
+    var r = event.data;
+});

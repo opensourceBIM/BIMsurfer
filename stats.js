@@ -30,6 +30,10 @@ export default class Stats {
 				"Primitives to load",
 				"Nr primitives loaded",
 				"Nr primitives hidden"
+			], "BufferSet pool": [
+				"Used",
+				"Available",
+				"Total memory"
 			], "Data": [
 				"GPU bytes",
 				"GPU bytes reuse",

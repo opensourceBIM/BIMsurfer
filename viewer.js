@@ -21,7 +21,7 @@ export default class Viewer {
 		this.width = width;
 		this.height = height;
 		
-		this.bufferSetPool = new BufferSetPool(1000);
+		this.bufferSetPool = new BufferSetPool(1000, this.stats);
 		
 		this.renderLayers = [];
 		this.animationListeners = [];

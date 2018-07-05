@@ -14,7 +14,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		var slightlyLargerBounds = [bounds[0] - 0.1, bounds[1] - 0.1, bounds[2] - 0.1, bounds[3] + 0.2, bounds[4] + 0.2, bounds[5] + 0.2];
 
 		this.octree = new Octree(slightlyLargerBounds);
-		this.octree.split(2);
+		this.octree.split(3);
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
 		
 		this.loaderCounter = 0;
@@ -31,9 +31,10 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	load(bimServerApi, densityThreshold, roids) {
-		var executor = new Executor(12, projects.length);
+		var executor = new Executor(8, projects.length);
 
-		this.octree.traverse((node) => {
+		// Traversing breath-first so the big chucks are loaded first
+		this.octree.traverseBreathFirst((node) => {
 			node.status = 0;
 			node.liveBuffers = [];
 			var bounds = node.getBounds();
@@ -92,7 +93,7 @@ export default class TilingRenderLayer extends RenderLayer {
 				}
 				this.done(geometryLoader.loaderId);
 			});
-		}, false);
+		});
 
 		executor.awaitTermination().then(() => {
 			this.completelyDone();
@@ -236,9 +237,6 @@ export default class TilingRenderLayer extends RenderLayer {
 			}
 		}
 		var buffer = node.bufferManager.getBufferSet(geometry.hasTransparency, geometry.color, sizes, node);
-		if (buffer.positions == null) {
-			debugger;
-		}
 
 		var startIndex = buffer.positionsIndex / 3;
 
@@ -353,12 +351,6 @@ export default class TilingRenderLayer extends RenderLayer {
 			this.viewer.stats.inc("Primitives", "Nr primitives hidden", geometry.indices.length / 3);
 			if (this.progressListener != null) {
 				this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
-			}
-		}
-		if (geometry.isReused) {
-			geometry.reuseMaterialized++;
-			if (geometry.reuseMaterialized == geometry.reused) {
-				this.addGeometryReusable(geometry, loader);
 			}
 		}
 	}

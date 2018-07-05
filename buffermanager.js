@@ -18,8 +18,8 @@ export default class BufferManager {
 		 * Speed/size tradeoff. Allocating huge buffers here means less calls to the GPU to flush, but especially when using the BufferManagerPerColor, 
 		 * models with a lot of unique colors could potentially create a lot of buffers, each of MAX_BUFFER_SIZE. Smaller buffers also results in more updates 
 		 * to the screen (good for progress indication)
-		 */		
-		this.MAX_BUFFER_SIZE = 450000; // In number of vertex numbers, must be a multiple of 9
+		 */
+		this.MAX_BUFFER_SIZE = 900000; // In number of vertex numbers, must be a multiple of 9
 
 		// An average factor, amount of index numbers per vertex number
 		this.indicesVerticesFactor = 0.5;
@@ -49,6 +49,15 @@ export default class BufferManager {
 		
 		// Not storing the results in a variable resulted in this always returning something that evaluates to false...
 		
+		return result;
+	}
+	
+	getDefaultByteSize() {
+		var result = 
+			this.defaultSizes.vertices * (this.settings.quantizeVertices ? 2 : 4) +
+			this.defaultSizes.normals * (this.settings.quantizeNormals ? 1 : 4) +
+			this.defaultSizes.indices * 4;
+
 		return result;
 	}
 	

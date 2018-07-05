@@ -1,7 +1,7 @@
 export default class BufferSetPool {
-	constructor(maxPoolSize, useObjectColors) {
+	constructor(maxPoolSize, stats) {
 		this.maxPoolSize = maxPoolSize;
-		this.useObjectColors = useObjectColors;
+		this.stats = stats;
 		
 		this.currentPoolSize = 0;
 		
@@ -20,17 +20,26 @@ export default class BufferSetPool {
 			var bufferSet = this.available.keys().next().value;
 			this.used.add(bufferSet);
 			this.available.delete(bufferSet);
+			
+			this.stats.setParameter("BufferSet pool", "Used", this.used.size);
+			this.stats.setParameter("BufferSet pool", "Available", this.available.size);
+			this.stats.setParameter("BufferSet pool", "Total memory", this.currentPoolSize * bufferManager.getDefaultByteSize());
+			
 			return bufferSet;
 		}
 		var newBufferSet = bufferManager.createBufferSet(hasTransparency, color, sizes);
 		this.currentPoolSize++;
 		this.used.add(newBufferSet);
+		this.stats.setParameter("BufferSet pool", "Used", this.used.size);
 		return newBufferSet;
 	}
 	
 	release(bufferSet) {
 		this.used.delete(bufferSet);
 		this.available.add(bufferSet);
+		
+		this.stats.setParameter("BufferSet pool", "Used", this.used.size);
+		this.stats.setParameter("BufferSet pool", "Available", this.available.size);
 		
 		bufferSet.positionsIndex = 0;
 		bufferSet.normalsIndex = 0;
@@ -42,5 +51,9 @@ export default class BufferSetPool {
 	cleanup() {
 		this.available.clear();
 		this.used.clear();
+		this.currentPoolSize = 0;
+		this.stats.setParameter("BufferSet pool", "Used", this.used.size);
+		this.stats.setParameter("BufferSet pool", "Available", this.available.size);
+		this.stats.setParameter("BufferSet pool", "Total memory", 0);
 	}
 }

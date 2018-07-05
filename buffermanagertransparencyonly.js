@@ -24,11 +24,15 @@ export default class BufferManagerTransparencyOnly extends BufferManager {
 		return sizes.colors + (buffer != null ? buffer.colorsIndex : 0) > this.MAX_BUFFER_SIZE * this.colorBufferFactor;
 	}
 	
+	getDefaultByteSize() {
+		return super.getDefaultByteSize() + this.defaultSizes.colors * 4;
+	}
+	
 	/* 
 	 * In addition to a default buffer, also add a color buffer
 	 */
 	createBufferSet(transparency, color, sizes) {
-		var buffer = super.createBuffer(transparency, color, sizes);
+		var buffer = super.createBufferSet(transparency, color, sizes);
 		buffer.colors = new Float32Array(sizes.colors);
 		buffer.colorsIndex = 0;
 		return buffer;
