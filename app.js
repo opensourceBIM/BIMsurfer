@@ -1,6 +1,7 @@
 import BimServerViewer from "./bimserverviewer.js"
 import Stats from "./stats.js"
-import Settings from './settings.js'
+import Settings from "./settings.js"
+import BimServerClient from "http://localhost:8080/apps/bimserverjavascriptapi/bimserverclient.js"
 
 /*
  * This class is where the applications starts, it's a mess, needs to go when we change this into an API
@@ -59,12 +60,10 @@ export default class App {
 			this.resizeCanvas();
 		}, false);
 
-		import("http://localhost:8080/apps/bimserverjavascriptapi/bimserverclient.js?_v=" + new Date().getTime()).then((bimserverapi) => {
-			this.api = new bimserverapi.default("http://localhost:8080");
-			this.api.init(() => {
-				this.api.login("admin@bimserver.org", "admin", () => {
-					this.loadProjects();
-				});
+		this.api = new BimServerClient("http://localhost:8080");
+		this.api.init(() => {
+			this.api.login("admin@bimserver.org", "admin", () => {
+				this.loadProjects();
 			});
 		});
 	}
