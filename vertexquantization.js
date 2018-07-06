@@ -8,12 +8,12 @@ export default class VertexQuantization {
 		this.settings = settings;
 		
 		// roid -> untransformed quantization matrices (per model)
-		this.untransformedQuantizationMatrices = {};
-		this.untransformedInverseQuantizationMatrices = {};
+		this.untransformedQuantizationMatrices = new Map();
+		this.untransformedInverseQuantizationMatrices = new Map();
 	}
 
 	getUntransformedInverseVertexQuantizationMatrixForRoid(roid) {
-		var matrix = this.untransformedInverseQuantizationMatrices[roid];
+		var matrix = this.untransformedInverseQuantizationMatrices.get(roid);
 		if (matrix == null) {
 			throw "Not found for roid " + roid;
 		}
@@ -21,7 +21,7 @@ export default class VertexQuantization {
 	}
 	
 	getUntransformedVertexQuantizationMatrixForRoid(roid) {
-		var matrix = this.untransformedQuantizationMatrices[roid];
+		var matrix = this.untransformedQuantizationMatrices.get(roid);
 		if (matrix == null) {
 			throw "Not found: " + roid;
 		}
@@ -60,12 +60,12 @@ export default class VertexQuantization {
 				-(boundsUntransformed.max.z + boundsUntransformed.min.z) / 2
 		));
 		
-		this.untransformedQuantizationMatrices[roid] = this.toArray(matrix);
+		this.untransformedQuantizationMatrices.set(roid, this.toArray(matrix));
 		
 		var inverse = mat4.create();
 		mat4.invert(inverse, matrix);
 		
-		this.untransformedInverseQuantizationMatrices[roid] = this.toArray(inverse);
+		this.untransformedInverseQuantizationMatrices.set(roid, this.toArray(inverse));
 	}
 	
 	generateMatrices(totalBounds, totalBoundsUntransformed) {
