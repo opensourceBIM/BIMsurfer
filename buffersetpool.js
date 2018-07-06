@@ -20,7 +20,6 @@ export default class BufferSetPool {
 			var bufferSet = this.available.keys().next().value;
 			this.used.add(bufferSet);
 			this.available.delete(bufferSet);
-			
 			this.stats.setParameter("BufferSet pool", "Used", this.used.size);
 			this.stats.setParameter("BufferSet pool", "Available", this.available.size);
 			this.stats.setParameter("BufferSet pool", "Total memory", this.currentPoolSize * bufferManager.getDefaultByteSize());
@@ -31,6 +30,8 @@ export default class BufferSetPool {
 		this.currentPoolSize++;
 		this.used.add(newBufferSet);
 		this.stats.setParameter("BufferSet pool", "Used", this.used.size);
+		this.stats.setParameter("BufferSet pool", "Available", this.available.size);
+		this.stats.setParameter("BufferSet pool", "Total memory", this.currentPoolSize * bufferManager.getDefaultByteSize());
 		return newBufferSet;
 	}
 	
