@@ -129,16 +129,13 @@ export default class BimServerViewer {
 			var totalBounds = responses[0].result;
 			var totalBoundsUntransformed = responses[1].result;
 			
-			var modelBoundsUntransformed = {};
+			var modelBoundsUntransformed = new Map();
 			for (var i=0; i<(responses.length - 2) / 2; i++) {
-				modelBoundsUntransformed[roids[i]] = responses[i + 2].result;
+				modelBoundsUntransformed.set(roids[i], responses[i + 2].result);
 			}
-			var modelBoundsTransformed = {};
+			var modelBoundsTransformed = new Map();
 			for (var i=0; i<(responses.length - 2) / 2; i++) {
-				var r = responses[(responses.length - 2) / 2 + i + 2].result;
-				modelBoundsTransformed[roids[i]] = r;
-				
-				this.debugRenderLayer.addBoundingBox([r.min.x, r.min.y, r.min.z, r.max.x, r.max.y, r.max.z]);
+				modelBoundsTransformed.set(roids[i], responses[(responses.length - 2) / 2 + i + 2].result);
 			}
 			
 			var reusedVerticesFactor = 0.8;
@@ -158,13 +155,11 @@ export default class BimServerViewer {
 
 			if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
 				this.viewer.vertexQuantization = new VertexQuantization(this.settings);
-				for (var roid in modelBoundsUntransformed) {
-					var b = modelBoundsUntransformed[roid];
-					this.viewer.vertexQuantization.generateUntransformedMatrices(roid, b);
+				for (var roid of modelBoundsUntransformed.keys()) {
+					this.viewer.vertexQuantization.generateUntransformedMatrices(roid, modelBoundsUntransformed.get(roid));
 				}
 				this.viewer.vertexQuantization.generateMatrices(totalBounds, totalBoundsUntransformed);
 			}
-			
 
 			var bounds = [
 				totalBounds.min.x,
@@ -207,7 +202,7 @@ export default class BimServerViewer {
 	
 	loadDefaultLayer(defaultRenderLayer, projects, totalBounds) {
 		var start = performance.now();
-		var executor = new Executor(4, projects.length);
+		var executor = new Executor(4);
 
 		var query = {
 			type: {
@@ -236,12 +231,14 @@ export default class BimServerViewer {
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 		};
 		
-		// TODO maybe it will be faster to just use one loader instead of potentially 180 loaders, this will however lead to more memory used because loaders can't be closed when they are done
-		projects.forEach((project) => {
-			if (this.viewer.vertexQuantization) {
-				var map = {};
+		if (this.viewer.vertexQuantization) {
+			var map = {}
+			for (var project of projects) {
 				map[project.lastRevisionId] = this.viewer.vertexQuantization.getUntransformedVertexQuantizationMatrixForRoid(project.lastRevisionId);
 			}
+		}
+		// TODO maybe it will be faster to just use one loader instead of potentially 180 loaders, this will however lead to more memory used because loaders can't be closed when they are done
+		projects.forEach((project) => {
 			var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, defaultRenderLayer, [project.lastRevisionId], this.settings.loaderSettings, map, this.stats, this.settings, query);
 			defaultRenderLayer.registerLoader(geometryLoader.loaderId);
 			executor.add(geometryLoader).then(() => {
