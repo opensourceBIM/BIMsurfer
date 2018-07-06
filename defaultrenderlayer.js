@@ -65,7 +65,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		}
 		var object = loader.objects[objectId];
 		if (object.visible) {
-			this.addGeometry(geometry, object);
+			this.addGeometry(loader.loaderId, geometry, object);
 			object.geometry.push(geometryId);
 		} else {
 			this.viewer.stats.inc("Primitives", "Nr primitives hidden", geometry.indices.length / 3);
@@ -221,7 +221,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		geometry.buffer = buffer;
 	}
 
-	addGeometry(geometry, object) {
+	addGeometry(loaderId, geometry, object) {
 		if (this.settings.reuseFn(geometry.reused, geometry)) {
 			geometry.matrices.push(object.matrix);
 			
@@ -236,82 +236,11 @@ export default class DefaultRenderLayer extends RenderLayer {
 			indices: geometry.indices.length,
 			colors: (geometry.colors != null ? geometry.colors.length : 0)
 		};
-		
 		var buffer = this.bufferManager.getBufferSet(geometry.hasTransparency, geometry.color, sizes);
 
-		var startIndex = buffer.positionsIndex / 3;
-
-		var vertex = Array(3);
-		for (var i=0; i<geometry.positions.length; i+=3) {
-			// When quantizeVertices is on and we use the buffers in a combined buffer (which is what this method, addGeometry does),
-			// we need to un-quantize the vertices, transform them, then quantize them again (so the shaders can again unquantize them).
-			// This because order does matter (object transformation sometimes even mirror stuff)
-			// Obviously quantization slows down both CPU (only initially) and GPU (all the time)
-			vertex[0] = geometry.positions[i + 0];
-			vertex[1] = geometry.positions[i + 1];
-			vertex[2] = geometry.positions[i + 2];
-			
-			// If the geometry loader loads quantized data we need to unquantize first
-			if (this.settings.loaderSettings.quantizeVertices) {
-				vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(geometry.roid));
-			}
-			vec3.transformMat4(vertex, vertex, object.matrix);
-			if (this.settings.quantizeVertices) {
-				vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.getTransformedVertexQuantizationMatrix());
-			}
-
-			buffer.positions.set(vertex, buffer.positionsIndex);
-			buffer.positionsIndex += 3;
-		}
-		var normal = Array(3);
-		for (var i=0; i<geometry.normals.length; i+=3) {
-			normal[0] = geometry.normals[i + 0];
-			normal[1] = geometry.normals[i + 1];
-			normal[2] = geometry.normals[i + 2];
-
-			if (this.settings.loaderSettings.quantizeNormals) {
-				normal[0] = normal[0] / 127;
-				normal[1] = normal[1] / 127;
-				normal[2] = normal[2] / 127;
-			}
-			vec3.transformMat4(normal, normal, object.matrix);
-			vec3.normalize(normal, normal);
-			if (this.settings.quantizeNormals) {
-				normal[0] = normal[0] * 127;
-				normal[1] = normal[1] * 127;
-				normal[2] = normal[2] * 127;
-			}
-
-			buffer.normals.set(normal, buffer.normalsIndex);
-			buffer.normalsIndex += 3;
-		}
-		if (geometry.colors != null) {
-			buffer.colors.set(geometry.colors, buffer.colorsIndex);
-			buffer.colorsIndex += geometry.colors.length;
-		}
-		if (startIndex == 0) {
-			// Small optimization, if this is the first object in the buffer, no need to add the startIndex to each index
-			buffer.indices.set(geometry.indices, 0);
-			buffer.indicesIndex = geometry.indices.length;
-		} else {
-			var index = Array(3);
-			for (var i=0; i<geometry.indices.length; i+=3) {
-				index[0] = geometry.indices[i + 0] + startIndex;
-				index[1] = geometry.indices[i + 1] + startIndex;
-				index[2] = geometry.indices[i + 2] + startIndex;
-				
-				buffer.indices.set(index, buffer.indicesIndex);
-				buffer.indicesIndex += 3;
-			}
-		}
-
-		buffer.nrIndices += geometry.indices.length;
-		
-		if (buffer.needsToFlush) {
-			this.flushBuffer(buffer);
-		}
+		super.addGeometry(loaderId, geometry, object, buffer, sizes);
 	}
-
+	
 	done(loaderId) {
 		var loader = this.getLoader(loaderId);
 
@@ -449,6 +378,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 			}
 			
 			this.liveBuffers.push(newBuffer);
+			this.viewer.dirty = true;
 		}
 
 		var toadd = buffer.positionsIndex * (this.settings.quantizeVertices ? 2 : 4) + buffer.normalsIndex * (this.settings.quantizeNormals ? 1 : 4) + (buffer.colorsIndex != null ? buffer.colorsIndex * 4 : 0) + buffer.indicesIndex * 4;

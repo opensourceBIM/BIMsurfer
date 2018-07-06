@@ -13,14 +13,18 @@ export default class TilingRenderLayer extends RenderLayer {
 		super(viewer);
 		var slightlyLargerBounds = [bounds[0] - 0.1, bounds[1] - 0.1, bounds[2] - 0.1, bounds[3] + 0.2, bounds[4] + 0.2, bounds[5] + 0.2];
 
-		this.octree = new Octree(slightlyLargerBounds);
-		this.octree.split(3);
+		this.octree = new Octree(slightlyLargerBounds, 4);
+		this.octree.prepareBreathFirst(() => {
+			return true;
+		});
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
 		
 		this.loaderCounter = 0;
 		this.loaderToNode = {};
 		
-		window.tiles = this;
+		this.drawTileBorders = true;
+		
+		window.tilingRenderLayer = this;
 		
 		this.show = "all";
 	}
@@ -31,7 +35,7 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	load(bimServerApi, densityThreshold, roids) {
-		var executor = new Executor(8, projects.length);
+		var executor = new Executor(32);
 
 		// Traversing breath-first so the big chucks are loaded first
 		this.octree.traverseBreathFirst((node) => {
@@ -51,7 +55,7 @@ export default class TilingRenderLayer extends RenderLayer {
 					"width": bounds[3],
 					"height": bounds[4],
 					"depth": bounds[5],
-					"partial": false,
+//					"partial": false,
 					"excludeOctants": !node.leaf,
 //					"useCenterPoint": true,
 					"densityUpperThreshold": densityThreshold
@@ -88,7 +92,9 @@ export default class TilingRenderLayer extends RenderLayer {
 			executor.add(geometryLoader).then(() => {
 				if ((node.liveBuffers == null || node.liveBuffers.length == 0) && (node.bufferManager == null || node.bufferManager.bufferSets.size == 0)) {
 					node.status = 0;
+					this.viewer.stats.inc("Tiling", "Empty tiles");
 				} else {
+					this.viewer.stats.inc("Tiling", "Full tiles");
 					node.status = 2;
 				}
 				this.done(geometryLoader.loaderId);
@@ -97,6 +103,9 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		executor.awaitTermination().then(() => {
 			this.completelyDone();
+			this.octree.prepareBreathFirst((node) => {
+				return !((node.liveBuffers == null || node.liveBuffers.length == 0) && (node.bufferManager == null || node.bufferManager.bufferSets.size == 0));
+			});
 			this.viewer.stats.requestUpdate();
 			document.getElementById("progress").style.display = "none";
 		});	
@@ -127,6 +136,7 @@ export default class TilingRenderLayer extends RenderLayer {
 //		}
 		
 		var renderableTiles = 0;
+		var renderingTiles = 0;
 
 		var programInfo = this.viewer.programManager.getProgram({
 			instancing: false,
@@ -145,7 +155,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 		}
 
-		this.octree.traverse((node) => {
+		this.octree.traverseBreathFirst((node) => {
 			// Check whether this node is completely outside of the view frustum -> discard
 			// TODO results of these checks we could store for the second render pass
 			
@@ -168,6 +178,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			renderableTiles++;
 			var buffers = node.liveBuffers;
 			if (buffers != null && buffers.length > 0) {
+				renderingTiles++;
 				var lastUsedColorHash = null;
 				
 				for (let buffer of buffers) {
@@ -185,8 +196,10 @@ export default class TilingRenderLayer extends RenderLayer {
 		}, false);
 		
 		this.viewer.stats.setParameter("Tiling", "Renderable tiles", renderableTiles);
+		this.viewer.stats.setParameter("Tiling", "Rendering tiles", renderingTiles);
 
-		if (transparency) {
+		if (transparency && this.drawTileBorders) {
+			// The lines are rendered in the transparency-phase only
 			this.lineBoxGeometry.renderStart();
 			this.octree.traverse((node) => {
 				var color = null;
@@ -237,78 +250,8 @@ export default class TilingRenderLayer extends RenderLayer {
 			}
 		}
 		var buffer = node.bufferManager.getBufferSet(geometry.hasTransparency, geometry.color, sizes, node);
-
-		var startIndex = buffer.positionsIndex / 3;
-
-		var vertex = Array(3);
-		for (var i=0; i<geometry.positions.length; i+=3) {
-			// When quantizeVertices is on and we use the buffers in a combined buffer (which is what this method, addGeometry does),
-			// we need to un-quantize the vertices, transform them, then quantize them again (so the shaders can again unquantize them).
-			// This because order does matter (object transformation sometimes even mirror stuff)
-			// Obviously quantization slows down both CPU (only initially) and GPU (all the time)
-			vertex[0] = geometry.positions[i + 0];
-			vertex[1] = geometry.positions[i + 1];
-			vertex[2] = geometry.positions[i + 2];
-			
-			// If the geometry loader loads quantized data we need to unquantize first
-			if (this.settings.loaderSettings.quantizeVertices) {
-				vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(geometry.roid));
-			}
-			vec3.transformMat4(vertex, vertex, object.matrix);
-			if (this.settings.quantizeVertices) {
-				vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.getTransformedVertexQuantizationMatrix());
-			}
-
-			buffer.positions.set(vertex, buffer.positionsIndex);
-			buffer.positionsIndex += 3;
-		}
-		var normal = Array(3);
-		for (var i=0; i<geometry.normals.length; i+=3) {
-			normal[0] = geometry.normals[i + 0];
-			normal[1] = geometry.normals[i + 1];
-			normal[2] = geometry.normals[i + 2];
-
-			if (this.settings.loaderSettings.quantizeNormals) {
-				normal[0] = normal[0] / 127;
-				normal[1] = normal[1] / 127;
-				normal[2] = normal[2] / 127;
-			}
-			vec3.transformMat4(normal, normal, object.matrix);
-			vec3.normalize(normal, normal);
-			if (this.settings.quantizeNormals) {
-				normal[0] = normal[0] * 127;
-				normal[1] = normal[1] * 127;
-				normal[2] = normal[2] * 127;
-			}
-
-			buffer.normals.set(normal, buffer.normalsIndex);
-			buffer.normalsIndex += 3;
-		}
-		if (geometry.colors != null) {
-			buffer.colors.set(geometry.colors, buffer.colorsIndex);
-			buffer.colorsIndex += geometry.colors.length;
-		}
-		if (startIndex == 0) {
-			// Small optimization, if this is the first object in the buffer, no need to add the startIndex to each index
-			buffer.indices.set(geometry.indices, 0);
-			buffer.indicesIndex = geometry.indices.length;
-		} else {
-			var index = Array(3);
-			for (var i=0; i<geometry.indices.length; i+=3) {
-				index[0] = geometry.indices[i + 0] + startIndex;
-				index[1] = geometry.indices[i + 1] + startIndex;
-				index[2] = geometry.indices[i + 2] + startIndex;
-				
-				buffer.indices.set(index, buffer.indicesIndex);
-				buffer.indicesIndex += 3;
-			}
-		}
-
-		buffer.nrIndices += geometry.indices.length;
 		
-		if (buffer.needsToFlush) {
-			this.flushBuffer(buffer, node);
-		}
+		super.addGeometry(loaderId, geometry, object, buffer, sizes);
 	}
 	
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type) {
@@ -362,6 +305,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			for (var buffer of bufferManager.getAllBuffers()) {
 				this.flushBuffer(buffer, node);
 			}
+			bufferManager.clear();
 			node.bufferManager = null;
 		}
 
