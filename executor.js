@@ -5,27 +5,21 @@
  */
 
 export default class Executor {
-	constructor(simultanous, maxJobCount) {
+	constructor(maxJobCount) {
 		this.jobCounter = 0;
 		
 		this.jobsToDo = {};
 		this.idsToDo = [];
 		this.jobsRunning = {};
-		this.simultanous = simultanous;
+		this.maxJobCount = maxJobCount;
 		
 		this.nrRunning = 0;
 	}
 	
 	add(job) {
 		job.id = this.jobCounter++;
-		if (this.nrRunning < this.simultanous) {
-			this.jobsRunning[job.id] = job;
-			this.nrRunning++;
-			var p = job.start();
-			p.then(() => {
-				this.jobDone(job);
-			});
-			return p;
+		if (this.nrRunning < this.maxJobCount) {
+			return this.startJob(job);
 		}
 		this.jobsToDo[job.id] = job;
 		this.idsToDo.push(job.id);
@@ -39,16 +33,26 @@ export default class Executor {
 			this.done();
 			return;
 		}
-		if (this.idsToDo.length > 0 && this.nrRunning < this.simultanous) {
+		if (this.idsToDo.length > 0 && this.nrRunning < this.maxJobCount) {
 			var jobId = this.idsToDo.splice(0, 1)[0];
 			var job = this.jobsToDo[jobId];
-			this.jobsRunning[jobId] = job;
-			this.nrRunning++;
-			var p = job.start();
-			p.then(() => {
-				this.jobDone(job);
-			});
+			this.startJob(job);
 		}
+	}
+	
+	startJob(job) {
+		this.jobsRunning[job.id] = job;
+		this.nrRunning++;
+		var r;
+		var newPromise = new Promise((resolve, reject) => {
+			r = resolve;
+		});
+		var p = job.start();
+		p.then(() => {
+			r();
+			this.jobDone(job);
+		});
+		return newPromise;
 	}
 	
 	done() {
@@ -56,7 +60,7 @@ export default class Executor {
 	}
 	
 	/*
-	 * Will fire a promise when all jobs are done
+	 * Will fire a promise when all jobs are done, a problem with this atm is that it should fire after all handlers of the tasks its promise have been handled, not sure how to do that
 	 */
 	awaitTermination() {
 		if (this.terminationPromise == null) {
