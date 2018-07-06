@@ -118,12 +118,13 @@ export default class BufferManager {
 	}
 	
 	clear() {
-		this.buffers = null;
+		for (var bufferSet of this.bufferSets.values()) {
+			this.bufferSetPool.release(bufferSet);
+		}
+		this.bufferSets = null;
 	}
 	
 	resetBuffer(bufferSet) {
-		this.bufferSetPool.release(bufferSet);
-		
 		bufferSet.positionsIndex = 0;
 		bufferSet.normalsIndex = 0;
 		bufferSet.indicesIndex = 0;
