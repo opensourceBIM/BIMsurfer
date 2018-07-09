@@ -3,10 +3,10 @@ export default class Perspective {
     constructor(viewer) {
         this.viewer = viewer;
         this._projMatrix = mat4.create();
-        this._fov = 60;
+        this._fov = 45;
         this._fovAxis = "min";
         this._near = 0.1;
-        this._far = 10000;
+        this._far = 100;
         this._dirty = true;
     }
 
@@ -16,7 +16,7 @@ export default class Perspective {
     }
 
     set fov(fov) {
-        fov = fov || 60;
+        fov = fov || 45;
         fov = Math.min(fov, 120);
         this._fov = fov;
         this._setDirty();
@@ -52,7 +52,7 @@ export default class Perspective {
     }
 
     set far(far) {
-        this._far = far || 10000;
+        this._far = far || 100;
         this._setDirty();
     }
 

@@ -168,7 +168,7 @@ export default class Viewer {
                     0, -1, 0  // Forward
                 ];
                 this.camera.viewFit(this.modelBounds); // Position camera so that entire model bounds are in view
-                this.camera.worldScale = 0.005;
+                this.camera.worldScale = scale;
                 this.cameraSet = true;
             }
         }
