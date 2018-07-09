@@ -25,7 +25,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 			this.bufferManager = new BufferManagerTransparencyOnly(this.settings, this, this.viewer.bufferSetPool);
 		}
 
-		this.bufferTransformer = new BufferTransformer(settings, viewer.vertexQuantization);
+		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
 
 		this.liveBuffers = [];
 		this.liveReusedBuffers = [];
