@@ -21,11 +21,20 @@ export default class Camera {
         this._projection = this.perspective; // Currently active projection
         this._viewMatrix = mat4.create();
         this._normalMatrix = mat4.create();
+
+        this._zoomLevel = 1.0;
+
         this._eye = vec3.fromValues(0.0, 0.0, -10.0); // World-space eye position
         this._target = vec3.fromValues(0.0, 0.0, 0.0); // World-space point-of-interest
         this._up = vec3.fromValues(0.0, 1.0, 0.0); // Camera's "up" vector, always orthogonal to eye->target
+
+        this._worldAxis = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
         this._worldUp = vec3.fromValues(0.0, 1.0, 0.0); // Direction of "up" in World-space
+        this._worldRight = vec3.fromValues(1, 0, 0); // Direction of "right" in World-space
+        this._worldForward = vec3.fromValues(0, 0, -1); // Direction of "forward" in World-space
+
         this._gimbalLock = true; // When true, orbiting world-space "up", else orbiting camera's local "up"
+
         this._dirty = true; // Lazy-builds view matrix
     }
 
@@ -37,10 +46,26 @@ export default class Camera {
     _build() {
         if (this._dirty) {
             mat4.lookAt(this._viewMatrix, this._eye, this._target, this._up);
+            var scale = tempVec3;
+            scale[0] = this._zoomLevel;
+            scale[1] = this._zoomLevel;
+            scale[2] = this._zoomLevel;
+            mat4.identity(tempMat4);
+            mat4.scale(tempMat4, tempMat4, scale);
+            mat4.multiply(this._viewMatrix, tempMat4, this._viewMatrix);
             mat4.invert(this._normalMatrix, this._viewMatrix);
             mat4.transpose(this._normalMatrix, this._normalMatrix);
             this._dirty = false;
         }
+    }
+
+    get zoomLevel() {
+        return this._zoomLevel;
+    }
+
+    set zoomLevel(zoomLevel) {
+        this._zoomLevel = zoomLevel || 1.0;
+        this._setDirty();
     }
 
     get viewMatrix() {
@@ -117,6 +142,43 @@ export default class Camera {
         return this._gimbalLock;
     }
 
+    /**
+     Indicates the up, right and forward axis of the World coordinate system.
+
+     This is used for yaw rotations and moving camera to axis-aligned positions.
+
+     Has format: ````[rightX, rightY, rightZ, upX, upY, upZ, forwardX, forwardY, forwardZ]````
+     */
+    set worldAxis(worldAxis) {
+        this._worldAxis.set(worldAxis|| [1, 0, 0, 0, 1, 0, 0, 0, 1]);
+        this._worldRight[0] = this._worldAxis[0];
+        this._worldRight[1] = this._worldAxis[1];
+        this._worldRight[2] = this._worldAxis[2];
+        this._worldUp[0] = this._worldAxis[3];
+        this._worldUp[1] = this._worldAxis[4];
+        this._worldUp[2] = this._worldAxis[5];
+        this._worldForward[0] = this._worldAxis[6];
+        this._worldForward[1] = this._worldAxis[7];
+        this._worldForward[2] = this._worldAxis[8];
+        this._setDirty();
+    }
+
+    get worldAxis() {
+        return this._worldAxis;
+    }
+
+    get worldUp() {
+        return this._worldUp;
+    }
+
+    get worldRight() {
+        return this._worldRight;
+    }
+
+    get worldForward() {
+        return this._worldForward;
+    }
+
     orbitYaw(degrees) { // Rotate (yaw) 'eye' and 'up' about 'target', pivoting around World or camera 'up'
         var targetToEye = vec3.subtract(tempVec3, this._eye, this._target);
         mat4.fromRotation(tempMat4, degrees * 0.0174532925, this._gimbalLock ? this._worldUp : this._up);
@@ -137,7 +199,7 @@ export default class Camera {
     }
 
     yaw(degrees) { // Rotate (yaw) 'target' and 'up' about 'eye', pivoting around 'up'
-        var eyeToTarget = vec3.subtract(tempVec3, this._target, this._eye); 
+        var eyeToTarget = vec3.subtract(tempVec3, this._target, this._eye);
         mat4.fromRotation(tempMat4, degrees * 0.0174532925, this._gimbalLock ? this._worldUp : this._up);
         vec3.transformMat4(eyeToTarget, eyeToTarget, tempMat4); // Rotate vector
         vec3.add(this._target, this._eye, eyeToTarget); // Derive 'target' from eye and vector
@@ -148,7 +210,7 @@ export default class Camera {
     }
 
     pitch(degrees) { // Rotate (pitch) 'eye' and 'up' about 'target', pivoting around horizontal vector ortho to (target->eye) and camera 'up'
-        var eyeToTarget = vec3.subtract(tempVec3, this._target, this._eye); 
+        var eyeToTarget = vec3.subtract(tempVec3, this._target, this._eye);
         var axis = vec3.cross(tempVec3b, vec3.normalize(tempVec3c, eyeToTarget), vec3.normalize(tempVec3d, this._up)); // Pivot vector is orthogonal to target->eye
         mat4.fromRotation(tempMat4, degrees * 0.0174532925, axis);
         vec3.transformMat4(eyeToTarget, eyeToTarget, tempMat4); // Rotate vector
@@ -185,7 +247,7 @@ export default class Camera {
     }
 
     zoom(delta) { // Translate 'eye' by given increment on (eye->target) vector
-        var targetToEye = vec3.subtract(tempVec3, this._eye, this._target); 
+        var targetToEye = vec3.subtract(tempVec3, this._eye, this._target);
         var lenLook = Math.abs(vec3.length(targetToEye));
         var newLenLook = Math.abs(lenLook + delta);
         if (newLenLook < 0.5) {

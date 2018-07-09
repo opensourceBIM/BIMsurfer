@@ -160,10 +160,16 @@ export default class Viewer {
                     (this.modelBounds[4] + this.modelBounds[1]) / 2,
                     (this.modelBounds[5] + this.modelBounds[2]) / 2
                 ];
-                var dist = 1000; // TODO: Derive from perspective frustum and modelBounds
+                var dist = 100; // TODO: Derive from perspective frustum and modelBounds
                 this.camera.target = center;
-                this.camera.eye = [center[0], center[1], center[2] - dist];
-                this.camera.up = [0, 1, 0];
+                this.camera.eye = [center[0], center[1] - dist, center[2]];
+                this.camera.up = [0, 0, 1];
+                this.camera.worldAxis = [ // Set the +Z axis as World "up"
+                    1, 0, 0, // Right
+                    0, 0, 1, // Up
+                    0, -1, 0  // Forward
+                ];
+                this.camera.zoomLevel = 0.005;
                 this.cameraSet = true;
             }
         }
