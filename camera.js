@@ -15,10 +15,12 @@ export default class Camera {
         this.viewer = viewer;
 
         this.perspective = new Perspective(viewer);
+
         this.orthographic = new Orthographic(viewer);
 
         this._projection = this.perspective; // Currently active projection
         this._viewMatrix = mat4.create();
+        this._normalMatrix = mat4.create();
         this._eye = vec3.fromValues(0.0, 0.0, -10.0); // World-space eye position
         this._target = vec3.fromValues(0.0, 0.0, 0.0); // World-space point-of-interest
         this._up = vec3.fromValues(0.0, 1.0, 0.0); // Camera's "up" vector, always orthogonal to eye->target
@@ -27,12 +29,32 @@ export default class Camera {
         this._dirty = true; // Lazy-builds view matrix
     }
 
-    get viewMatrix() {
+    _setDirty() {
+        this._dirty = true;
+        this.viewer.dirty = true;
+    }
+
+    _build() {
         if (this._dirty) {
             mat4.lookAt(this._viewMatrix, this._eye, this._target, this._up);
+            mat4.invert(this._normalMatrix, this._viewMatrix);
+            mat4.transpose(this._normalMatrix, this._normalMatrix);
             this._dirty = false;
         }
+    }
+
+    get viewMatrix() {
+        if (this._dirty) {
+            this._build();
+        }
         return this._viewMatrix;
+    }
+
+    get normalMatrix() {
+        if (this._dirty) {
+            this._build();
+        }
+        return this._normalMatrix;
     }
 
     get projMatrix() {
@@ -62,7 +84,7 @@ export default class Camera {
 
     set eye(eye) {
         this._eye.set(eye || [0.0, 0.0, -10.0]);
-        this._dirty = true;
+        this._setDirty();
     }
 
     get eye() {
@@ -71,7 +93,7 @@ export default class Camera {
 
     set target(target) {
         this._target.set(target || [0.0, 0.0, 0.0]);
-        this._dirty = true;
+        this._setDirty();
     }
 
     get target() {
@@ -80,7 +102,7 @@ export default class Camera {
 
     set up(up) {
         this._up.set(up || [0.0, 1.0, 0.0]);
-        this._dirty = true;
+        this._setDirty();
     }
 
     get up() {
@@ -101,7 +123,7 @@ export default class Camera {
         vec3.transformMat4(targetToEye, targetToEye, tempMat4);
         vec3.add(this._eye, this._target, targetToEye);
         vec3.transformMat4(this._up, this._up, tempMat4);
-        this._dirty = true;
+        this._setDirty();
     }
 
     orbitPitch(degrees) { // Rotate (pitch) 'eye' and 'up' about 'target', pivoting around vector ortho to (target->eye) and camera 'up'
@@ -111,7 +133,7 @@ export default class Camera {
         vec3.transformMat4(targetToEye, targetToEye, tempMat4); // Rotate vector
         vec3.add(this._eye, this._target, targetToEye); // Derive 'eye' from vector and 'target'
         vec3.transformMat4(this._up, this._up, tempMat4); // Rotate 'up' vector
-        this._dirty = true;
+        this._setDirty();
     }
 
     yaw(degrees) { // Rotate (yaw) 'target' and 'up' about 'eye', pivoting around 'up'
@@ -122,7 +144,7 @@ export default class Camera {
         if (this._gimbalLock) {
             vec3.transformMat4(this._up, this._up, tempMat4); // Rotate 'up' vector
         }
-        this._dirty = true;
+        this._setDirty();
     }
 
     pitch(degrees) { // Rotate (pitch) 'eye' and 'up' about 'target', pivoting around horizontal vector ortho to (target->eye) and camera 'up'
@@ -132,7 +154,7 @@ export default class Camera {
         vec3.transformMat4(eyeToTarget, eyeToTarget, tempMat4); // Rotate vector
         vec3.add(this._target, this._eye, eyeToTarget); // Derive 'target' from eye and vector
         vec3.transformMat4(this._up, this._up, tempMat4); // Rotate 'up' vector
-        this._dirty = true;
+        this._setDirty();
     }
 
     pan(pan) { // Translate 'eye' and 'target' along local camera axis
@@ -159,7 +181,7 @@ export default class Camera {
         }
         vec3.add(this._eye, this._eye, vec);
         this._target = vec3.add(this._target, this._target, vec);
-        this._dirty = true;
+        this._setDirty();
     }
 
     zoom(delta) { // Translate 'eye' by given increment on (eye->target) vector
@@ -172,6 +194,6 @@ export default class Camera {
         vec3.normalize(targetToEye, targetToEye);
         vec3.scale(targetToEye, targetToEye, newLenLook);
         vec3.add(this._eye, this._target, targetToEye);
-        this._dirty = true;
+        this._setDirty();
     }
 }
