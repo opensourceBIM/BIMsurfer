@@ -53,6 +53,10 @@ export default class Viewer {
                 return;
             }
 
+            this.canvas.oncontextmenu = function (e) { // Allow right-click for camera panning
+                e.preventDefault();
+            };
+
             this.camera = new Camera(this);
             this.cameraControl = new CameraControl(this);
             this.lighting = new Lighting(this.gl);
