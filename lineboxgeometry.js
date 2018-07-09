@@ -59,8 +59,8 @@ export default class LineBoxGeometry {
 	renderStart() {
 		this.gl.useProgram(this.programInfo.program);
 		
-		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, this.viewer.projectionMatrix);
-		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.modelViewMatrix, false, this.viewer.modelViewMatrix);
+		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
+		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
 		
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.verticesBuffer);
 		
