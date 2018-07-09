@@ -49,7 +49,7 @@ export default class CameraControl {
                 var zsize = modelBounds[5] - modelBounds[2];
                 var max = (xsize > ysize ? xsize : ysize);
                 max = (zsize > max ? zsize : max);
-                return max / 30;
+                return max / 20;
             } else {
                 return 1;
             }
