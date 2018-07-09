@@ -1,6 +1,8 @@
 import ProgramManager from './programmanager.js'
 import Lighting from './lighting.js'
 import BufferSetPool from './buffersetpool.js'
+import Camera from './camera.js'
+import CameraControl from './cameraControl.js'
 
 /*
  * Main viewer class, too many responsibilities:
@@ -55,6 +57,8 @@ export default class Viewer {
 				return;
 			}
 
+			this.camera = new Camera(this);
+			this.cameraControl = new CameraControl(this);
 			this.lighting = new Lighting(this.gl);
 			this.programManager = new ProgramManager(this.gl);
 
