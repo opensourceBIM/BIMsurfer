@@ -51,9 +51,10 @@ export default class BimServerViewer {
 
 			this.bimServerApi.call("ServiceInterface", "getDensityThreshold", {
 				roid: project.lastRevisionId,
-				nrTriangles: 0,
+				nrTriangles: 1000000000,
 				excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"]
 			}, (densityAtThreshold) => {
+				this.densityAtThreshold = densityAtThreshold;
 				this.densityThreshold = densityAtThreshold.density;
 				var nrPrimitives = densityAtThreshold.triangles;
 				this.bimServerApi.call("ServiceInterface", "getRevision", {
@@ -147,11 +148,11 @@ export default class BimServerViewer {
 			estimatedNonReusedByteSize += reusedVerticesFactor * nrPrimitives * 3 * 4 * (this.settings.quantizeVertices ? 2 : 4); // vertices
 			estimatedNonReusedByteSize += reusedVerticesFactor * nrPrimitives * 3 * 4 * (this.settings.quantizeNormals ? 1 : 4); // normals
 
-//			if (estimatedNonReusedByteSize < this.settings.assumeGpuMemoryAvailable) {
-//				this.settings.reuseFn = () => {
-//					return false;
-//				};
-//			}
+			if (estimatedNonReusedByteSize < this.settings.assumeGpuMemoryAvailable) {
+				this.settings.reuseFn = () => {
+					return false;
+				};
+			}
 
 			if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
 				this.viewer.vertexQuantization = new VertexQuantization(this.settings);
@@ -192,10 +193,16 @@ export default class BimServerViewer {
 			var startLayer1 = performance.now();
 			this.loadDefaultLayer(defaultRenderLayer, projects, bounds).then(() => {
 				console.log("layer 1 done", (performance.now() - startLayer1) + "ms");
-				var startLayer2 = performance.now();
-				this.loadTilingLayer(tilingRenderLayer, projects, bounds).then(() => {
-					console.log("layer 2 done", (performance.now() - startLayer2) + "ms");
-				});
+				
+				if (false) {
+					// TODO only start loading layer 2 if we are sure that not all content has already been loaded in layer 1
+					var startLayer2 = performance.now();
+					this.loadTilingLayer(tilingRenderLayer, projects, bounds).then(() => {
+						console.log("layer 2 done", (performance.now() - startLayer2) + "ms");
+					});
+				} else {
+					this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
+				}
 			});
 		});
 	}
