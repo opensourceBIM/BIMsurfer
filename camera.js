@@ -22,7 +22,7 @@ export default class Camera {
         this._viewMatrix = mat4.create();
         this._normalMatrix = mat4.create();
 
-        this._zoomLevel = 1.0;
+        this._worldScale = 1.0;
 
         this._eye = vec3.fromValues(0.0, 0.0, -10.0); // World-space eye position
         this._target = vec3.fromValues(0.0, 0.0, 0.0); // World-space point-of-interest
@@ -47,9 +47,9 @@ export default class Camera {
         if (this._dirty) {
             mat4.lookAt(this._viewMatrix, this._eye, this._target, this._up);
             var scale = tempVec3;
-            scale[0] = this._zoomLevel;
-            scale[1] = this._zoomLevel;
-            scale[2] = this._zoomLevel;
+            scale[0] = this._worldScale;
+            scale[1] = this._worldScale;
+            scale[2] = this._worldScale;
             mat4.identity(tempMat4);
             mat4.scale(tempMat4, tempMat4, scale);
             mat4.multiply(this._viewMatrix, tempMat4, this._viewMatrix);
@@ -59,12 +59,12 @@ export default class Camera {
         }
     }
 
-    get zoomLevel() {
-        return this._zoomLevel;
+    get worldScale() {
+        return this._worldScale;
     }
 
-    set zoomLevel(zoomLevel) {
-        this._zoomLevel = zoomLevel || 1.0;
+    set worldScale(worldScale) {
+        this._worldScale = worldScale || 1.0;
         this._setDirty();
     }
 
@@ -263,5 +263,25 @@ export default class Camera {
         vec3.scale(targetToEye, targetToEye, newLenLook);
         vec3.add(this._eye, this._target, targetToEye);
         this._setDirty();
+    }
+
+    viewFit(aabb, fitFOV) {
+        aabb = aabb || this.viewer.modelBounds;
+        fitFOV = fitFOV || 35;
+        var eyeToTarget = vec3.normalize(tempVec3b, vec3.subtract(tempVec3, this._eye, this._target));
+        var diagonal = Math.sqrt(
+            Math.pow(aabb[3] - aabb[0], 2) +
+            Math.pow(aabb[4] - aabb[1], 2) +
+            Math.pow(aabb[5] - aabb[2], 2));
+        var center = [
+            (aabb[3] + aabb[0]) / 2,
+            (aabb[4] + aabb[1]) / 2,
+            (aabb[5] + aabb[2]) / 2
+        ];
+        this._target.set(center);
+        var sca = Math.abs(diagonal / Math.tan(fitFOV * 0.0174532925));
+        this._eye[0] = this._target[0] + (eyeToTarget[0] * sca);
+        this._eye[1] = this._target[1] + (eyeToTarget[1] * sca);
+        this._eye[2] = this._target[2] + (eyeToTarget[2] * sca);
     }
 }

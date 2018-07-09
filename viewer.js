@@ -159,21 +159,16 @@ export default class Viewer {
             this.totalScale = (this.zoomLevel * scale) * 2;
 
             if (!this.cameraSet) { // HACK to look at model origin as soon as available
-                var center = [
-                    (this.modelBounds[3] + this.modelBounds[0]) / 2,
-                    (this.modelBounds[4] + this.modelBounds[1]) / 2,
-                    (this.modelBounds[5] + this.modelBounds[2]) / 2
-                ];
-                var dist = 100; // TODO: Derive from perspective frustum and modelBounds
-                this.camera.target = center;
-                this.camera.eye = [center[0], center[1] - dist, center[2]];
+                this.camera.target = [0,0,0];
+                this.camera.eye = [0, 1, 0];
                 this.camera.up = [0, 0, 1];
                 this.camera.worldAxis = [ // Set the +Z axis as World "up"
                     1, 0, 0, // Right
                     0, 0, 1, // Up
                     0, -1, 0  // Forward
                 ];
-                this.camera.zoomLevel = 0.005;
+                this.camera.viewFit(this.modelBounds); // Position camera so that entire model bounds are in view
+                this.camera.worldScale = 0.005;
                 this.cameraSet = true;
             }
         }
@@ -245,16 +240,6 @@ export default class Viewer {
     }
 
     loadingDone() {
-        this.dirty = true;
-    }
-
-    incModelRotation(inc) {
-        this.modelRotation += inc;
-        this.dirty = true;
-    }
-
-    incZoomLevel(inc) {
-        this.zoomLevel += inc;
         this.dirty = true;
     }
 
