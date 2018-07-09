@@ -29,7 +29,6 @@ export default class App {
 			if (reused == 1) {
 				return false;
 			}
-			return false;
 			return geometry.bytes > 1000;
 		};
 			

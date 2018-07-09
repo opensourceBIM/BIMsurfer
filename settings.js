@@ -10,6 +10,11 @@ export default class Settings {
 			quantizeVertices: "boolean",
 			useObjectColors: "boolean",
 			useSmallIndicesIfPossible: "boolean",
+			defaultLayerEnabled: "boolean",
+			triangleThresholdDefaultLayer: "number",
+			tilingLayerEnabled: "boolean",
+			octreeDepth: "number",
+			assumeGpuMemoryAvailable: "number",
 			loaderSettings: {
 				quantizeNormals: "boolean",
 				quantizeVertices: "boolean",
@@ -23,6 +28,11 @@ export default class Settings {
 			quantizeVertices: true,
 			useObjectColors: true,
 			useSmallIndicesIfPossible: true,
+			defaultLayerEnabled: true,
+			triangleThresholdDefaultLayer: 100000,
+			tilingLayerEnabled: true,
+			octreeDepth: 3,
+			assumeGpuMemoryAvailable: 1024 * 1024 * 1024,
 			loaderSettings: {
 				quantizeNormals: true,
 				quantizeVertices: true,
@@ -52,20 +62,27 @@ export default class Settings {
 				label.setAttribute("for", id);
 				
 				var input = document.createElement("input");
-				input.setAttribute("type", "checkbox");
+				if (value == "boolean") {
+					input.setAttribute("type", "checkbox");
+				}
 				var settings = this.settings;
 				if (id.indexOf(".") != -1) {
 					settings = settings[id.substring(0, id.indexOf("."))];
 				}
 				if (settings != null) {
 					if (settings[key]) {
-						input.setAttribute("checked", "checked");
+						if (value == "boolean") {
+							input.setAttribute("checked", "checked");
+						} else {
+							input.value = settings[key];
+						}
 					}
 				} else {
 					settings[key] = false;
 				}
 				input.id = id;
 				input.setAttribute("key", key);
+				input.setAttribute("valuetype", value);
 				input.addEventListener("change", (event) => {
 					var el = event.target;
 					var key = el.getAttribute("key");
@@ -73,7 +90,12 @@ export default class Settings {
 					if (el.id.indexOf(".") != -1) {
 						settings = settings[el.id.substring(0, el.id.indexOf("."))];
 					}
-					settings[key] = el.checked;
+					var valueType = el.getAttribute("valuetype");
+					if (valueType == "boolean") {
+						settings[key] = el.checked;
+					} else {
+						settings[key] = el.value;
+					}
 					this.saveSettings();
 				});
 				

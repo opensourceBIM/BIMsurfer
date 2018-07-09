@@ -51,7 +51,7 @@ export default class BimServerViewer {
 
 			this.bimServerApi.call("ServiceInterface", "getDensityThreshold", {
 				roid: project.lastRevisionId,
-				nrTriangles: 1000000000,
+				nrTriangles: this.viewer.settings.triangleThresholdDefaultLayer,
 				excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"]
 			}, (densityAtThreshold) => {
 				this.densityAtThreshold = densityAtThreshold;
@@ -189,25 +189,29 @@ export default class BimServerViewer {
 			this.viewer.setModelBounds(bounds);
 
 			var totalSize = [totalBounds.max.x - totalBounds.min.x, totalBounds.max.y - totalBounds.min.y, totalBounds.max.z - totalBounds.min.z];
-			
-			var startLayer1 = performance.now();
-			this.loadDefaultLayer(defaultRenderLayer, projects, bounds).then(() => {
-				console.log("layer 1 done", (performance.now() - startLayer1) + "ms");
-				
-				if (false) {
+
+			var promise = Promise.resolve();
+			if (this.viewer.settings.defaultLayerEnabled) {
+				promise = this.loadDefaultLayer(defaultRenderLayer, projects, bounds);
+			}
+
+			promise.then(() => {
+				var tilingPromise = Promise.resolve();
+				if (this.viewer.settings.tilingLayerEnabled) {
 					// TODO only start loading layer 2 if we are sure that not all content has already been loaded in layer 1
-					var startLayer2 = performance.now();
-					this.loadTilingLayer(tilingRenderLayer, projects, bounds).then(() => {
-						console.log("layer 2 done", (performance.now() - startLayer2) + "ms");
-					});
-				} else {
-					this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
+					tilingPromise = this.loadTilingLayer(tilingRenderLayer, projects, bounds);
 				}
+				tilingPromise.then(() => {
+					this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
+					this.viewer.bufferSetPool.cleanup();
+				});
 			});
 		});
 	}
 	
 	loadDefaultLayer(defaultRenderLayer, projects, totalBounds) {
+		var startLayer1 = performance.now();
+
 		var start = performance.now();
 		var executor = new Executor(4);
 
@@ -259,11 +263,14 @@ export default class BimServerViewer {
 			defaultRenderLayer.completelyDone();
 			this.viewer.stats.requestUpdate();
 			document.getElementById("progress").style.display = "none";
+			console.log("layer 1 done", (performance.now() - startLayer1) + "ms");
 		});
 		return executor.awaitTermination();
 	}
 
 	loadTilingLayer(tilingLayer, projects, totalBounds) {
+		var startLayer2 = performance.now();
+
 		document.getElementById("progress").style.display = "block";
 
 		var layer2Start = performance.now();
@@ -279,6 +286,8 @@ export default class BimServerViewer {
 			this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
 			
 			this.viewer.bufferSetPool.cleanup();
+
+			console.log("layer 2 done", (performance.now() - startLayer2) + "ms");
 
 //			tilingLayer.octree.traverse((node) => {
 //				if (node.liveBuffers.length > 0) {

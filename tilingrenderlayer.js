@@ -13,7 +13,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		super(viewer);
 		var slightlyLargerBounds = [bounds[0] - 0.1, bounds[1] - 0.1, bounds[2] - 0.1, bounds[3] + 0.2, bounds[4] + 0.2, bounds[5] + 0.2];
 
-		this.octree = new Octree(slightlyLargerBounds, 4);
+		this.octree = new Octree(slightlyLargerBounds, viewer.settings.octreeDepth);
 		this.octree.prepareBreathFirst(() => {
 			return true;
 		});
