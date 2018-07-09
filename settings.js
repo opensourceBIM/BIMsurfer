@@ -94,7 +94,7 @@ export default class Settings {
 					if (valueType == "boolean") {
 						settings[key] = el.checked;
 					} else {
-						settings[key] = el.value;
+						settings[key] = parseInt(el.value);
 					}
 					this.saveSettings();
 				});
