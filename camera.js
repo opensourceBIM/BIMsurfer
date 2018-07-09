@@ -145,12 +145,12 @@ export default class Camera {
     /**
      Indicates the up, right and forward axis of the World coordinate system.
 
-     This is used for yaw rotations and moving camera to axis-aligned positions.
+     This is used for deriving rotation axis for yaw orbiting, and for moving camera to axis-aligned positions.
 
      Has format: ````[rightX, rightY, rightZ, upX, upY, upZ, forwardX, forwardY, forwardZ]````
      */
     set worldAxis(worldAxis) {
-        this._worldAxis.set(worldAxis|| [1, 0, 0, 0, 1, 0, 0, 0, 1]);
+        this._worldAxis.set(worldAxis || [1, 0, 0, 0, 1, 0, 0, 0, 1]);
         this._worldRight[0] = this._worldAxis[0];
         this._worldRight[1] = this._worldAxis[1];
         this._worldRight[2] = this._worldAxis[2];
@@ -190,7 +190,9 @@ export default class Camera {
 
     orbitPitch(degrees) { // Rotate (pitch) 'eye' and 'up' about 'target', pivoting around vector ortho to (target->eye) and camera 'up'
         var targetToEye = vec3.subtract(tempVec3, this._eye, this._target);
-        var axis = vec3.cross(tempVec3b, vec3.normalize(tempVec3c, targetToEye), vec3.normalize(tempVec3d, this._up)); // Pivot vector is orthogonal to target->eye
+        var a = vec3.normalize(tempVec3c, targetToEye);
+        var b = vec3.normalize(tempVec3d, this._up);
+        var axis = vec3.cross(tempVec3b, a, b); // Pivot vector is orthogonal to target->eye
         mat4.fromRotation(tempMat4, degrees * 0.0174532925, axis);
         vec3.transformMat4(targetToEye, targetToEye, tempMat4); // Rotate vector
         vec3.add(this._eye, this._target, targetToEye); // Derive 'eye' from vector and 'target'
@@ -211,7 +213,9 @@ export default class Camera {
 
     pitch(degrees) { // Rotate (pitch) 'eye' and 'up' about 'target', pivoting around horizontal vector ortho to (target->eye) and camera 'up'
         var eyeToTarget = vec3.subtract(tempVec3, this._target, this._eye);
-        var axis = vec3.cross(tempVec3b, vec3.normalize(tempVec3c, eyeToTarget), vec3.normalize(tempVec3d, this._up)); // Pivot vector is orthogonal to target->eye
+        var a = vec3.normalize(tempVec3c, eyeToTarget);
+        var b = vec3.normalize(tempVec3d, this._up);
+        var axis = vec3.cross(tempVec3b, a, b); // Pivot vector is orthogonal to target->eye
         mat4.fromRotation(tempMat4, degrees * 0.0174532925, axis);
         vec3.transformMat4(eyeToTarget, eyeToTarget, tempMat4); // Rotate vector
         vec3.add(this._target, this._eye, eyeToTarget); // Derive 'target' from eye and vector
@@ -223,8 +227,10 @@ export default class Camera {
         var eyeToTarget = vec3.subtract(tempVec3, this._eye, this._target);
         var vec = [0, 0, 0];
         if (pan[0] !== 0) {
-            let v = vec3.cross(tempVec3b, vec3.normalize(tempVec3c, eyeToTarget), vec3.normalize(tempVec3d, this._up));
-            vec3.scale(v, pan[0]);
+            let a = vec3.normalize(tempVec3b, eyeToTarget); // Get  vector orthogonal to 'up' and eye->target
+            let b = vec3.normalize(tempVec3c, this._up);
+            let v = vec3.cross(tempVec3d, a, b);
+            vec3.scale(v, v, pan[0]);
             vec[0] += v[0];
             vec[1] += v[1];
             vec[2] += v[2];
