@@ -6,15 +6,20 @@ export default class Perspective {
         this._fov = 60;
         this._fovAxis = "min";
         this._near = 0.1;
-        this._far = 5000;
+        this._far = 10000;
         this._dirty = true;
+    }
+
+    _setDirty() {
+        this._dirty = true;
+        this.viewer.dirty = true;
     }
 
     set fov(fov) {
         fov = fov || 60;
         fov = Math.min(fov, 120);
         this._fov = fov;
-        this._dirty = true;
+        this._setDirty();
     }
 
     get fov() {
@@ -30,7 +35,7 @@ export default class Perspective {
             fovAxis = "min";
         }
         this._fovAxis = fovAxis;
-        this._dirty = true;
+        this._setDirty();
     }
 
     get fovAxis() {
@@ -39,7 +44,7 @@ export default class Perspective {
 
     set near(near) {
         this._near = near || 0.1;
-        this._dirty = true;
+        this._setDirty();
     }
 
     get near() {
@@ -48,7 +53,7 @@ export default class Perspective {
 
     set far(far) {
         this._far = far || 10000;
-        this._dirty = true;
+        this._setDirty();
     }
 
     get far() {

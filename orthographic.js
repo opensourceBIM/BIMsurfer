@@ -12,10 +12,15 @@ export default class Orthographic {
         this._dirty = true;
     }
 
+    _setDirty() {
+        this._dirty = true;
+        this.viewer.dirty = true;
+    }
+
     set left(left) {
         left = left || -1.0;
         this._left = left;
-        this._dirty = true;
+        this._setDirty();
     }
 
     get left() {
@@ -25,7 +30,7 @@ export default class Orthographic {
     set bottom(bottom) {
         bottom = bottom || -1.0;
         this._bottom = bottom;
-        this._dirty = true;
+        this._setDirty();
     }
 
     get bottom() {
@@ -34,7 +39,7 @@ export default class Orthographic {
 
     set near(near) {
         this._near = near || 0.1;
-        this._dirty = true;
+        this._setDirty();
     }
 
     get near() {
@@ -44,7 +49,7 @@ export default class Orthographic {
     set right(right) {
         right = right || 1.0;
         this._right = right;
-        this._dirty = true;
+        this._setDirty();
     }
 
     get right() {
@@ -53,7 +58,7 @@ export default class Orthographic {
 
     set top(top) {
         this._top = top || 1.0;
-        this._dirty = true;
+        this._setDirty();
     }
 
     get top() {
@@ -62,7 +67,7 @@ export default class Orthographic {
 
     set far(far) {
         this._far = far || 5000;
-        this._dirty = true;
+        this._setDirty();
     }
 
     get far() {
