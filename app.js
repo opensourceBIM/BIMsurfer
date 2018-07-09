@@ -118,7 +118,7 @@ export default class App {
 
 		this.bimServerViewer.viewer.addAnimationListener((deltaTime) => {
 			if (this.animationEnabled) {
-				this.bimServerViewer.viewer.camera.orbitYaw(0.3);
+		//		this.bimServerViewer.viewer.camera.orbitYaw(0.3);
 			}
 		});
 
