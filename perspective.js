@@ -1,6 +1,9 @@
 export default class Perspective {
 
     constructor(viewer) {
+
+        var self = this;
+
         this.viewer = viewer;
         this._projMatrix = mat4.create();
         this._fov = 45;
@@ -8,6 +11,10 @@ export default class Perspective {
         this._near = 0.1;
         this._far = 100;
         this._dirty = true;
+
+        window.addEventListener("resize", function () {
+            self._dirty = true;
+        });
     }
 
     _setDirty() {
