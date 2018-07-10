@@ -35,15 +35,12 @@ export default class Viewer {
     init() {
         var promise = new Promise((resolve, reject) => {
             this.dirty = true;
-            this.modelRotation = 0;
             this.then = 0;
             this.running = true;
             this.firstRun = true;
 
             this.fps = 0;
             this.timeLast = 0;
-
-            this.zoomLevel = 1;
 
             this.canvas = document.querySelector('#glcanvas');
             this.gl = this.canvas.getContext('webgl2');
@@ -149,14 +146,6 @@ export default class Viewer {
                 Math.pow(this.modelBounds[5] - this.modelBounds[2], 2));
 
             var scale = 1 / diagonal;
-
-            // TODO: restore zoomLevel
-            // // Scale to -1,1 and scale by zoomLevel
-            // mat4.scale(this.modelViewMatrix, this.modelViewMatrix, [this.zoomLevel, this.zoomLevel, this.zoomLevel]);
-            // mat4.scale(this.modelViewMatrix, this.modelViewMatrix, [scale, scale, scale]);
-
-            // We save this for use by the tiling render manager, something is off atm...
-            this.totalScale = (this.zoomLevel * scale) * 2;
 
             if (!this.cameraSet) { // HACK to look at model origin as soon as available
                 this.camera.target = [0,0,0];
