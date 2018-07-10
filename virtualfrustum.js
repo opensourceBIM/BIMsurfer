@@ -66,7 +66,7 @@ export default class VirtualFrustum {
 	render() {
 		this.gl.useProgram(this.programInfo.program);
 		
-		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, this.viewer.projectionMatrix);
+		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
 		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.modelViewMatrix, false, mat4.create());
 		
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.verticesBuffer);

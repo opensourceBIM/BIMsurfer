@@ -148,9 +148,9 @@ export default class TilingRenderLayer extends RenderLayer {
 		// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
 		this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, programInfo.uniformBlocks.LightData, this.viewer.lighting.lightingBuffer);
 		
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.projectionMatrix);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, this.viewer.normalMatrix);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.modelViewMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, this.viewer.camera.normalMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
 		if (this.settings.quantizeVertices) {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 		}
@@ -164,8 +164,8 @@ export default class TilingRenderLayer extends RenderLayer {
 
 			radius *= this.viewer.totalScale;
 			
-			vec4.transformMat4(center, center, this.viewer.modelViewMatrix);
-			vec4.transformMat4(center, center, this.viewer.projectionMatrix);
+			vec4.transformMat4(center, center, this.viewer.camera.viewMatrix);
+			vec4.transformMat4(center, center, this.viewer.camera.projMatrix);
 			
 			// Temporary hack to always show everything
 			if (this.show != "all") {

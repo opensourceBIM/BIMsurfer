@@ -138,7 +138,7 @@ export default class PerObjectRenderer {
 				  this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, geometry.indices);
 				  this.gl.useProgram(this.viewer.programInfo.program);
 
-				  this.gl.uniformMatrix4fv(this.viewer.programInfo.uniformLocations.projectionMatrix, false, this.viewer.projectionMatrix);
+				  this.gl.uniformMatrix4fv(this.viewer.programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
 				  this.gl.uniformMatrix4fv(this.viewer.programInfo.uniformLocations.normalMatrix, false, normalMatrix);
 				  this.gl.uniformMatrix4fv(this.viewer.programInfo.uniformLocations.modelViewMatrix, false, object.objectMatrix);
 				  
@@ -166,7 +166,7 @@ export default class PerObjectRenderer {
 		  for (const oid in this.objects) {
 			  const object = this.objects[oid];
 			  if (!object.hasTransparency) {
-				  this.renderObject(this.viewer.modelViewMatrix, this.viewer.normalMatrix, object);
+				  this.renderObject(this.viewer.camera.viewMatrix, this.viewer.camera.normalMatrix, object);
 			  }
 		  }
 		this.gl.enable(this.gl.BLEND);
@@ -176,7 +176,7 @@ export default class PerObjectRenderer {
 	  for (const oid in this.objects) {
 		  const object = this.objects[oid];
 		  if (object.hasTransparency) {
-			  this.renderObject(this.viewer.modelViewMatrix, this.viewer.normalMatrix, object);
+			  this.renderObject(this.viewer.camera.viewMatrix, this.viewer.camera.normalMatrix, object);
 		  }
 	  }
 	}

@@ -114,12 +114,10 @@ export default class App {
 		stats.setParameter("Models", "Name", project.name);
 		
 		this.bimServerViewer = new BimServerViewer(this.api, this.settings, window.innerWidth, window.innerHeight, stats);
-		
-		// For this specific (demo) application, we'll add basic functionality to turn the model automatically
+
 		this.bimServerViewer.viewer.addAnimationListener((deltaTime) => {
 			if (this.animationEnabled) {
-				// This has to go, these kind of functionalities should be available, but by changing something to the camera
-				this.bimServerViewer.viewer.incModelRotation(deltaTime * 2);
+		//		this.bimServerViewer.viewer.camera.orbitYaw(0.3);
 			}
 		});
 

@@ -43,9 +43,6 @@ export default class BimServerViewer {
 		this.totalStart = performance.now();
 
 		this.viewer.init().then(() => {
-			document.getElementById("glcanvas").addEventListener("wheel", (event) => {
-				this.viewer.incZoomLevel(-event.deltaY / 2000);
-			});
 
 			var projectsToLoad = [];
 
