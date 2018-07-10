@@ -168,33 +168,31 @@ export default class BimServerViewer {
 				totalBounds.max.z,
 				];
 			
-			var defaultRenderLayer = new DefaultRenderLayer(this.viewer);
-			this.viewer.renderLayers.push(defaultRenderLayer);
-			
-			var tilingRenderLayer = new TilingRenderLayer(this.viewer, bounds);
-			this.viewer.renderLayers.push(tilingRenderLayer);
-			
 //			this.workforce = new WorkForce();
 
 			this.viewer.stats.inc("Primitives", "Primitives to load", nrPrimitives);
 
-			defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
-				var percentage = 100 * nrPrimitivesLoaded / nrPrimitives;
-				document.getElementById("progress").style.width = percentage + "%";
-			});
-			
 			this.viewer.setModelBounds(bounds);
-
-			var totalSize = [totalBounds.max.x - totalBounds.min.x, totalBounds.max.y - totalBounds.min.y, totalBounds.max.z - totalBounds.min.z];
 
 			var promise = Promise.resolve();
 			if (this.viewer.settings.defaultLayerEnabled) {
+				var defaultRenderLayer = new DefaultRenderLayer(this.viewer);
+				this.viewer.renderLayers.push(defaultRenderLayer);
+
+				defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
+					var percentage = 100 * nrPrimitivesLoaded / nrPrimitives;
+					document.getElementById("progress").style.width = percentage + "%";
+				});
+
 				promise = this.loadDefaultLayer(defaultRenderLayer, projects, bounds);
 			}
 
 			promise.then(() => {
 				var tilingPromise = Promise.resolve();
 				if (this.viewer.settings.tilingLayerEnabled) {
+					var tilingRenderLayer = new TilingRenderLayer(this.viewer, bounds);
+					this.viewer.renderLayers.push(tilingRenderLayer);
+					
 					// TODO only start loading layer 2 if we are sure that not all content has already been loaded in layer 1
 					tilingPromise = this.loadTilingLayer(tilingRenderLayer, projects, bounds);
 				}
