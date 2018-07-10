@@ -70,7 +70,7 @@ export default class Settings {
 					settings = settings[id.substring(0, id.indexOf("."))];
 				}
 				if (settings != null) {
-					if (settings[key]) {
+					if (settings[key] != null) {
 						if (value == "boolean") {
 							input.setAttribute("checked", "checked");
 						} else {
