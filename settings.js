@@ -72,7 +72,9 @@ export default class Settings {
 				if (settings != null) {
 					if (settings[key] != null) {
 						if (value == "boolean") {
-							input.setAttribute("checked", "checked");
+							if (settings[key] == true) {
+								input.setAttribute("checked", "checked");
+							}
 						} else {
 							input.value = settings[key];
 						}
