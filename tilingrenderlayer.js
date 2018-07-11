@@ -1,6 +1,6 @@
 import RenderLayer from './renderlayer.js'
 import Octree from './octree.js'
-import BoundingBox from './boundingbox.js'
+import Frustum from './frustum.js'
 import LineBoxGeometry from './lineboxgeometry.js'
 import Executor from './executor.js'
 import GeometryLoader from "./geometryloader.js"
@@ -23,6 +23,8 @@ export default class TilingRenderLayer extends RenderLayer {
 		this.loaderToNode = {};
 		
 		this.drawTileBorders = true;
+
+		this._frustum = new Frustum();
 		
 		window.tilingRenderLayer = this;
 		
@@ -113,23 +115,6 @@ export default class TilingRenderLayer extends RenderLayer {
 		return executor.awaitTermination();
 	}
 
-	sphereInFrustum(center, radius, frustumPlanes) {
-		var result = "INSIDE";
-		for (var i=0; i<6; i++) {
-			var plane = frustumPlanes[i];
-
-			var m = (center[0] * plane[0]) + (center[1] * plane[1]) + (center[2] * plane[2]) + plane[3];
-			var n = (radius * Math.abs(plane[0])) + (radius * Math.abs(plane[1])) + (radius * Math.abs(plane[2]));
-
-			if (m + n < 0) {
-				return "OUTSIDE";
-			}
-			if (m - n < 0) result = "INTERSECT";
-
-		}
-		return result;
-	}
-
 	render(transparency) {
 //		if (this.viewer.navigationActive) {
 //			return;
@@ -155,28 +140,20 @@ export default class TilingRenderLayer extends RenderLayer {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 		}
 
+		this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
+
 		this.octree.traverseBreathFirst((node) => {
+
 			// Check whether this node is completely outside of the view frustum -> discard
 			// TODO results of these checks we could store for the second render pass (the transparency pass that is)
-			
-			var center = node.getCenter();
-			var radius = node.getBoundingSphereRadius();
-			
-			// So we transform the center of the aabb (tile) to the projection, this is done because the sphereInFrustum check uses the view frustum planes that area also defined in projection-space (need to check this with Lindsay).
-			// The problem is probably in the radius, it also needs to be converted to projection-space, but I don't know how. Maybe only apply the scaling part of the viewMatrix + projMatrix combined?
-			
-			// TODO walk through this with Lindsay and see whether he can come up with a aabb check which will be better than a sphere-check
 
-			vec4.transformMat4(center, center, this.viewer.camera.viewMatrix);
-			vec4.transformMat4(center, center, this.viewer.camera.projMatrix);
-			
-			// Temporary hack to always show everything
-			if (this.show != "all") {
-				if (this.sphereInFrustum(center, radius, this.viewer.frustumPlanes) == "OUTSIDE") {
-					node.visibilityStatus = 0;
-					return;
-				}
+			var isect = this._frustum.intersectsWorldAABB(node.bounds);
+
+			if (isect === Frustum.OUTSIDE_FRUSTUM) {
+				node.visibilityStatus = 0;
+				return;
 			}
+
 			node.visibilityStatus = 1;
 			renderableTiles++;
 			var buffers = node.liveBuffers;

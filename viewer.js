@@ -192,40 +192,7 @@ export default class Viewer {
     }
 
     updateViewport() {
-        // const fieldOfView = 45 * Math.PI / 180;
-        // const aspect = this.width / this.height;
-        // const zNear = 0.1;
-        // const zFar = 100.0;
-        //
-        // this.projectionMatrix = mat4.create();
-        // mat4.perspective(this.projectionMatrix, fieldOfView, aspect, zNear, zFar);
-
-        this.frustumPlanes = this.extractPlanes(this.camera.projMatrix, this.camera.perspective.near, this.camera.perspective.far);
-//		this.frustumPlanes = [
-//			[-1, 0, 0, -1],
-//			[1, 0, 0, 1],
-//			[0, 1, 0, 1],
-//			[0, -1, 0, -1],
-//			[0, 0, -1, -1],
-//			[0, 0, 1, 1],
-//		];
-
-//		var inverse = mat4.create();
-//		mat4.invert(inverse, this.projectionMatrix);
-
-
         this.dirty = true;
-    }
-
-    extractPlanes(M, zNear, zFar) {
-        return [
-            [M[12] + M[0], M[13] + M[1], M[14] + M[2], M[15] + M[3]],
-            [M[12] - M[0], M[13] - M[1], M[14] - M[2], M[15] - M[3]],
-            [M[12] + M[4], M[13] + M[5], M[14] + M[6], M[15] + M[7]],
-            [M[12] - M[4], M[13] - M[5], M[14] - M[6], M[15] - M[7]],
-            [zNear * M[12] + M[8], zNear * M[13] + M[9], zNear * M[14] + M[10], zNear * M[15] + M[11]],
-            [zFar * M[12] - M[8], zFar * M[13] - M[9], zFar * M[14] - M[10], zFar * M[15] - M[11]]
-        ];
     }
 
     loadingDone() {
