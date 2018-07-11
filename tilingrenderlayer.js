@@ -140,12 +140,18 @@ export default class TilingRenderLayer extends RenderLayer {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 		}
 
-		this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
+		if (!transparency) { // Saves us from initializing two times per frame
+			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
+		}
 
 		this.octree.traverseBreathFirst((node) => {
 
 			// Check whether this node is completely outside of the view frustum -> discard
 			// TODO results of these checks we could store for the second render pass (the transparency pass that is)
+
+			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling 
+			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
+			// skip the remaining child nodes
 
 			var isect = this._frustum.intersectsWorldAABB(node.bounds);
 
