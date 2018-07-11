@@ -64,9 +64,7 @@ export default class BufferManager {
 	/*
 	 * Get a buffer based on the given arguments, different implementations might not use all arguments
 	 */
-	getBufferSet(transparency, color, sizes, node) {
-		// TODO Last argument (node) is a bit of a hack, it's needed by the flushBuffer method of TilingRenderLayer, should probably implement with a listener
-		
+	getBufferSet(transparency, color, sizes) {
 		if (this.shouldFlush(sizes, null)) {
 			// The amount of geometry is more than the default buffer size, so this geometry gets its own buffer which also gets flushed right away
 			var bufferSet = this.createBufferSet(transparency, color, sizes);
@@ -85,7 +83,7 @@ export default class BufferManager {
 		} else {
 			if (this.shouldFlush(sizes, bufferSet)) {
 				// In this case we flush the buffer right away (it's already populated with data). We then reset it and return immediately after this.
-				this.renderer.flushBuffer(bufferSet, node);
+				this.renderer.flushBuffer(bufferSet);
 				this.resetBuffer(bufferSet);
 			}
 		}

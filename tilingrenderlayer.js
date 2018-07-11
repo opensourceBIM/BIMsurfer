@@ -235,7 +235,8 @@ export default class TilingRenderLayer extends RenderLayer {
 				node.bufferManager = new BufferManagerTransparencyOnly(this.viewer.settings, this, this.viewer.bufferSetPool);
 			}
 		}
-		var buffer = node.bufferManager.getBufferSet(geometry.hasTransparency, geometry.color, sizes, node);
+		var buffer = node.bufferManager.getBufferSet(geometry.hasTransparency, geometry.color, sizes);
+		buffer.node = node;
 		
 		super.addGeometry(loaderId, geometry, object, buffer, sizes);
 	}
@@ -289,7 +290,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		var bufferManager = node.bufferManager;
 		if (bufferManager != null) {
 			for (var buffer of bufferManager.getAllBuffers()) {
-				this.flushBuffer(buffer, node);
+				this.flushBuffer(buffer);
 			}
 			bufferManager.clear();
 			node.bufferManager = null;
@@ -310,7 +311,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			var bufferManager = node.bufferManager;
 			if (bufferManager != null) {
 				for (var buffer of bufferManager.getAllBuffers()) {
-					this.flushBuffer(buffer, node);
+					this.flushBuffer(buffer);
 				}
 				if (this.settings.useObjectColors) {
 					// When using object colors, it makes sense to sort the buffers by color, so we can potentially skip a few uniform binds
@@ -321,13 +322,15 @@ export default class TilingRenderLayer extends RenderLayer {
 		}, false);
 	}
 	
-	flushBuffer(buffer, node) {
+	flushBuffer(buffer) {
 		if (buffer == null) {
 			return;
 		}
 		if (buffer.nrIndices == 0) {
 			return;
 		}
+		
+		var node = buffer.node;
 		
 		this.viewer.stats.inc("Buffers", "Flushed buffers");
 		
