@@ -81,6 +81,9 @@ export default class App {
 			onlyActive: true
 		}, (projects) => {
 			projects.forEach((project) => {
+				if (project.lastRevisionId == -1) {
+					return;
+				}
 				var inside = document.getElementById("projects");
 				var projectNode = document.createElement("div");
 				var a = document.createElement("a");
