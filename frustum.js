@@ -34,9 +34,10 @@ export default class Frustum {
         this.planes[5].init(m3 + m2, m7 + m6, m11 + m10, m15 + m14);
     }
 
-    intersectsWorldAABB(aabb) { // Tests for intersection with World-space AABB
+    // Tests for intersection with World-space AABB, which is assumed to be: [xmin, ymin, zmin, xwidth, ywidth, zwidth]
+    intersectsWorldAABB(aabb) {
         var result = Frustum.INSIDE_FRUSTUM;
-        var minmax = [vec3.set(tempVec3, aabb[0], aabb[1], aabb[2]), vec3.set(tempVec3b, aabb[3], aabb[4], aabb[5])];
+        var minmax = [vec3.set(tempVec3, aabb[0], aabb[1], aabb[2]), vec3.set(tempVec3b, aabb[0] + aabb[3], aabb[1] + aabb[4], aabb[2] + aabb[5])];
         var plane = null;
         var normal;
         var offset;
