@@ -205,6 +205,8 @@ export default class BimServerViewer {
 	}
 	
 	loadDefaultLayer(defaultRenderLayer, projects, totalBounds) {
+		document.getElementById("progress").style.display = "block";
+
 		var startLayer1 = performance.now();
 
 		var start = performance.now();
@@ -254,10 +256,10 @@ export default class BimServerViewer {
 		});
 		
 		executor.awaitTermination().then(() => {
+			document.getElementById("progress").style.display = "none";
 			this.viewer.stats.setParameter("Loading time", "Layer 1", performance.now() - start);
 			defaultRenderLayer.completelyDone();
 			this.viewer.stats.requestUpdate();
-			document.getElementById("progress").style.display = "none";
 			console.log("layer 1 done", (performance.now() - startLayer1) + "ms");
 		});
 		return executor.awaitTermination();
@@ -265,7 +267,6 @@ export default class BimServerViewer {
 
 	loadTilingLayer(tilingLayer, projects, totalBounds) {
 		var startLayer2 = performance.now();
-
 		document.getElementById("progress").style.display = "block";
 
 		var layer2Start = performance.now();
@@ -274,11 +275,14 @@ export default class BimServerViewer {
 		for (var project of projects) {
 			roids.push(project.lastRevisionId);
 		}
-
-		var p = tilingLayer.load(this.bimServerApi, this.densityThreshold, roids);
+		
+		var p = tilingLayer.load(this.bimServerApi, this.densityThreshold, roids, (percentage) => {
+			document.getElementById("progress").style.width = percentage + "%";
+		});
 		p.then(() => {
 			this.viewer.stats.setParameter("Loading time", "Layer 2", performance.now() - layer2Start);
 			this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
+			document.getElementById("progress").style.display = "none";
 			
 			this.viewer.bufferSetPool.cleanup();
 
