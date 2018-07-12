@@ -8,27 +8,12 @@ import BufferManagerTransparencyOnly from './buffermanagertransparencyonly.js'
 import BufferManagerPerColor from './buffermanagerpercolor.js'
 import Utils from './utils.js'
 
-// TODO list tomorrow:
-/*
- * - Lazily create the octree in JS, in theory we should be able to set a max depth of 20 and it would still would work
- * - We can probably get rid of the list implementation in octree, since we traverse way less nodes
- * - If we don't get rid of the list, make sure to implement it in a way that it is continuously updated...
- * - We might be able to get rid of the whole octree as well... Just by using the supplied object counts... Only need an algorithm to convert the Tile ID to x/y/z and w/h/d
- * - Octree might be useful though for other stuff (and a bit more understandable)
- * 
- */
-
 export default class TilingRenderLayer extends RenderLayer {
 	constructor(viewer, bounds) {
 		super(viewer);
 		var slightlyLargerBounds = [bounds[0] - 0.1, bounds[1] - 0.1, bounds[2] - 0.1, bounds[3] + 0.2, bounds[4] + 0.2, bounds[5] + 0.2];
 
 		this.octree = new Octree(slightlyLargerBounds, viewer.settings.octreeDepth);
-//		this.octree.prepareBreathFirst((node) => {
-//			node.nrObjects = 0;
-//			return true;
-//		});
-//		this.octree.prepareFullList();
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
 		
 		this.loaderCounter = 0;
@@ -40,7 +25,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		
 		window.tilingRenderLayer = this;
 		
-		this.show = "";
+		this.show = "all";
 	}
 	
 	showAll() {
@@ -58,28 +43,24 @@ export default class TilingRenderLayer extends RenderLayer {
 			excludedTypes,
 			depth: this.viewer.settings.octreeDepth
 		}, (list) => {
-			var tilesToFetch = 0;
 			for (var i=0; i<list.length; i++) {
 				var nrObjects = list[i];
 				if (nrObjects == 0) {
 					continue;
 				}
-				tilesToFetch++;
 				var node = this.octree.getNodeById(i);
 				node.nrObjects = nrObjects;
 			}
-			console.log("Tiles to fetch", tilesToFetch);
 			
 			// Traversing breath-first so the big chucks are loaded first
-			var skipped = 0;
 			this.octree.traverseBreathFirst((node) => {
 				if (node.nrObjects == 0) {
 					// This happens for root nodes that don't contain any objects, but have children that do have objects
-					skipped++;
 					return;
 				}
 				node.status = 0;
 				node.liveBuffers = [];
+				node.liveReusedBuffers = [];
 				var bounds = node.getBounds();
 				var query = {
 					type: {
@@ -129,7 +110,7 @@ export default class TilingRenderLayer extends RenderLayer {
 					this.viewer.dirty = true;
 				};
 				executor.add(geometryLoader).then(() => {
-					if ((node.liveBuffers == null || node.liveBuffers.length == 0) && (node.bufferManager == null || node.bufferManager.bufferSets.size == 0)) {
+					if ((node.liveBuffers == null || node.liveBuffers.length == 0) && (node.liveReusedBuffers == null || node.liveReusedBuffers.length == 0) && (node.bufferManager == null || node.bufferManager.bufferSets.size == 0)) {
 						node.status = 0;
 						this.viewer.stats.inc("Tiling", "Empty tiles");
 					} else {
@@ -140,14 +121,8 @@ export default class TilingRenderLayer extends RenderLayer {
 				});
 			});
 			
-			console.log("Skipped", skipped);
-
 			executor.awaitTermination().then(() => {
 				this.completelyDone();
-				// TODO, this is now only done at the end, but it would be way faster to keep track of this list all the time because especially during loading, the rendering tends to stutter
-//				this.octree.prepareBreathFirst((node) => {
-//					return !((node.liveBuffers == null || node.liveBuffers.length == 0) && (node.bufferManager == null || node.bufferManager.bufferSets.size == 0));
-//				});
 				this.viewer.stats.requestUpdate();
 				document.getElementById("progress").style.display = "none";
 			});	
@@ -157,6 +132,12 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	render(transparency) {
+		this.renderBuffers(transparency, false);
+		this.renderBuffers(transparency, true);
+	}
+	
+	renderBuffers(transparency, reuse) {
+		// TODO when navigation is active (rotating, panning etc...), this would be the place to decide to for example not-render anything in this layer, or maybe apply more aggressive culling
 //		if (this.viewer.navigationActive) {
 //			return;
 //		}
@@ -165,7 +146,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		var renderingTiles = 0;
 
 		var programInfo = this.viewer.programManager.getProgram({
-			instancing: false,
+			instancing: reuse,
 			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: this.settings.quantizeNormals,
 			quantizeVertices: this.settings.quantizeVertices
@@ -195,27 +176,46 @@ export default class TilingRenderLayer extends RenderLayer {
 
 			var isect = this._frustum.intersectsWorldAABB(node.bounds);
 
-			if (isect === Frustum.OUTSIDE_FRUSTUM) {
+			if (this.show != "all" && isect === Frustum.OUTSIDE_FRUSTUM) {
 				node.visibilityStatus = 0;
 				return false;
 			}
 
 			node.visibilityStatus = 1;
 			renderableTiles++;
-			var buffers = node.liveBuffers;
-			if (buffers != null && buffers.length > 0) {
-				renderingTiles++;
-				var lastUsedColorHash = null;
-				
-				for (let buffer of buffers) {
-					if (buffer.hasTransparency == transparency) {
-						if (this.settings.useObjectColors) {
-							if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
-								this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
-								lastUsedColorHash = buffer.colorHash;
+			renderingTiles++;
+			
+			if (!reuse) {
+				if (node.liveBuffers != null && node.liveBuffers.length > 0) {
+					var lastUsedColorHash = null;
+					
+					for (let buffer of node.liveBuffers) {
+						if (buffer.hasTransparency == transparency) {
+							if (this.settings.useObjectColors) {
+								if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
+									this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
+									lastUsedColorHash = buffer.colorHash;
+								}
 							}
+							this.renderBuffer(buffer, programInfo);
 						}
-						this.renderBuffer(buffer, programInfo);
+					}
+				}
+			}
+			if (reuse) {
+				if (node.liveReusedBuffers != null && node.liveReusedBuffers.length > 0) {
+					var lastUsedColorHash = null;
+					
+					for (let buffer of node.liveReusedBuffers) {
+						if (buffer.hasTransparency == transparency) {
+							if (this.settings.useObjectColors) {
+								if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
+									this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
+									lastUsedColorHash = buffer.colorHash;
+								}
+							}
+							this.renderReusedBuffer(buffer, programInfo);
+						}
 					}
 				}
 			}
@@ -258,6 +258,17 @@ export default class TilingRenderLayer extends RenderLayer {
 		this.gl.bindVertexArray(null);
 	}
 	
+	renderReusedBuffer(buffer, programInfo) {
+		this.gl.bindVertexArray(buffer.vao);
+		
+		if (this.viewer.settings.quantizeVertices) {
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
+		}
+		this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
+
+		this.gl.bindVertexArray(null);
+	}
+	
 	addGeometry(loaderId, geometry, object) {
 		var sizes = {
 			vertices: geometry.positions.length,
@@ -265,6 +276,14 @@ export default class TilingRenderLayer extends RenderLayer {
 			indices: geometry.indices.length,
 			colors: (geometry.colors != null ? geometry.colors.length : 0)
 		};
+		
+		if (this.viewer.settings.reuseFn(geometry.reused, geometry)) {
+			geometry.matrices.push(object.matrix);
+			
+			this.viewer.stats.inc("Drawing", "Triangles to draw", geometry.indices.length / 3);
+
+			return;
+		}
 		
 		var node = this.loaderToNode[loaderId];
 		
@@ -282,6 +301,8 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 	
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type) {
+		var loader = this.getLoader(loaderId);
+		var node = this.loaderToNode[loaderId];
 		var object = {
 			id: objectId,
 			visible: type != "IfcOpeningElement" && type != "IfcSpace",
@@ -292,37 +313,19 @@ export default class TilingRenderLayer extends RenderLayer {
 			roid: roid,
 //			object: this.viewer.model.objects[oid],
 			add: (geometryId, objectId) => {
-				this.addGeometryToObject(geometryId, objectId, loader);
+				this.addGeometryToObject(geometryId, objectId, loader, node.liveReusedBuffers);
 			}
 		};
 
-		var loader = this.getLoader(loaderId);
 		loader.objects[oid] = object;
 
 		geometryIds.forEach((id) => {
-			this.addGeometryToObject(id, object.id, loader);
+			this.addGeometryToObject(id, object.id, loader, node.liveReusedBuffers);
 		});
 
 		this.viewer.stats.inc("Models", "Objects");
 
 		return object;
-	}
-	
-	addGeometryToObject(geometryId, objectId, loader) {
-		var geometry = loader.geometries[geometryId];
-		if (geometry == null) {
-			return;
-		}
-		var object = loader.objects[objectId];
-		if (object.visible) {
-			this.addGeometry(loader.loaderId, geometry, object);
-			object.geometry.push(geometryId);
-		} else {
-			this.viewer.stats.inc("Primitives", "Nr primitives hidden", geometry.indices.length / 3);
-			if (this.progressListener != null) {
-				this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
-			}
-		}
 	}
 
 	done(loaderId) {
@@ -337,6 +340,13 @@ export default class TilingRenderLayer extends RenderLayer {
 		}
 
 		var loader = this.getLoader(loaderId);
+
+		Object.keys(loader.geometries).forEach((key, index) => {
+			var geometry = loader.geometries[key];
+			if (geometry.isReused) {
+				this.addGeometryReusable(geometry, loader, node.liveReusedBuffers);
+			}
+		});
 
 		Object.keys(loader.objects).forEach((key, index) => {
 			var object = loader.objects[key];

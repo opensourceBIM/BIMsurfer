@@ -1,6 +1,5 @@
 import BufferManagerTransparencyOnly from './buffermanagertransparencyonly.js'
 import BufferManagerPerColor from './buffermanagerpercolor.js'
-import BufferTransformer from './buffertransformer.js'
 import Utils from './utils.js'
 import VertexQuantization from './vertexquantization.js'
 import RenderLayer from './renderlayer.js'
@@ -25,8 +24,6 @@ export default class DefaultRenderLayer extends RenderLayer {
 			this.bufferManager = new BufferManagerTransparencyOnly(this.settings, this, this.viewer.bufferSetPool);
 		}
 
-		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
-
 		this.liveBuffers = [];
 		this.liveReusedBuffers = [];
 	}
@@ -42,7 +39,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 				roid: roid,
 //				object: this.viewer.model.objects[oid],
 				add: (geometryId, objectId) => {
-					this.addGeometryToObject(geometryId, objectId, loader);
+					this.addGeometryToObject(geometryId, objectId, loader, this.liveReusedBuffers);
 				}
 		};
 
@@ -50,7 +47,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		loader.objects[oid] = object;
 
 		geometryIds.forEach((id) => {
-			this.addGeometryToObject(id, object.id, loader);
+			this.addGeometryToObject(id, object.id, loader, this.liveReusedBuffers);
 		});
 
 		this.viewer.stats.inc("Models", "Objects");
@@ -58,169 +55,6 @@ export default class DefaultRenderLayer extends RenderLayer {
 		return object;
 	}
 	
-	addGeometryToObject(geometryId, objectId, loader) {
-		var geometry = loader.geometries[geometryId];
-		if (geometry == null) {
-			return;
-		}
-		var object = loader.objects[objectId];
-		if (object.visible) {
-			this.addGeometry(loader.loaderId, geometry, object);
-			object.geometry.push(geometryId);
-		} else {
-			this.viewer.stats.inc("Primitives", "Nr primitives hidden", geometry.indices.length / 3);
-			if (this.progressListener != null) {
-				this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
-			}
-		}
-		if (geometry.isReused) {
-			geometry.reuseMaterialized++;
-			if (geometry.reuseMaterialized == geometry.reused) {
-				this.addGeometryReusable(geometry, loader);
-			}
-		}
-	}
-
-	addGeometryReusable(geometry, loader) {
-		const positionBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.bufferTransformer.convertVertices(loader.roid, geometry.positions), this.gl.STATIC_DRAW, 0, 0);
-		
-		const normalBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.bufferTransformer.convertNormals(geometry.normals), this.gl.STATIC_DRAW, 0, 0);
-		
-		if (geometry.colors != null) {
-			var colorBuffer = this.gl.createBuffer();
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-			this.gl.bufferData(this.gl.ARRAY_BUFFER, geometry.colors, this.gl.STATIC_DRAW, 0, 0);
-		}
-
-		const indexBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-		var indices = this.bufferTransformer.convertIndices(geometry.indices, geometry.positions.length);
-		this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, indices, this.gl.STATIC_DRAW, 0, 0);
-
-		const instancesBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancesBuffer);
-		var matrices = new Float32Array(geometry.matrices.length * 16);
-		geometry.matrices.forEach((matrix, index) => {
-			matrices.set(matrix, index * 16);
-		});
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, matrices, this.gl.STATIC_DRAW, 0, 0);
-
-		var vao = this.gl.createVertexArray();
-		this.gl.bindVertexArray(vao);
-		
-		var programInfo = this.viewer.programManager.getProgram({
-			instancing: true,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: this.settings.quantizeNormals,
-			quantizeVertices: this.settings.quantizeVertices
-		});
-
-		{
-			const numComponents = 3;
-			const normalize = false;
-			const stride = 0;
-			const offset = 0;
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-			
-			if (this.settings.quantizeVertices) {
-				this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexPosition, numComponents, this.gl.SHORT, normalize, stride, offset);
-			} else {
-				this.gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition,	numComponents, this.gl.FLOAT, normalize, stride, offset);
-			}
-			this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-		}
-		{
-			const numComponents = 3;
-			const normalize = false;
-			const stride = 0;
-			const offset = 0;
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-			
-			if (this.settings.quantizeNormals) {
-				this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.BYTE, normalize, stride, offset);
-			} else {
-				this.gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.FLOAT, normalize, stride, offset);
-			}
-			this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
-		}
-
-		if (!this.settings.useObjectColors) {
-			const numComponents = 4;
-			const type = this.gl.FLOAT;
-			const normalize = false;
-			const stride = 0;
-			const offset = 0;
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-			this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
-			this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
-		}
-
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancesBuffer);
-
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instances);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instances + 0, 4, this.gl.FLOAT, false, 64, 0);
-
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instances + 1);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instances + 1, 4, this.gl.FLOAT, false, 64, 16);
-
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instances + 2);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instances + 2, 4, this.gl.FLOAT, false, 64, 32);
-
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instances + 3);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instances + 3, 4, this.gl.FLOAT, false, 64, 48);
-
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instances + 0, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instances + 1, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instances + 2, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instances + 3, 1);
-
-		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);		  
-
-		this.gl.bindVertexArray(null);
-
-		var buffer = {
-				positionBuffer: positionBuffer,
-				normalBuffer: normalBuffer,
-				indexBuffer: indexBuffer,
-				nrIndices: geometry.indices.length,
-				vao: vao,
-//				matrices: geometry.matrices,
-//				dirtyMatrices: false,
-				nrProcessedMatrices: geometry.matrices.length,
-//				geometry: geometry,
-				instancesBuffer: instancesBuffer,
-				roid: geometry.roid,
-//				instances: matrices,
-				hasTransparency: geometry.hasTransparency,
-				indexType: indices instanceof Uint16Array ? this.gl.UNSIGNED_SHORT : this.gl.UNSIGNED_INT
-		};
-		
-		if (this.settings.useObjectColors) {
-			buffer.colorBuffer = colorBuffer;
-			buffer.color = [geometry.color.r, geometry.color.g, geometry.color.b, geometry.color.a];
-			buffer.colorHash = Utils.hash(JSON.stringify(buffer.color));
-		}
-		
-		delete loader.geometries[geometry.id];
-		this.liveReusedBuffers.push(buffer);
-
-		this.viewer.stats.inc("Primitives", "Nr primitives loaded", (buffer.nrIndices / 3) * geometry.matrices.length);
-		if (this.progressListener != null) {
-			this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
-		}
-
-		var toadd = geometry.bytes + geometry.matrices.length * 16 * 4;
-		this.viewer.stats.inc("Drawing", "Draw calls per frame");
-		this.viewer.stats.inc("Data", "GPU bytes reuse", toadd);
-		this.viewer.stats.inc("Data", "GPU bytes total", toadd);
-
-		geometry.buffer = buffer;
-	}
-
 	addGeometry(loaderId, geometry, object) {
 		if (this.settings.reuseFn(geometry.reused, geometry)) {
 			geometry.matrices.push(object.matrix);
@@ -247,7 +81,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		Object.keys(loader.geometries).forEach((key, index) => {
 			var geometry = loader.geometries[key];
 			if (geometry.isReused) {
-				this.addGeometryReusable(geometry, loader);
+				this.addGeometryReusable(geometry, loader, this.liveReusedBuffers);
 			}
 		});
 		
