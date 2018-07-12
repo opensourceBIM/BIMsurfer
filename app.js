@@ -29,14 +29,14 @@ export default class App {
 			if (reused == 1) {
 				return false;
 			}
-			return geometry.bytes > 1000;
+			return geometry.bytes > 10000 || reused > 1000;
 		};
-			
+
 		// The amount of GPU memory to be assumed to be available, any model-set that will fit in this memory without using reuse, will not use reuse because it's faster
 		this.settings.assumeGpuMemoryAvailable = 1073741824, // 1GB
 		// Setting this to true will result in nothing rendered, but all CPU side buffers are created and metrics still update
 		this.settings.fakeLoading = false;
-		
+
 		this.settings.loaderSettings.splitGeometry = false;
 		this.settings.loaderSettings.normalizeUnitsToMM = true;
 		this.settings.loaderSettings.useSmallInts = false;
