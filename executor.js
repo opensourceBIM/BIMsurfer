@@ -14,6 +14,7 @@ export default class Executor {
 		this.maxJobCount = maxJobCount;
 		
 		this.nrRunning = 0;
+		this.jobsDone = 0;
 	}
 	
 	add(job) {
@@ -28,6 +29,7 @@ export default class Executor {
 	
 	jobDone(job) {
 		delete this.jobsRunning[job.id];
+		this.jobsDone++;
 		this.nrRunning--;
 		if (this.nrRunning == 0 && this.idsToDo.length == 0) {
 			this.done();
@@ -39,10 +41,17 @@ export default class Executor {
 			this.startJob(job);
 		}
 	}
+
+	updateProgress() {
+		if (this.progressListener != null) {
+			this.progressListener(100 * this.jobsDone / this.jobCounter);
+		}
+	}
 	
 	startJob(job) {
 		this.jobsRunning[job.id] = job;
 		this.nrRunning++;
+		this.updateProgress();
 		var r;
 		var newPromise = new Promise((resolve, reject) => {
 			r = resolve;
@@ -69,5 +78,9 @@ export default class Executor {
 			});
 		}
 		return this.terminationPromise;
+	}
+	
+	setProgressListener(progressListener) {
+		this.progressListener = progressListener;
 	}
 }
