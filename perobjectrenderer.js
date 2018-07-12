@@ -142,7 +142,7 @@ export default class PerObjectRenderer {
 				  this.gl.uniformMatrix4fv(this.viewer.programInfo.uniformLocations.normalMatrix, false, normalMatrix);
 				  this.gl.uniformMatrix4fv(this.viewer.programInfo.uniformLocations.modelViewMatrix, false, object.objectMatrix);
 				  
-				  this.gl.uniform3fv(this.viewer.programInfo.uniformLocations.lightPosition, this.viewer.lightPosition);
+				  this.gl.uniform3fv(this.viewer.programInfo.uniformLocations.lightDir, this.viewer.lightDir);
 				  this.gl.uniform3fv(this.viewer.programInfo.uniformLocations.lightColor, this.viewer.lightColor);
 				  this.gl.uniform1f(this.viewer.programInfo.uniformLocations.shininess, this.viewer.shininess);
 				  this.gl.uniform3fv(this.viewer.programInfo.uniformLocations.ambientColor, this.viewer.ambientColor);

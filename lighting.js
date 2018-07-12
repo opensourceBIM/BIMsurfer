@@ -4,7 +4,7 @@
 
 export default class Lighting {
 	constructor(gl) {
-		this.lightPosition = [0.0, 0.0, -10.0];
+		this.lightDir = [1.0, 0.0, -1.0];
 		this.lightColor = [0.4, 0.4, 0.4];
 		this.shininess = 0.1;
 		this.ambientColor = [0.3, 0.3, 0.3];
@@ -15,9 +15,9 @@ export default class Lighting {
 
 	createLightingBuffer() {
 		var buffer = new Float32Array(52);
-		buffer[0] = this.lightPosition[0];
-		buffer[1] = this.lightPosition[1];
-		buffer[2] = this.lightPosition[2];
+		buffer[0] = this.lightDir[0];
+		buffer[1] = this.lightDir[1];
+		buffer[2] = this.lightDir[2];
 		buffer[3] = 0; // unused
 		buffer[4] = this.lightColor[0];
 		buffer[5] = this.lightColor[1];

@@ -12,22 +12,19 @@ uniform mat4 normalMatrix;
 uniform mat4 modelViewMatrix;
 
 uniform LightData {
-	vec3 lightPosition;
+	vec3 lightDir;
 	vec3 lightColor;
 	vec3 ambientColor;
 	float shininess;
 } lightData;
 
 out mediump vec4 color;
-out mediump vec3 vertex;
-out mediump vec3 normal;
 
 void main(void) {
+
   gl_Position = projectionMatrix * modelViewMatrix * vec4(vertexPosition, 1);
-  
-  vertex = vec3(gl_Position);
-  
-  normal = vec3( normalMatrix * vec4(vertexNormal, 0.0));
+
+  vec3 viewNormal = vec3( normalMatrix * vec4(vertexNormal, 0.0));
 
   color = vertexColor;
 }

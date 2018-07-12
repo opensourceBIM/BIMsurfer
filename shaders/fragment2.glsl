@@ -4,7 +4,7 @@ precision mediump int;
 precision mediump float;
 
 uniform LightData {
-	vec3 lightPosition;
+	vec3 lightDir;
 	vec3 lightColor;
 	vec3 ambientColor;
 	float shininess;
@@ -30,7 +30,7 @@ void main(void) {
   ambient_color = lightData.ambientColor * vec3(color);
 
   // Calculate a vector from the fragment location to the light source
-  to_light = lightData.lightPosition - vertex;
+  to_light = lightData.lightDir - vertex;
   to_light = normalize( to_light );
 
   // The vertex's normal vector is being interpolated across the primitive
