@@ -8,7 +8,7 @@ export default class Perspective {
         this._projMatrix = mat4.create();
         this._fov = 45;
         this._fovAxis = "min";
-        this._near = 0.1;
+        this._near = 0.01;
         this._far = 100;
         this._dirty = true;
 
@@ -50,7 +50,7 @@ export default class Perspective {
     }
 
     set near(near) {
-        this._near = near || 0.1;
+        this._near = near || 0.01;
         this._setDirty();
     }
 
