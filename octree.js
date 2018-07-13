@@ -37,12 +37,12 @@ class OctreeNode {
 	}
 
 	traverseBreathFirstInternal(fn, level, toSkip) {
-		if (toSkip.has(this.id)) {
+		if (toSkip != null && toSkip.has(this.id)) {
 			return;
 		}
 		if (this.level == level) {
 			var result = fn(this);
-			if (result === false) {
+			if (result === false && toSkip != null) {
 				// TODO do something to make sure we are not calling fn for the children of this node
 				toSkip.add(this.id);
 			}
@@ -58,7 +58,7 @@ class OctreeNode {
 	}
 	
 	traverseBreathFirst(fn) {
-		var toSkip = new Set();
+		var toSkip = null;
 		for (var l=0; l<=this.maxDepth; l++) {
 			this.traverseBreathFirstInternal(fn, l, toSkip);
 		}
@@ -167,7 +167,9 @@ class OctreeNode {
 			return;
 		}
 		for (var node of this.quadrants) {
-			node.prepareBreathFirstInternal(breathFirstList, fn, level);
+			if (node != null) {
+				node.prepareBreathFirstInternal(breathFirstList, fn, level);
+			}
 		}
 	}
 
@@ -195,6 +197,29 @@ export default class Octree extends OctreeNode {
 //		this.split(maxDepth);
 	}
 	
+	extractBreathFirstList(fn) {
+		var list = [];
+		this.traverseBreathFirst((node) => {
+			if (fn(node)) {
+				list.push(node);
+				return true;
+			} else {
+				return false;
+			}
+		});
+		return list;
+	}
+	
+	traverseBreathFirstCached(fn) {
+		if (this.breathFirstList != null) {
+			for (var node of this.breathFirstList) {
+				fn(node);
+			}
+		} else {
+			this.traverseBreathFirst(fn);
+		}
+	}
+	
 //	prepareFullList() {
 //		this.fullList = [];
 //		for (var i=0; i<=this.maxDepth; i++) {
@@ -202,10 +227,10 @@ export default class Octree extends OctreeNode {
 //		}
 //	}
 //	
-//	prepareBreathFirst(fn) {
-//		this.breathFirstList = [];
-//		for (var i=0; i<=this.maxDepth; i++) {
-//			this.prepareBreathFirstInternal(this.breathFirstList, fn, i);
-//		}
-//	}
+	prepareBreathFirst(fn) {
+		this.breathFirstList = [];
+		for (var i=0; i<=this.maxDepth; i++) {
+			this.prepareBreathFirstInternal(this.breathFirstList, fn, i);
+		}
+	}
 }
