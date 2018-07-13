@@ -25,7 +25,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		
 		window.tilingRenderLayer = this;
 		
-		this.show = "all";
+		this.show = "none";
 	}
 	
 	showAll() {
@@ -123,6 +123,9 @@ export default class TilingRenderLayer extends RenderLayer {
 			
 			executor.awaitTermination().then(() => {
 				this.completelyDone();
+				this.octree.prepareBreathFirst((node) => {
+					return true;
+				});
 				this.viewer.stats.requestUpdate();
 				document.getElementById("progress").style.display = "none";
 			});	
@@ -166,7 +169,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
 		}
 
-		this.octree.traverseBreathFirst((node) => {
+		this.octree.traverseBreathFirstCached((node) => {
 			// Check whether this node is completely outside of the view frustum -> discard
 			// TODO results of these checks we could store for the second render pass (the transparency pass that is)
 
@@ -178,10 +181,10 @@ export default class TilingRenderLayer extends RenderLayer {
 
 			if (this.show != "all" && isect === Frustum.OUTSIDE_FRUSTUM) {
 				node.visibilityStatus = 0;
-				return false;
+			} else {
+				node.visibilityStatus = 1;
 			}
 
-			node.visibilityStatus = 1;
 			renderableTiles++;
 			renderingTiles++;
 			
