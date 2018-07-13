@@ -145,11 +145,11 @@ export default class BimServerViewer {
 			estimatedNonReusedByteSize += reusedVerticesFactor * nrPrimitives * 3 * 4 * (this.settings.quantizeVertices ? 2 : 4); // vertices
 			estimatedNonReusedByteSize += reusedVerticesFactor * nrPrimitives * 3 * 4 * (this.settings.quantizeNormals ? 1 : 4); // normals
 
-//			if (estimatedNonReusedByteSize < this.settings.assumeGpuMemoryAvailable) {
-//				this.settings.reuseFn = () => {
-//					return false;
-//				};
-//			}
+			if (estimatedNonReusedByteSize < this.settings.assumeGpuMemoryAvailable) {
+				this.settings.reuseFn = () => {
+					return false;
+				};
+			}
 
 			if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
 				this.viewer.vertexQuantization = new VertexQuantization(this.settings);
