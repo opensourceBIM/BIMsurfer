@@ -46,8 +46,10 @@ export default class TilingRenderLayer extends RenderLayer {
 			for (var i=0; i<list.length; i++) {
 				var nrObjects = list[i];
 				if (nrObjects == 0) {
+					this.viewer.stats.inc("Tiling", "Empty tiles");
 					continue;
 				}
+				this.viewer.stats.inc("Tiling", "Full tiles");
 				var node = this.octree.getNodeById(i);
 				node.nrObjects = nrObjects;
 			}
@@ -112,9 +114,7 @@ export default class TilingRenderLayer extends RenderLayer {
 				executor.add(geometryLoader).then(() => {
 					if ((node.liveBuffers == null || node.liveBuffers.length == 0) && (node.liveReusedBuffers == null || node.liveReusedBuffers.length == 0) && (node.bufferManager == null || node.bufferManager.bufferSets.size == 0)) {
 						node.status = 0;
-						this.viewer.stats.inc("Tiling", "Empty tiles");
 					} else {
-						this.viewer.stats.inc("Tiling", "Full tiles");
 						node.status = 2;
 					}
 					this.done(geometryLoader.loaderId);
@@ -145,7 +145,6 @@ export default class TilingRenderLayer extends RenderLayer {
 //			return;
 //		}
 		
-		var renderableTiles = 0;
 		var renderingTiles = 0;
 
 		var programInfo = this.viewer.programManager.getProgram({
@@ -183,7 +182,6 @@ export default class TilingRenderLayer extends RenderLayer {
 				node.visibilityStatus = 0;
 			} else {
 				node.visibilityStatus = 1;
-				renderableTiles++;
 				renderingTiles++;
 			}
 			
@@ -223,7 +221,6 @@ export default class TilingRenderLayer extends RenderLayer {
 			}
 		});
 		
-		this.viewer.stats.setParameter("Tiling", "Renderable tiles", renderableTiles);
 		this.viewer.stats.setParameter("Tiling", "Rendering tiles", renderingTiles);
 
 		if (transparency && this.drawTileBorders) {

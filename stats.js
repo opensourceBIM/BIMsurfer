@@ -9,7 +9,6 @@ export default class Stats {
 		
 		this.groups = {
 			"Tiling": [
-				"Renderable tiles",
 				"Rendering tiles",
 				"Empty tiles",
 				"Full tiles",
