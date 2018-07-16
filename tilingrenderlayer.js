@@ -179,14 +179,13 @@ export default class TilingRenderLayer extends RenderLayer {
 
 			var isect = this._frustum.intersectsWorldAABB(node.bounds);
 
-			if (this.show != "all" && isect === Frustum.OUTSIDE_FRUSTUM) {
+			if (this.show !== "all" && isect === Frustum.OUTSIDE_FRUSTUM) {
 				node.visibilityStatus = 0;
 			} else {
 				node.visibilityStatus = 1;
+				renderableTiles++;
+				renderingTiles++;
 			}
-
-			renderableTiles++;
-			renderingTiles++;
 			
 			if (!reuse) {
 				if (node.liveBuffers != null && node.liveBuffers.length > 0) {
