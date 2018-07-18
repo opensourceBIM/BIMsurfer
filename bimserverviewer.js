@@ -76,7 +76,7 @@ export default class BimServerViewer {
 									}
 								}
 							});
-							this.loadModels(projectsToLoad, nrPrimitives);
+							this.loadModels(projectsToLoad, nrPrimitivesBelow, nrPrimitivesAbove);
 						});
 					}
 				});
