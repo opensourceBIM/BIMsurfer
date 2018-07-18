@@ -7,6 +7,7 @@ import WorkForce from './workforce.js'
 import Executor from './executor.js'
 import GeometryLoader from "./geometryloader.js"
 import VirtualFrustum from "./virtualfrustum.js"
+import BufferHelper from "./bufferhelper.js"
 
 export default class BimServerViewer {
 	constructor(bimServerApi, settings, width, height, stats) {
@@ -53,14 +54,18 @@ export default class BimServerViewer {
 			}, (densityAtThreshold) => {
 				this.densityAtThreshold = densityAtThreshold;
 				this.densityThreshold = densityAtThreshold.density;
-				var nrPrimitives = densityAtThreshold.triangles;
+				var nrPrimitivesBelow = densityAtThreshold.trianglesBelow;
+				var nrPrimitivesAbove = densityAtThreshold.trianglesAbove;
+				
+				console.log(nrPrimitivesBelow, nrPrimitivesAbove);
+					
 				this.bimServerApi.call("ServiceInterface", "getRevision", {
 					roid: project.lastRevisionId
 				}, (revision) => {
 					if (project.subProjects.length == 0) {
 						if (project.lastRevisionId != -1) {
 							projectsToLoad.push(project);
-							this.loadModels(projectsToLoad, nrPrimitives);
+							this.loadModels(projectsToLoad, nrPrimitivesBelow, nrPrimitivesAbove);
 						}
 					} else {
 						this.bimServerApi.call("ServiceInterface", "getAllRelatedProjects", {poid: project.oid}, (projects) => {
@@ -82,19 +87,30 @@ export default class BimServerViewer {
 	/*
 	 * Private method
 	 */
-	loadModels(projects, nrPrimitives) {
+	loadModels(projects, nrPrimitivesBelow, nrPrimitivesAbove) {
 		this.viewer.stats.setParameter("Models", "Models to load", projects.length);
 
 		var roids = projects.map((project) => {
 			return project.lastRevisionId;
 		});
 
+		console.log("Total triangles", nrPrimitivesBelow + nrPrimitivesAbove);
+		var estimatedNonReusedByteSize = BufferHelper.trianglesToBytes(this.settings, nrPrimitivesBelow + nrPrimitivesAbove);
+		
+		console.log("Estimated non reuse byte size", estimatedNonReusedByteSize);
+		console.log("GPU memory available", this.settings.assumeGpuMemoryAvailable);
+		
 		var requests = [
 			["ServiceInterface", "getTotalBounds", {
 				roids: roids
 			}],
 			["ServiceInterface", "getTotalUntransformedBounds", {
 				roids: roids
+			}],
+			["ServiceInterface", "getGeometryDataToReuse", {
+				roids: roids,
+				excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"],
+				trianglesToSave: BufferHelper.bytesToTriangles(this.settings, Math.max(0, estimatedNonReusedByteSize - this.settings.assumeGpuMemoryAvailable))
 			}]
 		];
 		
@@ -117,40 +133,25 @@ export default class BimServerViewer {
 		const zNear = 1;
 		const zFar = 50.0;
 
-		var virtualProjectionMatrix = mat4.create();
-
-		mat4.perspective(virtualProjectionMatrix, fieldOfView, aspect, zNear, zFar);
-		
+//		var virtualProjectionMatrix = mat4.create();
+//		mat4.perspective(virtualProjectionMatrix, fieldOfView, aspect, zNear, zFar);
 //		this.debugRenderLayer.addVirtualFrustum(new VirtualFrustum(this.viewer, virtualProjectionMatrix, zNear, zFar));
 		
 		this.bimServerApi.multiCall(requests, (responses) => {
 			var totalBounds = responses[0].result;
 			var totalBoundsUntransformed = responses[1].result;
-			
+			this.geometryDataIdsToReuse = new Set(responses[2].result);
+			console.log("Geometry Data IDs to reuse", this.geometryDataIdsToReuse);
+
 			var modelBoundsUntransformed = new Map();
-			for (var i=0; i<(responses.length - 2) / 2; i++) {
-				modelBoundsUntransformed.set(roids[i], responses[i + 2].result);
+			for (var i=0; i<(responses.length - 3) / 2; i++) {
+				modelBoundsUntransformed.set(roids[i], responses[i + 3].result);
 			}
 			var modelBoundsTransformed = new Map();
-			for (var i=0; i<(responses.length - 2) / 2; i++) {
-				modelBoundsTransformed.set(roids[i], responses[(responses.length - 2) / 2 + i + 2].result);
+			for (var i=0; i<(responses.length - 3) / 2; i++) {
+				modelBoundsTransformed.set(roids[i], responses[(responses.length - 3) / 2 + i + 3].result);
 			}
 			
-			var reusedVerticesFactor = 0.8;
-			var estimatedNonReusedByteSize = 0;
-			if (!this.settings.useObjectColors) {
-				estimatedNonReusedByteSize += nrPrimitives * 3 * 4;
-			}
-			estimatedNonReusedByteSize += nrPrimitives * 3 * (this.settings.useSmallIndicesIfPossible ? 2 : 4); // indices
-			estimatedNonReusedByteSize += reusedVerticesFactor * nrPrimitives * 3 * 4 * (this.settings.quantizeVertices ? 2 : 4); // vertices
-			estimatedNonReusedByteSize += reusedVerticesFactor * nrPrimitives * 3 * 4 * (this.settings.quantizeNormals ? 1 : 4); // normals
-
-			if (estimatedNonReusedByteSize < this.settings.assumeGpuMemoryAvailable) {
-				this.settings.reuseFn = () => {
-					return false;
-				};
-			}
-
 			if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
 				this.viewer.vertexQuantization = new VertexQuantization(this.settings);
 				for (var roid of modelBoundsUntransformed.keys()) {
@@ -170,17 +171,18 @@ export default class BimServerViewer {
 			
 //			this.workforce = new WorkForce();
 
-			this.viewer.stats.inc("Primitives", "Primitives to load (L1)", nrPrimitives);
+			this.viewer.stats.inc("Primitives", "Primitives to load (L1)", nrPrimitivesBelow);
+			this.viewer.stats.inc("Primitives", "Primitives to load (L2)", nrPrimitivesAbove);
 
 			this.viewer.setModelBounds(bounds);
 
 			var promise = Promise.resolve();
-			if (this.viewer.settings.defaultLayerEnabled) {
-				var defaultRenderLayer = new DefaultRenderLayer(this.viewer);
+			if (this.viewer.settings.defaultLayerEnabled && nrPrimitivesBelow) {
+				var defaultRenderLayer = new DefaultRenderLayer(this.viewer, this.geometryDataIdsToReuse);
 				this.viewer.renderLayers.push(defaultRenderLayer);
 
 				defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
-					var percentage = 100 * nrPrimitivesLoaded / nrPrimitives;
+					var percentage = 100 * nrPrimitivesLoaded / nrPrimitivesBelow;
 					document.getElementById("progress").style.width = percentage + "%";
 				});
 
@@ -189,11 +191,10 @@ export default class BimServerViewer {
 
 			promise.then(() => {
 				var tilingPromise = Promise.resolve();
-				if (this.viewer.settings.tilingLayerEnabled) {
-					var tilingRenderLayer = new TilingRenderLayer(this.viewer, bounds);
+				if (this.viewer.settings.tilingLayerEnabled && nrPrimitivesAbove > 0) {
+					var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.geometryDataIdsToReuse, bounds);
 					this.viewer.renderLayers.push(tilingRenderLayer);
 					
-					// TODO only start loading layer 2 if we are sure that not all content has already been loaded in layer 1
 					tilingPromise = this.loadTilingLayer(tilingRenderLayer, projects, bounds);
 				}
 				tilingPromise.then(() => {
