@@ -49,7 +49,7 @@ export default class ProgramManager {
 				"modelViewMatrix"
 			],
 			uniformBlocks: [
-				"LightData"
+			//	"LightData"
 			]
 		};
 
@@ -85,7 +85,7 @@ export default class ProgramManager {
 				}
 			}
 		}
-		
+
 		var settings = {
 			specialType: "line"
 		};
@@ -99,10 +99,37 @@ export default class ProgramManager {
 			]
 		}, this.generateSetup(settings), settings);
 
-		return Promise.all(this.promises);
+        //  Picking shaders - 8 combinations
+        for (var instancing of [true, false]) {
+			for (var useObjectColors of [true, false]) {
+				for (var quantizeVertices of [true, false]) {
+					var vertexShaderName = "shaders/vertex_pk";
+					if (instancing) {
+						vertexShaderName += "_ins";
+					}
+					if (useObjectColors) {
+						vertexShaderName += "_oc";
+					}
+					if (quantizeVertices) {
+						vertexShaderName += "_iv";
+					}
+					vertexShaderName += ".glsl";
+					var settings = {
+						picking: true,
+						instancing: instancing,
+						useObjectColors: useObjectColors,
+						quantizeVertices: quantizeVertices
+					};
+					this.setupProgram(vertexShaderName, "shaders/fragment_pk.glsl", defaultSetup, this.generateSetup(settings), settings);
+				}
+			}
+        }
+
+        return Promise.all(this.promises);
 	}
 
 	getProgram(settings) {
+		console.log("getProgram('" + JSON.stringify(settings) + "', program");
 		var program = this.programs[JSON.stringify(settings)];
 		if (program == null) {
 			console.error("Program not found", settings);
@@ -111,6 +138,7 @@ export default class ProgramManager {
 	}
 
 	setProgram(settings, program) {
+		console.log("setProgram('" + JSON.stringify(settings) + "', program");
 		this.programs[JSON.stringify(settings)] = program;
 	}
 

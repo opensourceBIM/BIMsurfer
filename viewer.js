@@ -3,6 +3,7 @@ import Lighting from './lighting.js'
 import BufferSetPool from './buffersetpool.js'
 import Camera from './camera.js'
 import CameraControl from './cameraControl.js'
+import RenderBuffer from './renderBuffer.js'
 
 /*
  * Main viewer class, too many responsibilities:
@@ -81,6 +82,8 @@ export default class Viewer {
                     this.render(now);
                 });
             });
+
+            this.renderBuffer = new RenderBuffer(this.canvas, this.gl);
         });
         return promise;
     }
@@ -148,7 +151,7 @@ export default class Viewer {
             var scale = 1 / diagonal;
 
             if (!this.cameraSet) { // HACK to look at model origin as soon as available
-                this.camera.target = [0,0,0];
+                this.camera.target = [0, 0, 0];
                 this.camera.eye = [0, 1, 0];
                 this.camera.up = [0, 0, 1];
                 this.camera.worldAxis = [ // Set the +Z axis as World "up"
@@ -184,6 +187,45 @@ export default class Viewer {
 //		    0, 0, this.width, this.height,
 //		    this.gl.COLOR_BUFFER_BIT, this.gl.NEAREST
 //		);
+    }
+
+    pick(params) {
+
+        var canvasPos = params.canvasPos;
+        if (!canvasPos) { 
+            throw "param expected: canvasPos";
+        }
+
+        this.renderBuffer.bind();
+
+        this.gl.depthMask(true);
+        this.gl.clearColor(1, 1, 1, 1.0);
+        this.gl.clearDepth(1);
+        this.gl.enable(this.gl.DEPTH_TEST);
+        this.gl.depthFunc(this.gl.LEQUAL);
+        this.gl.disable(this.gl.BLEND);
+        this.gl.depthMask(true);
+
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+
+        for (var renderLayer of this.renderLayers) {
+            renderLayer.renderForPick();
+        }
+
+        var color = this.renderBuffer.read(Math.round(canvasPos[0]), Math.round(canvasPos[1]));
+
+        this.renderBuffer.unbind();
+
+        var objectId = color[0] + (color[1] * 256) + (color[2] * 256 * 256) + (color[3] * 256 * 256 * 256);
+        objectId--;
+
+        var picked = (objectId >= 0);
+
+        if (picked) {
+            return {objectId: objectId};
+        }
+
+        return null;
     }
 
     setModelBounds(modelBounds) {

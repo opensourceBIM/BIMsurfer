@@ -18,19 +18,19 @@ export default class TilingRenderLayer extends RenderLayer {
 			return true;
 		});
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
-		
+
 		this.loaderCounter = 0;
 		this.loaderToNode = {};
-		
+
 		this.drawTileBorders = true;
 
 		this._frustum = new Frustum();
-		
+
 		window.tilingRenderLayer = this;
-		
+
 		this.show = "";
 	}
-	
+
 	showAll() {
 		this.show = "all";
 		this.viewer.dirty = true;
@@ -72,7 +72,7 @@ export default class TilingRenderLayer extends RenderLayer {
 				},
 				loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 			};
-			
+
 //			query.loaderSettings.splitTriangles = true;
 
 			if (this.viewer.vertexQuantization) {
@@ -81,7 +81,7 @@ export default class TilingRenderLayer extends RenderLayer {
 					map[roid] = this.viewer.vertexQuantization.getUntransformedVertexQuantizationMatrixForRoid(roid);
 				}
 			}
-			
+
 			// TODO this explodes when either the amount of roids gets high or the octree gets bigger, or both
 			// TODO maybe it will be faster to just use one loader instead of potentially 180 loaders, this will however lead to more memory used because loaders can't be closed when they are done
 			var geometryLoader = new GeometryLoader(this.loaderCounter++, bimServerApi, this, roids, this.viewer.settings.loaderSettings, map, this.viewer.stats, this.viewer.settings, query);
@@ -110,7 +110,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			});
 			this.viewer.stats.requestUpdate();
 			document.getElementById("progress").style.display = "none";
-		});	
+		});
 
 		return executor.awaitTermination();
 	}
@@ -119,7 +119,7 @@ export default class TilingRenderLayer extends RenderLayer {
 //		if (this.viewer.navigationActive) {
 //			return;
 //		}
-		
+
 		var renderableTiles = 0;
 		var renderingTiles = 0;
 
@@ -132,7 +132,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		this.gl.useProgram(programInfo.program);
 		// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
 		this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, programInfo.uniformBlocks.LightData, this.viewer.lighting.lightingBuffer);
-		
+
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, this.viewer.camera.normalMatrix);
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
@@ -149,8 +149,8 @@ export default class TilingRenderLayer extends RenderLayer {
 			// Check whether this node is completely outside of the view frustum -> discard
 			// TODO results of these checks we could store for the second render pass (the transparency pass that is)
 
-			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling 
-			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
+			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling
+			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to
 			// skip the remaining child nodes
 
 			var isect = this._frustum.intersectsWorldAABB(node.bounds);
@@ -166,7 +166,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			if (buffers != null && buffers.length > 0) {
 				renderingTiles++;
 				var lastUsedColorHash = null;
-				
+
 				for (let buffer of buffers) {
 					if (buffer.hasTransparency == transparency) {
 						if (this.settings.useObjectColors) {
@@ -180,7 +180,7 @@ export default class TilingRenderLayer extends RenderLayer {
 				}
 			}
 		}, false);
-		
+
 		this.viewer.stats.setParameter("Tiling", "Renderable tiles", renderableTiles);
 		this.viewer.stats.setParameter("Tiling", "Rendering tiles", renderingTiles);
 
@@ -190,7 +190,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			this.octree.traverse((node) => {
 				var color = null;
 				if (node.status == 0) {
-					
+
 				} else if (node.status == 1) {
 					color = [1, 0, 0, 0.5];
 				} else if (node.status == 2) {
@@ -217,7 +217,60 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		this.gl.bindVertexArray(null);
 	}
-	
+
+	renderForPick() {
+
+		var programInfo = this.viewer.programManager.getProgram({
+			picking: true,
+			instancing: false,
+			useObjectColors: this.settings.useObjectColors,
+			quantizeVertices: this.settings.quantizeVertices
+		});
+
+		this.gl.useProgram(programInfo.program);
+
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
+
+		if (this.settings.quantizeVertices) {
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
+		}
+
+		this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
+
+		this.octree.traverseBreathFirst((node) => {
+
+			var isect = this._frustum.intersectsWorldAABB(node.bounds);
+
+			if (isect === Frustum.OUTSIDE_FRUSTUM) {
+                return;
+            }
+
+            var buffers = node.liveBuffers;
+
+            if (buffers != null && buffers.length > 0) {
+
+                //var lastUsedColorHash = null;
+				
+                for (let buffer of buffers) {
+                    // if (this.settings.useObjectColors) {
+                    //     if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
+                    //         this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
+                    //         lastUsedColorHash = buffer.colorHash;
+                    //     }
+                    // }
+                    this.renderBufferForPick(buffer, programInfo);
+                }
+            }
+        }, false);
+    }
+
+	renderBufferForPick(buffer, programInfo) {
+		this.gl.bindVertexArray(buffer.vaoPick);
+		this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
+		this.gl.bindVertexArray(null);
+	}
+
 	addGeometry(loaderId, geometry, object) {
 		var sizes = {
 			vertices: geometry.positions.length,
@@ -225,9 +278,9 @@ export default class TilingRenderLayer extends RenderLayer {
 			indices: geometry.indices.length,
 			colors: (geometry.colors != null ? geometry.colors.length : 0)
 		};
-		
+
 		var node = this.loaderToNode[loaderId];
-		
+
 		if (node.bufferManager == null) {
 			if (this.settings.useObjectColors) {
 				node.bufferManager = new BufferManagerPerColor(this.viewer.settings, this, this.viewer.bufferSetPool);
@@ -237,10 +290,10 @@ export default class TilingRenderLayer extends RenderLayer {
 		}
 		var buffer = node.bufferManager.getBufferSet(geometry.hasTransparency, geometry.color, sizes);
 		buffer.node = node;
-		
+
 		super.addGeometry(loaderId, geometry, object, buffer, sizes);
 	}
-	
+
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type) {
 		var object = {
 			id: objectId,
@@ -267,7 +320,7 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		return object;
 	}
-	
+
 	addGeometryToObject(geometryId, objectId, loader) {
 		var geometry = loader.geometries[geometryId];
 		if (geometry == null) {
@@ -321,7 +374,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			}
 		}, false);
 	}
-	
+
 	flushBuffer(buffer) {
 		if (buffer == null) {
 			return;
@@ -329,18 +382,18 @@ export default class TilingRenderLayer extends RenderLayer {
 		if (buffer.nrIndices == 0) {
 			return;
 		}
-		
+
 		var node = buffer.node;
-		
+
 		this.viewer.stats.inc("Buffers", "Flushed buffers");
-		
+
 		var programInfo = this.viewer.programManager.getProgram({
 			instancing: false,
 			useObjectColors: buffer.colors == null,
 			quantizeNormals: this.settings.quantizeNormals,
 			quantizeVertices: this.settings.quantizeVertices
 		});
-		
+
 		if (!this.settings.fakeLoading) {
 			const positionBuffer = this.gl.createBuffer();
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
@@ -389,7 +442,7 @@ export default class TilingRenderLayer extends RenderLayer {
 				}
 				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
 			}
-			
+
 			if (buffer.colors != null) {
 				const numComponents = 4;
 				const type = this.gl.FLOAT;
@@ -413,16 +466,16 @@ export default class TilingRenderLayer extends RenderLayer {
 				vao: vao,
 				hasTransparency: buffer.hasTransparency
 			};
-			
+
 			if (buffer.colors != null) {
 				newBuffer.colorBuffer = colorBuffer;
 			}
-			
+
 			if (this.settings.useObjectColors) {
 				newBuffer.color = [buffer.color.r, buffer.color.g, buffer.color.b, buffer.color.a];
 				newBuffer.colorHash = Utils.hash(JSON.stringify(buffer.color));
 			}
-			
+
 			node.liveBuffers.push(newBuffer);
 		}
 
@@ -441,7 +494,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		node.bufferManager.resetBuffer(buffer);
 		this.viewer.dirty = true;
 	}
-	
+
 	completelyDone() {
 		this.flushAllBuffers();
 		this.viewer.dirty = true;
