@@ -14,26 +14,6 @@ export default class App {
 	applyAdditionalDefaultSettings() {
 		// Apply the default settings that cannot at the moment be set by the settings UI
 		
-		// Some function that evaluates whether reuse if feasible
-		// The "reused" argument indicates how many times the geometry is
-		// reused, the "geometry" objects contains info about the geometry
-		// When true is returned, this will add 1 draw call (and vao
-		// binding) per frame, which is one of the most important factors
-		// for this decision
-		this.settings.reuseFn = (reused, geometry) => {
-			// If the amount of geometry is so small, that adding a
-			// transformation matrix per instance is going to take more
-			// space, then never reuse
-			
-			// Any geometry used only once should never result in reuse
-			if (reused == 1) {
-				return false;
-			}
-			return geometry.bytes > 10000 || reused > 1000;
-		};
-
-		// The amount of GPU memory to be assumed to be available, any model-set that will fit in this memory without using reuse, will not use reuse because it's faster
-		this.settings.assumeGpuMemoryAvailable = 1073741824, // 1GB
 		// Setting this to true will result in nothing rendered, but all CPU side buffers are created and metrics still update
 		this.settings.fakeLoading = false;
 
