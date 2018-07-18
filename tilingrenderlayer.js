@@ -64,6 +64,7 @@ export default class TilingRenderLayer extends RenderLayer {
 				node.status = 0;
 				node.liveBuffers = [];
 				node.liveReusedBuffers = [];
+				
 				var bounds = node.getBounds();
 				var query = {
 					type: {
@@ -74,20 +75,9 @@ export default class TilingRenderLayer extends RenderLayer {
 					tiles: {
 						ids: [node.id],
 						densityUpperThreshold: densityThreshold,
-						geometryDataToReuse: Array.from(this.geometryDataToReuse)
+						geometryDataToReuse: Array.from(this.geometryDataToReuse),
+						maxDepth: this.viewer.settings.octreeDepth
 					},
-//					inBoundingBox: {
-//						"x": bounds[0],
-//						"y": bounds[1],
-//						"z": bounds[2],
-//						"width": bounds[3],
-//						"height": bounds[4],
-//						"depth": bounds[5],
-//						"partial": false,
-//						"excludeOctants": !node.leaf,
-//						"useCenterPoint": true,
-//						"densityUpperThreshold": densityThreshold
-//					},
 					include: {
 						type: "IfcProduct",
 						field: "geometry",
@@ -99,8 +89,6 @@ export default class TilingRenderLayer extends RenderLayer {
 					loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 				};
 				
-//				query.loaderSettings.splitTriangles = true;
-
 				if (this.viewer.vertexQuantization) {
 					var map = {};
 					for (var roid of roids) {
