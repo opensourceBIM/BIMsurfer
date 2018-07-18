@@ -30,6 +30,7 @@ export default class Stats {
 				"Geometries reused",
 			], "Primitives": [
 				"Primitives to load (L1)",
+				"Primitives to load (L2)",
 				"Nr primitives loaded",
 				"Nr primitives hidden"
 			], "BufferSet pool": [
