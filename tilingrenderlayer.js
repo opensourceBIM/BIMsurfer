@@ -9,11 +9,11 @@ import BufferManagerPerColor from './buffermanagerpercolor.js'
 import Utils from './utils.js'
 
 export default class TilingRenderLayer extends RenderLayer {
-	constructor(viewer, bounds) {
-		super(viewer);
-		var slightlyLargerBounds = [bounds[0] - 0.1, bounds[1] - 0.1, bounds[2] - 0.1, bounds[3] + 0.2, bounds[4] + 0.2, bounds[5] + 0.2];
+	constructor(viewer, geometryDataToReuse, bounds) {
+		super(viewer, geometryDataToReuse);
+//		var slightlyLargerBounds = [bounds[0] - 0.01, bounds[1] - 0.01, bounds[2] - 0.01, bounds[3] + 0.02, bounds[4] + 0.02, bounds[5] + 0.02];
 
-		this.octree = new Octree(slightlyLargerBounds, viewer.settings.octreeDepth);
+		this.octree = new Octree(bounds, viewer.settings.octreeDepth);
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
 		
 		this.loaderCounter = 0;
@@ -36,11 +36,12 @@ export default class TilingRenderLayer extends RenderLayer {
 	load(bimServerApi, densityThreshold, roids, progressListener) {
 		var executor = new Executor(32);
 		executor.setProgressListener(progressListener);
-		
 		var excludedTypes = ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"];
 		bimServerApi.call("ServiceInterface", "getTileCounts", {
 			roids: roids,
 			excludedTypes,
+			geometryIdsToReuse: this.geometryDataToReuse,
+			threshold: densityThreshold,
 			depth: this.viewer.settings.octreeDepth
 		}, (list) => {
 			for (var i=0; i<list.length; i++) {
@@ -70,18 +71,23 @@ export default class TilingRenderLayer extends RenderLayer {
 						includeAllSubTypes: true,
 						exclude: excludedTypes
 					},
-					inBoundingBox: {
-						"x": bounds[0],
-						"y": bounds[1],
-						"z": bounds[2],
-						"width": bounds[3],
-						"height": bounds[4],
-						"depth": bounds[5],
-//						"partial": false,
-						"excludeOctants": !node.leaf,
-//						"useCenterPoint": true,
-						"densityUpperThreshold": densityThreshold
+					tiles: {
+						ids: [node.id],
+						densityUpperThreshold: densityThreshold,
+						geometryDataToReuse: Array.from(this.geometryDataToReuse)
 					},
+//					inBoundingBox: {
+//						"x": bounds[0],
+//						"y": bounds[1],
+//						"z": bounds[2],
+//						"width": bounds[3],
+//						"height": bounds[4],
+//						"depth": bounds[5],
+//						"partial": false,
+//						"excludeOctants": !node.leaf,
+//						"useCenterPoint": true,
+//						"densityUpperThreshold": densityThreshold
+//					},
 					include: {
 						type: "IfcProduct",
 						field: "geometry",
@@ -276,7 +282,8 @@ export default class TilingRenderLayer extends RenderLayer {
 			colors: (geometry.colors != null ? geometry.colors.length : 0)
 		};
 		
-		if (this.viewer.settings.reuseFn(geometry.reused, geometry)) {
+		// TODO some of this is duplicate code, also in defaultrenderlayer.js
+		if (geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id)) {
 			geometry.matrices.push(object.matrix);
 			
 			this.viewer.stats.inc("Drawing", "Triangles to draw", geometry.indices.length / 3);
@@ -316,7 +323,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			}
 		};
 
-		loader.objects[oid] = object;
+		loader.objects.set(oid, object);
 
 		geometryIds.forEach((id) => {
 			this.addGeometryToObject(id, object.id, loader, node.liveReusedBuffers);
@@ -340,17 +347,15 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		var loader = this.getLoader(loaderId);
 
-		Object.keys(loader.geometries).forEach((key, index) => {
-			var geometry = loader.geometries[key];
+		for (var geometry of loader.geometries.values()) {
 			if (geometry.isReused) {
 				this.addGeometryReusable(geometry, loader, node.liveReusedBuffers);
 			}
-		});
+		}
 
-		Object.keys(loader.objects).forEach((key, index) => {
-			var object = loader.objects[key];
+		for (var object of loader.objects.values()) {
 			object.add = null;
-		});
+		}
 
 		this.removeLoader(loaderId);
 	}

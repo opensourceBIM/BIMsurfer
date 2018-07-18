@@ -1,10 +1,12 @@
 import BufferTransformer from './buffertransformer.js'
+import Utils from './utils.js'
 
 export default class RenderLayer {
-	constructor(viewer) {
+	constructor(viewer, geometryDataToReuse) {
 		this.settings = viewer.settings;
 		this.viewer = viewer;
 		this.gl = viewer.gl;
+		this.geometryDataToReuse = geometryDataToReuse;
 
 		this.loaders = new Map();
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
@@ -47,8 +49,8 @@ export default class RenderLayer {
 		
 		var loader = this.getLoader(loaderId);
 
-		loader.geometries[geometryId] = geometry;
-		geometry.isReused = this.settings.reuseFn(reused, geometry);
+		loader.geometries.set(geometryId, geometry);
+		geometry.isReused = geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id);
 		if (geometry.isReused) {
 			this.viewer.stats.inc("Models", "Geometries reused");
 		} else {
@@ -145,11 +147,11 @@ export default class RenderLayer {
 	}
 	
 	addGeometryToObject(geometryId, objectId, loader, liveReusedBuffers) {
-		var geometry = loader.geometries[geometryId];
+		var geometry = loader.geometries.get(geometryId);
 		if (geometry == null) {
 			return;
 		}
-		var object = loader.objects[objectId];
+		var object = loader.objects.get(objectId);
 		if (object.visible) {
 			this.addGeometry(loader.loaderId, geometry, object);
 			object.geometry.push(geometryId);
@@ -291,7 +293,7 @@ export default class RenderLayer {
 			buffer.colorHash = Utils.hash(JSON.stringify(buffer.color));
 		}
 		
-		delete loader.geometries[geometry.id];
+		loader.geometries.delete(geometry.id);
 		liveReusedBuffers.push(buffer);
 
 		this.viewer.stats.inc("Primitives", "Nr primitives loaded", (buffer.nrIndices / 3) * geometry.matrices.length);
@@ -316,14 +318,14 @@ export default class RenderLayer {
 	}
 	
 	getObject(loaderId, identifier) {
-		return this.getLoader(loaderId).objects[identifier];
+		return this.getLoader(loaderId).objects.get(identifier);
 	}
 	
 	registerLoader(loaderId) {
 		this.loaders.set(loaderId, {
 			loaderId: loaderId,
-			objects: {},
-			geometries: {}
+			objects: new Map(),
+			geometries: new Map()
 		});
 	}
 	

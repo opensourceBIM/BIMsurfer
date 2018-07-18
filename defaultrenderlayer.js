@@ -15,8 +15,8 @@ import RenderLayer from './renderlayer.js'
  */
 
 export default class DefaultRenderLayer extends RenderLayer {
-	constructor(viewer) {
-		super(viewer);
+	constructor(viewer, geometryDataToReuse) {
+		super(viewer, geometryDataToReuse);
 		
 		if (this.settings.useObjectColors) {
 			this.bufferManager = new BufferManagerPerColor(this.settings, this, this.viewer.bufferSetPool);
@@ -44,7 +44,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		};
 
 		var loader = this.getLoader(loaderId);
-		loader.objects[oid] = object;
+		loader.objects.set(oid , object);
 
 		geometryIds.forEach((id) => {
 			this.addGeometryToObject(id, object.id, loader, this.liveReusedBuffers);
@@ -56,7 +56,9 @@ export default class DefaultRenderLayer extends RenderLayer {
 	}
 	
 	addGeometry(loaderId, geometry, object) {
-		if (this.settings.reuseFn(geometry.reused, geometry)) {
+		// TODO some of this is duplicate code, also in tilingrenderlayer.js
+
+		if (geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id)) {
 			geometry.matrices.push(object.matrix);
 			
 			this.viewer.stats.inc("Drawing", "Triangles to draw", geometry.indices.length / 3);
@@ -78,17 +80,15 @@ export default class DefaultRenderLayer extends RenderLayer {
 	done(loaderId) {
 		var loader = this.getLoader(loaderId);
 
-		Object.keys(loader.geometries).forEach((key, index) => {
-			var geometry = loader.geometries[key];
+		for (var geometry of loader.geometries.values()) {
 			if (geometry.isReused) {
 				this.addGeometryReusable(geometry, loader, this.liveReusedBuffers);
 			}
-		});
-		
-		Object.keys(loader.objects).forEach((key, index) => {
-			var object = loader.objects[key];
+		}
+
+		for (var object of loader.objects.values()) {
 			object.add = null;
-		});
+		}
 
 		this.removeLoader(loaderId);
 	}
