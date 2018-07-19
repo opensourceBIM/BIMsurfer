@@ -26,6 +26,21 @@ class OctreeNode {
 		
 		this.bounds = [this.x, this.y, this.z, this.width, this.height, this.depth];
 		this.quadrants = [];
+		
+		this.largestFaceArea = width * height;
+		if (width * depth > this.largestFaceArea) {
+			this.largestFaceArea = width * depth;
+		}
+		if (depth * height > this.largestFaceArea) {
+			this.largestFaceArea = depth * height;
+		}
+		this.largestEdge = width;
+		if (height > this.largestEdge) {
+			this.largestEdge = height;
+		}
+		if (depth > this.largestEdge) {
+			this.largestEdge = depth;
+		}
 	}
 	
 	getBounds() {
