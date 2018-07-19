@@ -133,6 +133,29 @@ export default class TilingRenderLayer extends RenderLayer {
 		this.renderBuffers(transparency, true);
 	}
 	
+	occlude(node) {
+		// 1. Are we always showing all objects?
+		if (this.show == "all") {
+			return false;
+		}
+
+		// 2. Is the complete Tile outside of the view frustum?
+		var isect = this._frustum.intersectsWorldAABB(node.bounds);
+		
+		if (isect === Frustum.OUTSIDE_FRUSTUM) {
+			return true;
+		}
+		
+		// 3. In the tile too far away?
+		var cameraEye = this.viewer.camera.eye;
+		var tileCenter = node.getCenter();
+		var sizeFactor = 1 / Math.pow(2, node.level);
+		return vec3.distance(cameraEye, tileCenter) / sizeFactor > 1000000; // TODO use something related to the total bounding box size
+//		console.log(cameraEye, tileCenter);
+		// Default response
+		return false;
+	}
+	
 	renderBuffers(transparency, reuse) {
 		// TODO when navigation is active (rotating, panning etc...), this would be the place to decide to for example not-render anything in this layer, or maybe apply more aggressive culling
 //		if (this.viewer.navigationActive) {
@@ -170,10 +193,9 @@ export default class TilingRenderLayer extends RenderLayer {
 			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
 			// skip the remaining child nodes
 
-			var isect = this._frustum.intersectsWorldAABB(node.bounds);
-
-			if (this.show !== "all" && isect === Frustum.OUTSIDE_FRUSTUM) {
+			if (this.occlude(node)) {
 				node.visibilityStatus = 0;
+				return;
 			} else {
 				node.visibilityStatus = 1;
 				renderingTiles++;
