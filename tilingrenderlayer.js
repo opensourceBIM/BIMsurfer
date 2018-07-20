@@ -172,6 +172,9 @@ export default class TilingRenderLayer extends RenderLayer {
 //			return;
 //		}
 		
+		// TODO would be nicer if this was passed as an integer argument, indicating the iteration count of this frame
+		var firstRunOfFrame = !transparency && !reuse
+		
 		var renderingTiles = 0;
 		var renderingTriangles = 0;
 		var drawCalls = 0;
@@ -193,7 +196,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 		}
 
-		if (!transparency) { // Saves us from initializing two times per frame
+		if (firstRunOfFrame) { // Saves us from initializing two times per frame
 			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
 		}
 
@@ -205,34 +208,39 @@ export default class TilingRenderLayer extends RenderLayer {
 			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
 			// skip the remaining child nodes
 
-			if (this.occlude(node)) {
-				node.visibilityStatus = 0;
-				return;
-			} else {
-				node.visibilityStatus = 1;
-				renderingTiles++;
-	
-				if (node.stats != null) {
-					renderingTriangles += node.stats.triangles;
-					drawCalls += node.stats.drawCallsPerFrame;
+			if (firstRunOfFrame) {
+				if (this.occlude(node)) {
+					node.visibilityStatus = 0;
+					return;
+				} else {
+					node.visibilityStatus = 1;
+					renderingTiles++;
+					if (node.stats != null) {
+						renderingTriangles += node.stats.triangles;
+						drawCalls += node.stats.drawCallsPerFrame;
+					}
 				}
 			}
-			
-			if (node.gpuBufferManager == null) {
-				return;
+
+			if (node.visibilityStatus == 1) {
+				if (node.gpuBufferManager == null) {
+					// Not initialized yet
+					return;
+				}
+				
+				var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
+				
+				this.renderFinalBuffers(buffers, programInfo);
 			}
-			
-			var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
-			
-			this.renderFinalBuffers(buffers, programInfo);
 		});
 		
-		this.viewer.stats.setParameter("Drawing", "Draw calls per frame (L2)", drawCalls);
-		this.viewer.stats.setParameter("Drawing", "Triangles to draw (L2)", renderingTriangles);
-		
-		this.viewer.stats.setParameter("Tiling", "Rendering tiles", renderingTiles);
+		if (firstRunOfFrame) {
+			this.viewer.stats.setParameter("Drawing", "Draw calls per frame (L2)", drawCalls);
+			this.viewer.stats.setParameter("Drawing", "Triangles to draw (L2)", renderingTriangles);
+			this.viewer.stats.setParameter("Tiling", "Rendering tiles", renderingTiles);
+		}
 
-		if (transparency && this.drawTileBorders) {
+		if (transparency && !reuse && this.drawTileBorders) {
 			// The lines are rendered in the transparency-phase only
 			this.lineBoxGeometry.renderStart();
 			this.octree.traverseBreathFirst((node) => {
@@ -341,7 +349,10 @@ export default class TilingRenderLayer extends RenderLayer {
 			object.add = null;
 		}
 
-		node.gpuBufferManager.combineBuffers();
+		var savedBuffers = node.gpuBufferManager.combineBuffers();
+		this.viewer.stats.dec("Drawing", "Draw calls per frame (L2)", savedBuffers);
+		this.viewer.stats.dec("Buffers", "Buffer groups", savedBuffers);
+		node.stats.drawCallsPerFrame -= savedBuffers;
 
 		this.removeLoader(loaderId);
 	}
@@ -365,120 +376,9 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 	
 	flushBuffer(buffer) {
-		if (buffer == null) {
-			return;
-		}
-		if (buffer.nrIndices == 0) {
-			return;
-		}
-		
 		var node = buffer.node;
-		
-		var programInfo = this.viewer.programManager.getProgram({
-			instancing: false,
-			useObjectColors: buffer.colors == null,
-			quantizeNormals: this.settings.quantizeNormals,
-			quantizeVertices: this.settings.quantizeVertices
-		});
-		
-		if (!this.settings.fakeLoading) {
-			const positionBuffer = this.gl.createBuffer();
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-			this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.positions, this.gl.STATIC_DRAW, 0, buffer.positionsIndex);
+		super.flushBuffer(buffer, node.gpuBufferManager)
 
-			const normalBuffer = this.gl.createBuffer();
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-			this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.normals, this.gl.STATIC_DRAW, 0, buffer.normalsIndex);
-
-			if (buffer.colors != null) {
-				var colorBuffer = this.gl.createBuffer();
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.colors, this.gl.STATIC_DRAW, 0, buffer.colorsIndex);
-			}
-
-			const indexBuffer = this.gl.createBuffer();
-			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-			this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, buffer.indices, this.gl.STATIC_DRAW, 0, buffer.indicesIndex);
-
-			var vao = this.gl.createVertexArray();
-			this.gl.bindVertexArray(vao);
-
-			{
-				const numComponents = 3;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-				if (this.settings.quantizeVertices) {
-					this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexPosition, numComponents, this.gl.SHORT, normalize, stride, offset);
-				} else {
-					this.gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, numComponents, this.gl.FLOAT, normalize, stride, offset);
-				}
-				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-			}
-			{
-				const numComponents = 3;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-				if (this.settings.quantizeNormals) {
-					this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.BYTE, normalize, stride, offset);
-				} else {
-					this.gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.FLOAT, normalize, stride, offset);
-				}
-				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
-			}
-			
-			if (buffer.colors != null) {
-				const numComponents = 4;
-				const type = this.gl.FLOAT;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-				this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents,	type, normalize, stride, offset);
-				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
-			}
-
-			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-			this.gl.bindVertexArray(null);
-
-			var newBuffer = {
-				positionBuffer: positionBuffer,
-				normalBuffer: normalBuffer,
-				indexBuffer: indexBuffer,
-				nrIndices: buffer.nrIndices,
-				nrPositions: buffer.positionsIndex,
-				nrNormals: buffer.normalsIndex,
-				nrColors: buffer.colorsIndex,
-				vao: vao,
-				hasTransparency: buffer.hasTransparency
-			};
-			
-			if (buffer.colors != null) {
-				newBuffer.colorBuffer = colorBuffer;
-			}
-			
-			if (this.settings.useObjectColors) {
-				newBuffer.color = [buffer.color.r, buffer.color.g, buffer.color.b, buffer.color.a];
-				newBuffer.colorHash = Utils.hash(JSON.stringify(buffer.color));
-			}
-			
-			node.gpuBufferManager.pushBuffer(newBuffer);
-		}
-
-		var toadd = buffer.positionsIndex * (this.settings.quantizeVertices ? 2 : 4) + buffer.normalsIndex * (this.settings.quantizeNormals ? 1 : 4) + (buffer.colorsIndex != null ? buffer.colorsIndex * 4 : 0) + buffer.indicesIndex * 4;
-
-		this.viewer.stats.inc("Primitives", "Nr primitives loaded", buffer.nrIndices / 3);
-		if (this.progressListener != null) {
-			this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
-		}
-		this.viewer.stats.inc("Data", "GPU bytes", toadd);
-		this.viewer.stats.inc("Data", "GPU bytes total", toadd);
-		this.viewer.stats.inc("Buffers", "Buffer groups");
-		
 		node.stats.triangles += buffer.nrIndices / 3;
 		node.stats.drawCallsPerFrame++;
 

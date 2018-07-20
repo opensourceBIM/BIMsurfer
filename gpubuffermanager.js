@@ -210,13 +210,13 @@ export default class GpuBufferManager {
 					reuse: false
 				};
 				
-				this.viewer.stats.dec("Drawing", "Draw calls per frame (L1)", buffers.length);
-				this.viewer.stats.dec("Buffers", "Buffer groups", buffers.length);
+				var previousLength = buffers.length;
 				buffers.length = 0;
 				buffers.push(newBuffer);
-				this.viewer.stats.inc("Drawing", "Draw calls per frame (L1)");
-				this.viewer.stats.inc("Buffers", "Buffer groups");
+				
+				return previousLength - 1;
 			}
 		}
+		return 0;
 	}
 }
