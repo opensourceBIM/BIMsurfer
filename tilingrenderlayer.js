@@ -232,14 +232,17 @@ export default class TilingRenderLayer extends RenderLayer {
 
 	done(loaderId) {
 		var loader = this.getLoader(loaderId);
+		var node = this.loaderToNode[loaderId];
 
 		for (var geometry of loader.geometries.values()) {
 			if (geometry.isReused) {
 				this.addGeometryReusable(geometry, loader, node.gpuBufferManager);
+				
+				node.stats.triangles += ((geometry.nrIndices / 3) * (geometry.matrices.length));
+				node.stats.drawCallsPerFrame++;
 			}
 		}
 
-		var node = this.loaderToNode[loaderId];
 		var bufferManager = node.bufferManager;
 		if (bufferManager != null) {
 			for (var buffer of bufferManager.getAllBuffers()) {
