@@ -61,7 +61,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		if (geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id)) {
 			geometry.matrices.push(object.matrix);
 			
-			this.viewer.stats.inc("Drawing", "Triangles to draw", geometry.indices.length / 3);
+			this.viewer.stats.inc("Drawing", "Triangles to draw (L1)", geometry.indices.length / 3);
 
 			return;
 		}
@@ -119,8 +119,6 @@ export default class DefaultRenderLayer extends RenderLayer {
 		if (buffer.nrIndices == 0) {
 			return;
 		}
-		
-		this.viewer.stats.inc("Buffers", "Flushed buffers");
 		
 		var programInfo = this.viewer.programManager.getProgram({
 			instancing: false,
@@ -222,10 +220,10 @@ export default class DefaultRenderLayer extends RenderLayer {
 			this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
 		}
 		this.viewer.stats.inc("Data", "GPU bytes", toadd);
-		this.viewer.stats.inc("Drawing", "Draw calls per frame");
 		this.viewer.stats.inc("Data", "GPU bytes total", toadd);
 		this.viewer.stats.inc("Buffers", "Buffer groups");
-		this.viewer.stats.inc("Drawing", "Triangles to draw", buffer.nrIndices / 3);
+		this.viewer.stats.inc("Drawing", "Draw calls per frame (L1)");
+		this.viewer.stats.inc("Drawing", "Triangles to draw (L1)", buffer.nrIndices / 3);
 
 		this.bufferManager.resetBuffer(buffer);
 	}
