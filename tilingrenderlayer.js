@@ -26,6 +26,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		window.tilingRenderLayer = this;
 		
 		this.show = "none";
+		this.initialLoad = "all";
 	}
 	
 	showAll() {
@@ -55,75 +56,93 @@ export default class TilingRenderLayer extends RenderLayer {
 				node.nrObjects = nrObjects;
 			}
 			
-			// Traversing breath-first so the big chucks are loaded first
-			this.octree.traverseBreathFirst((node) => {
-				if (node.nrObjects == 0) {
-					// This happens for root nodes that don't contain any objects, but have children that do have objects
-					return;
-				}
-				node.status = 0;
-				node.liveBuffers = [];
-				node.liveReusedBuffers = [];
-				
-				var bounds = node.getBounds();
-				var query = {
-					type: {
-						name: "IfcProduct",
-						includeAllSubTypes: true,
-						exclude: excludedTypes
-					},
-					tiles: {
-						ids: [node.id],
-						densityUpperThreshold: densityThreshold,
-						geometryDataToReuse: Array.from(this.geometryDataToReuse),
-						maxDepth: this.viewer.settings.octreeDepth
-					},
-					include: {
-						type: "IfcProduct",
-						field: "geometry",
-						include: {
-							type: "GeometryInfo",
-							field: "data"
-						}
-					},
-					loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
-				};
-				
-				if (this.viewer.vertexQuantization) {
-					var map = {};
-					for (var roid of roids) {
-						map[roid] = this.viewer.vertexQuantization.getUntransformedVertexQuantizationMatrixForRoid(roid);
-					}
-				}
-				
-				// TODO this explodes when either the amount of roids gets high or the octree gets bigger, or both
-				// TODO maybe it will be faster to just use one loader instead of potentially 180 loaders, this will however lead to more memory used because loaders can't be closed when they are done
-				var geometryLoader = new GeometryLoader(this.loaderCounter++, bimServerApi, this, roids, this.viewer.settings.loaderSettings, map, this.viewer.stats, this.viewer.settings, query);
-				this.registerLoader(geometryLoader.loaderId);
-				this.loaderToNode[geometryLoader.loaderId] = node;
-				geometryLoader.onStart = () => {
-					node.status = 1;
-					this.viewer.dirty = true;
-				};
-				executor.add(geometryLoader).then(() => {
-					if ((node.liveBuffers == null || node.liveBuffers.length == 0) && (node.liveReusedBuffers == null || node.liveReusedBuffers.length == 0) && (node.bufferManager == null || node.bufferManager.bufferSets.size == 0)) {
-						node.status = 0;
-					} else {
-						node.status = 2;
-					}
-					this.done(geometryLoader.loaderId);
-				});
-			});
+			// TODO load per level, so first level 0, then 1 etc... These calls should be submitted to the executor only after the previous layer has been submitted
+			// Mayeb we could load 2 levels at a time, to improve performance... So 0 and 1, as soon as 0 has loaded, start loading 2 etc...
 			
-			executor.awaitTermination().then(() => {
-				this.completelyDone();
-				this.octree.prepareBreathFirst((node) => {
-					return true;
+			// Traversing breath-first so the big chucks are loaded first
+//			for (var l=0; l<=this.octree.deepestLevel; l++) {
+//				
+//			}
+			
+			if (this.initialLoad == "all") {
+				this.octree.traverseBreathFirst((node) => {
+					if (node.nrObjects == 0) {
+						// This happens for root nodes that don't contain any objects, but have children that do have objects
+						return;
+					}
+					node.status = 0;
+					node.liveBuffersTransparent = [];
+					node.liveBuffersOpaque = [];
+					node.liveReusedBuffers = [];
+					
+					node.stats = {
+						triangles: 0,
+						drawCallsPerFrame: 0
+					};
+	
+					var bounds = node.getBounds();
+					var query = {
+						type: {
+							name: "IfcProduct",
+							includeAllSubTypes: true,
+							exclude: excludedTypes
+						},
+						tiles: {
+							ids: [node.id],
+							densityUpperThreshold: densityThreshold,
+							geometryDataToReuse: Array.from(this.geometryDataToReuse),
+							maxDepth: this.viewer.settings.octreeDepth
+						},
+						include: {
+							type: "IfcProduct",
+							field: "geometry",
+							include: {
+								type: "GeometryInfo",
+								field: "data"
+							}
+						},
+						loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
+					};
+					
+					if (this.viewer.vertexQuantization) {
+						var map = {};
+						for (var roid of roids) {
+							map[roid] = this.viewer.vertexQuantization.getUntransformedVertexQuantizationMatrixForRoid(roid);
+						}
+					}
+					
+					// TODO this explodes when either the amount of roids gets high or the octree gets bigger, or both
+					// TODO maybe it will be faster to just use one loader instead of potentially 180 loaders, this will however lead to more memory used because loaders can't be closed when they are done
+					var geometryLoader = new GeometryLoader(this.loaderCounter++, bimServerApi, this, roids, this.viewer.settings.loaderSettings, map, this.viewer.stats, this.viewer.settings, query);
+					this.registerLoader(geometryLoader.loaderId);
+					this.loaderToNode[geometryLoader.loaderId] = node;
+					geometryLoader.onStart = () => {
+						node.status = 1;
+						this.viewer.dirty = true;
+					};
+					executor.add(geometryLoader).then(() => {
+						if (
+								(node.liveBuffersOpaque == null || node.liveBuffersOpaque.length == 0) && 
+								(node.liveBuffersTransparent == null || node.liveBuffersTransparent.length == 0) && 
+								(node.liveReusedBuffers == null || node.liveReusedBuffers.length == 0) && 
+								(node.bufferManager == null || node.bufferManager.bufferSets.size == 0)) {
+							node.status = 0;
+						} else {
+							node.status = 2;
+						}
+						this.done(geometryLoader.loaderId);
+					});
 				});
-				this.viewer.stats.requestUpdate();
-				document.getElementById("progress").style.display = "none";
-			});	
-
+			
+				executor.awaitTermination().then(() => {
+					this.completelyDone();
+					this.octree.prepareBreathFirst((node) => {
+						return true;
+					});
+					this.viewer.stats.requestUpdate();
+					document.getElementById("progress").style.display = "none";
+				});	
+			}
 		});
 		return executor.awaitTermination();
 	}
@@ -163,6 +182,8 @@ export default class TilingRenderLayer extends RenderLayer {
 //		}
 		
 		var renderingTiles = 0;
+		var renderingTriangles = 0;
+		var drawCalls = 0;
 
 		var programInfo = this.viewer.programManager.getProgram({
 			instancing: reuse,
@@ -199,22 +220,30 @@ export default class TilingRenderLayer extends RenderLayer {
 			} else {
 				node.visibilityStatus = 1;
 				renderingTiles++;
+	
+				if (node.stats != null) {
+					renderingTriangles += node.stats.triangles;
+					drawCalls += node.stats.drawCallsPerFrame;
+				}
+			}
+			
+			var buffers = node.liveBuffersOpaque;
+			if (transparency) {
+				buffers = node.liveBuffersTransparent;
 			}
 			
 			if (!reuse) {
-				if (node.liveBuffers != null && node.liveBuffers.length > 0) {
+				if (buffers != null && buffers.length > 0) {
 					var lastUsedColorHash = null;
 					
-					for (let buffer of node.liveBuffers) {
-						if (buffer.hasTransparency == transparency) {
-							if (this.settings.useObjectColors) {
-								if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
-									this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
-									lastUsedColorHash = buffer.colorHash;
-								}
+					for (let buffer of buffers) {
+						if (this.settings.useObjectColors) {
+							if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
+								this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
+								lastUsedColorHash = buffer.colorHash;
 							}
-							this.renderBuffer(buffer, programInfo);
 						}
+						this.renderBuffer(buffer, programInfo);
 					}
 				}
 			}
@@ -236,6 +265,9 @@ export default class TilingRenderLayer extends RenderLayer {
 				}
 			}
 		});
+		
+		this.viewer.stats.setParameter("Drawing", "Draw calls per frame (L2)", drawCalls);
+		this.viewer.stats.setParameter("Drawing", "Triangles to draw (L2)", renderingTriangles);
 		
 		this.viewer.stats.setParameter("Tiling", "Rendering tiles", renderingTiles);
 
@@ -345,6 +377,14 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	done(loaderId) {
+		var loader = this.getLoader(loaderId);
+
+		for (var geometry of loader.geometries.values()) {
+			if (geometry.isReused) {
+				this.addGeometryReusable(geometry, loader, node.liveReusedBuffers);
+			}
+		}
+
 		var node = this.loaderToNode[loaderId];
 		var bufferManager = node.bufferManager;
 		if (bufferManager != null) {
@@ -355,16 +395,167 @@ export default class TilingRenderLayer extends RenderLayer {
 			node.bufferManager = null;
 		}
 
-		var loader = this.getLoader(loaderId);
-
-		for (var geometry of loader.geometries.values()) {
-			if (geometry.isReused) {
-				this.addGeometryReusable(geometry, loader, node.liveReusedBuffers);
-			}
-		}
-
 		for (var object of loader.objects.values()) {
 			object.add = null;
+		}
+		
+		for (var transparency of [false, true]) {
+			var buffers = node.liveBuffersOpaque;
+			if (transparency) {
+				buffers = node.liveBuffersTransparent;
+			}
+			if (buffers.length > 1 && !this.viewer.settings.useObjectColors) {
+				console.log("Combining buffers", buffers.length);
+				// Optimize the buffers by combining them
+				
+				var nrPositions = 0;
+				var nrNormals = 0;
+				var nrIndices = 0;
+				var nrColors = 0;
+				
+				for (var buffer of buffers) {
+					nrPositions += buffer.nrPositions;
+					nrNormals += buffer.nrNormals;
+					nrIndices += buffer.nrIndices;
+					nrColors += buffer.nrColors;
+				}
+				
+				const positionBuffer = this.gl.createBuffer();
+				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
+				this.gl.bufferData(this.gl.ARRAY_BUFFER, this.settings.quantizeVertices ? new Int16Array(nrPositions) : new Float32Array(nrPositions), this.gl.STATIC_DRAW);
+				
+				const normalBuffer = this.gl.createBuffer();
+				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
+				this.gl.bufferData(this.gl.ARRAY_BUFFER, this.settings.quantizeNormals ? new Int8Array(nrNormals) : new Float32Array(nrNormals), this.gl.STATIC_DRAW);
+
+				var colorBuffer = this.gl.createBuffer();
+				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
+				this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(nrColors), this.gl.STATIC_DRAW);
+				
+				const indexBuffer = this.gl.createBuffer();
+				this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+				this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Int32Array(nrIndices), this.gl.STATIC_DRAW);
+				
+				var positionsOffset = 0;
+				var normalsOffset = 0;
+				var indicesOffset = 0;
+				var colorsOffset = 0;
+
+				for (var buffer of buffers) {
+					this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.positionBuffer);
+					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
+					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.ARRAY_BUFFER, 0, positionsOffset * (this.settings.quantizeVertices ? 2 : 4), buffer.nrPositions * (this.settings.quantizeVertices ? 2 : 4));
+					
+					this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.normalBuffer);
+					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
+					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.ARRAY_BUFFER, 0, normalsOffset * (this.settings.quantizeNormals ? 1 : 4), buffer.nrNormals * (this.settings.quantizeNormals ? 1 : 4));
+
+					this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.colorBuffer);
+					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
+					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.ARRAY_BUFFER, 0, colorsOffset * 4, buffer.nrColors * 4);
+
+					if (positionsOffset == 0) {
+						this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.indexBuffer);
+						this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+						this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.ELEMENT_ARRAY_BUFFER, 0, 0, buffer.nrIndices * 4);
+					} else {
+						var startIndex = positionsOffset / 3;
+						
+						this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.indexBuffer);
+						var tmpIndexBuffer = new Int32Array(buffer.nrIndices);
+						this.gl.getBufferSubData(this.gl.COPY_READ_BUFFER, 0, tmpIndexBuffer, 0, buffer.nrIndices);
+						
+						for (var i=0; i<buffer.nrIndices; i++) {
+							tmpIndexBuffer[i] = tmpIndexBuffer[i] + startIndex;
+						}
+						
+						this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+						this.gl.bufferSubData(this.gl.ELEMENT_ARRAY_BUFFER, indicesOffset * 4, tmpIndexBuffer, 0, buffer.nrIndices);
+					}
+
+					this.gl.deleteBuffer(buffer.positionBuffer);
+					this.gl.deleteBuffer(buffer.normalBuffer);
+					this.gl.deleteBuffer(buffer.colorBuffer);
+					this.gl.deleteBuffer(buffer.indexBuffer);
+					
+					this.gl.deleteVertexArray(buffer.vao);
+					
+					positionsOffset += buffer.nrPositions;
+					normalsOffset += buffer.nrNormals;
+					indicesOffset += buffer.nrIndices;
+					colorsOffset += buffer.nrColors;
+				}
+				
+				var programInfo = this.viewer.programManager.getProgram({
+					instancing: false,
+					useObjectColors: buffer.colors == null,
+					quantizeNormals: this.settings.quantizeNormals,
+					quantizeVertices: this.settings.quantizeVertices
+				});
+				
+				var vao = this.gl.createVertexArray();
+				this.gl.bindVertexArray(vao);
+
+				{
+					const numComponents = 3;
+					const normalize = false;
+					const stride = 0;
+					const offset = 0;
+					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
+					if (this.settings.quantizeVertices) {
+						this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexPosition, numComponents, this.gl.SHORT, normalize, stride, offset);
+					} else {
+						this.gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, numComponents, this.gl.FLOAT, normalize, stride, offset);
+					}
+					this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+				}
+				{
+					const numComponents = 3;
+					const normalize = false;
+					const stride = 0;
+					const offset = 0;
+					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
+					if (this.settings.quantizeNormals) {
+						this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.BYTE, normalize, stride, offset);
+					} else {
+						this.gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.FLOAT, normalize, stride, offset);
+					}
+					this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
+				}
+				
+				if (buffer.colors != null) {
+					const numComponents = 4;
+					const type = this.gl.FLOAT;
+					const normalize = false;
+					const stride = 0;
+					const offset = 0;
+					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
+					this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents,	type, normalize, stride, offset);
+					this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+				}
+
+				this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+				this.gl.bindVertexArray(null);
+				
+				var newBuffer = {
+					positionBuffer: positionBuffer,
+					normalBuffer: normalBuffer,
+					indexBuffer: indexBuffer,
+					colorBuffer: colorBuffer,
+					nrIndices: indicesOffset,
+					nrPositions: positionsOffset,
+					nrNormals: normalsOffset,
+					nrColors: colorsOffset,
+					vao: vao,
+					hasTransparency: transparency
+				};
+				
+				this.viewer.stats.dec("Buffers", "Buffer groups", buffers.length);
+				buffers.length = 0;
+				buffers.push(newBuffer);
+				this.viewer.stats.inc("Buffers", "Buffer groups", 1);
+			}
 		}
 
 		this.removeLoader(loaderId);
@@ -380,7 +571,9 @@ export default class TilingRenderLayer extends RenderLayer {
 				if (this.settings.useObjectColors) {
 					// When using object colors, it makes sense to sort the buffers by color, so we can potentially skip a few uniform binds
 					// It might be beneficiary to do this sorting on-the-lfy and not just when everything is loaded
-					this.sortBuffers(node.liveBuffers);
+
+					// TODO disabled for now since we are testing combining buffer, which makes this obsolete
+//					this.sortBuffers(node.liveBuffers);
 				}
 			}
 		}, false);
@@ -395,8 +588,6 @@ export default class TilingRenderLayer extends RenderLayer {
 		}
 		
 		var node = buffer.node;
-		
-		this.viewer.stats.inc("Buffers", "Flushed buffers");
 		
 		var programInfo = this.viewer.programManager.getProgram({
 			instancing: false,
@@ -474,6 +665,9 @@ export default class TilingRenderLayer extends RenderLayer {
 				normalBuffer: normalBuffer,
 				indexBuffer: indexBuffer,
 				nrIndices: buffer.nrIndices,
+				nrPositions: buffer.positionsIndex,
+				nrNormals: buffer.normalsIndex,
+				nrColors: buffer.colorsIndex,
 				vao: vao,
 				hasTransparency: buffer.hasTransparency
 			};
@@ -487,7 +681,11 @@ export default class TilingRenderLayer extends RenderLayer {
 				newBuffer.colorHash = Utils.hash(JSON.stringify(buffer.color));
 			}
 			
-			node.liveBuffers.push(newBuffer);
+			if (newBuffer.hasTransparency) {
+				node.liveBuffersTransparent.push(newBuffer);
+			} else {
+				node.liveBuffersOpaque.push(newBuffer);
+			}
 		}
 
 		var toadd = buffer.positionsIndex * (this.settings.quantizeVertices ? 2 : 4) + buffer.normalsIndex * (this.settings.quantizeNormals ? 1 : 4) + (buffer.colorsIndex != null ? buffer.colorsIndex * 4 : 0) + buffer.indicesIndex * 4;
@@ -497,10 +695,11 @@ export default class TilingRenderLayer extends RenderLayer {
 			this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
 		}
 		this.viewer.stats.inc("Data", "GPU bytes", toadd);
-		this.viewer.stats.inc("Drawing", "Draw calls per frame");
 		this.viewer.stats.inc("Data", "GPU bytes total", toadd);
 		this.viewer.stats.inc("Buffers", "Buffer groups");
-		this.viewer.stats.inc("Drawing", "Triangles to draw", buffer.nrIndices / 3);
+		
+		node.stats.triangles += buffer.nrIndices / 3;
+		node.stats.drawCallsPerFrame++;
 
 		node.bufferManager.resetBuffer(buffer);
 		this.viewer.dirty = true;
