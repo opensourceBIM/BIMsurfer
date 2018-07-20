@@ -230,6 +230,13 @@ export default class TilingRenderLayer extends RenderLayer {
 		return object;
 	}
 
+	addGeometryReusable(geometry, loader, gpuBufferManager) {
+		super.addGeometryReusable(geometry, loader, gpuBufferManager);
+		var node = this.loaderToNode[loader.id];
+		node.stats.triangles += ((geometry.nrIndices / 3) * (geometry.matrices.length));
+		node.stats.drawCallsPerFrame++;
+	}
+	
 	done(loaderId) {
 		var loader = this.getLoader(loaderId);
 		var node = this.loaderToNode[loaderId];
@@ -237,9 +244,6 @@ export default class TilingRenderLayer extends RenderLayer {
 		for (var geometry of loader.geometries.values()) {
 			if (geometry.isReused) {
 				this.addGeometryReusable(geometry, loader, node.gpuBufferManager);
-				
-				node.stats.triangles += ((geometry.nrIndices / 3) * (geometry.matrices.length));
-				node.stats.drawCallsPerFrame++;
 			}
 		}
 
