@@ -108,6 +108,7 @@ export default class TileLoader {
 		};
 		executor.add(geometryLoader).then(() => {
 			this.viewer.stats.dec("Tiling", "Loading");
+			this.viewer.stats.inc("Tiling", "Loaded");
 			if (node.gpuBufferManager.isEmpty() && 
 					(node.bufferManager == null || node.bufferManager.bufferSets.size == 0)) {
 				node.loadingStatus = 5;

@@ -12,7 +12,8 @@ export default class Stats {
 				"Rendering",
 				"Empty",
 				"Full",
-				"Loading"
+				"Loading",
+				"Loaded"
 			],
 			"Loading time": [
 				"Layer 1",
