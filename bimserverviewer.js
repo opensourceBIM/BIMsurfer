@@ -282,6 +282,7 @@ export default class BimServerViewer {
 		var p = tilingLayer.load(this.bimServerApi, this.densityThreshold, roids, (percentage) => {
 			document.getElementById("progress").style.width = percentage + "%";
 		});
+		this.viewer.dirty = true;
 		p.then(() => {
 			this.viewer.stats.setParameter("Loading time", "Layer 2", performance.now() - layer2Start);
 			this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
