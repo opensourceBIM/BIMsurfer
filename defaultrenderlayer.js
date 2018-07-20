@@ -3,6 +3,7 @@ import BufferManagerPerColor from './buffermanagerpercolor.js'
 import Utils from './utils.js'
 import VertexQuantization from './vertexquantization.js'
 import RenderLayer from './renderlayer.js'
+import GpuBufferManager from './gpubuffermanager.js'
 
 /*
  * This is the default renderer for what we called the base layer. Usually this layer should be small enough to be rendered at good FPS
@@ -24,8 +25,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 			this.bufferManager = new BufferManagerTransparencyOnly(this.settings, this, this.viewer.bufferSetPool);
 		}
 
-		this.liveBuffers = [];
-		this.liveReusedBuffers = [];
+		this.gpuBufferManager = new GpuBufferManager(this.viewer);
 	}
 
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type) {
@@ -39,7 +39,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 				roid: roid,
 //				object: this.viewer.model.objects[oid],
 				add: (geometryId, objectId) => {
-					this.addGeometryToObject(geometryId, objectId, loader, this.liveReusedBuffers);
+					this.addGeometryToObject(geometryId, objectId, loader, this.gpuBufferManager);
 				}
 		};
 
@@ -47,7 +47,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		loader.objects.set(oid , object);
 
 		geometryIds.forEach((id) => {
-			this.addGeometryToObject(id, object.id, loader, this.liveReusedBuffers);
+			this.addGeometryToObject(id, object.id, loader, this.gpuBufferManager);
 		});
 
 		this.viewer.stats.inc("Models", "Objects");
@@ -82,7 +82,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 
 		for (var geometry of loader.geometries.values()) {
 			if (geometry.isReused) {
-				this.addGeometryReusable(geometry, loader, this.liveReusedBuffers);
+				this.addGeometryReusable(geometry, loader, this.gpuBufferManager);
 			}
 		}
 
@@ -99,8 +99,9 @@ export default class DefaultRenderLayer extends RenderLayer {
 		if (this.settings.useObjectColors) {
 			// When using object colors, it makes sense to sort the buffers by color, so we can potentially skip a few uniform binds
 			// It might be beneficiary to do this sorting on-the-lfy and not just when everything is loaded
-			this.sortBuffers(this.liveBuffers);
-			this.sortBuffers(this.liveReusedBuffers);
+			this.gpuBufferManager.sortAllBuffers();
+		} else {
+			this.gpuBufferManager.combineBuffers();
 		}
 		
 		this.bufferManager.clear();
@@ -122,7 +123,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		
 		var programInfo = this.viewer.programManager.getProgram({
 			instancing: false,
-			useObjectColors: buffer.colors == null,
+			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: this.settings.quantizeNormals,
 			quantizeVertices: this.settings.quantizeVertices
 		});
@@ -176,7 +177,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
 			}
 			
-			if (buffer.colors != null) {
+			if (!this.settings.useObjectColors) {
 				const numComponents = 4;
 				const type = this.gl.FLOAT;
 				const normalize = false;
@@ -196,20 +197,22 @@ export default class DefaultRenderLayer extends RenderLayer {
 				normalBuffer: normalBuffer,
 				indexBuffer: indexBuffer,
 				nrIndices: buffer.nrIndices,
+				nrNormals: buffer.normalsIndex,
+				nrPositions: buffer.positionsIndex,
 				vao: vao,
-				hasTransparency: buffer.hasTransparency
+				hasTransparency: buffer.hasTransparency,
+				reuse: false
 			};
-			
-			if (buffer.colors != null) {
-				newBuffer.colorBuffer = colorBuffer;
-			}
 			
 			if (this.settings.useObjectColors) {
 				newBuffer.color = [buffer.color.r, buffer.color.g, buffer.color.b, buffer.color.a];
 				newBuffer.colorHash = Utils.hash(JSON.stringify(buffer.color));
+			} else {
+				newBuffer.colorBuffer = colorBuffer;
+				newBuffer.nrColors = buffer.colorsIndex;
 			}
 			
-			this.liveBuffers.push(newBuffer);
+			this.gpuBufferManager.pushBuffer(newBuffer);
 			this.viewer.dirty = true;
 		}
 
@@ -228,31 +231,8 @@ export default class DefaultRenderLayer extends RenderLayer {
 		this.bufferManager.resetBuffer(buffer);
 	}
 
-	renderBuffer(buffer, programInfo) {
-		this.gl.bindVertexArray(buffer.vao);
-
-		this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
-
-		this.gl.bindVertexArray(null);
-	}
-
-	renderReusedBuffer(buffer, programInfo) {
-		this.gl.bindVertexArray(buffer.vao);
-		
-		if (this.settings.quantizeVertices) {
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
-		}
-		this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
-
-		this.gl.bindVertexArray(null);
-	}
-
-	render(transparency) {
-		this.renderBuffers(transparency, this.liveBuffers, false);
-		this.renderBuffers(transparency, this.liveReusedBuffers, true);
-	}
-	
-	renderBuffers(transparency, buffers, reuse) {
+	renderBuffers(transparency, reuse) {
+		var buffers = this.gpuBufferManager.getBuffers(transparency, reuse);
 		if (buffers.length > 0) {
 			var programInfo = this.viewer.programManager.getProgram({
 				instancing: reuse,
@@ -273,23 +253,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 				}
 			}
 	
-			var lastUsedColorHash = null;
-			
-			for (let buffer of buffers) {
-				if (buffer.hasTransparency == transparency) {
-					if (this.settings.useObjectColors) {
-						if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
-							this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
-							lastUsedColorHash = buffer.colorHash;
-						}
-					}
-					if (reuse) {
-						this.renderReusedBuffer(buffer, programInfo);
-					} else {
-						this.renderBuffer(buffer, programInfo);
-					}
-				}
-			}
+			this.renderFinalBuffers(buffers, programInfo);
 		}
 	}
 	

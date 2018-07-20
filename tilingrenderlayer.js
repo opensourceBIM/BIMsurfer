@@ -7,11 +7,11 @@ import GeometryLoader from "./geometryloader.js"
 import BufferManagerTransparencyOnly from './buffermanagertransparencyonly.js'
 import BufferManagerPerColor from './buffermanagerpercolor.js'
 import Utils from './utils.js'
+import GpuBufferManager from './gpubuffermanager.js'
 
 export default class TilingRenderLayer extends RenderLayer {
 	constructor(viewer, geometryDataToReuse, bounds) {
 		super(viewer, geometryDataToReuse);
-//		var slightlyLargerBounds = [bounds[0] - 0.01, bounds[1] - 0.01, bounds[2] - 0.01, bounds[3] + 0.02, bounds[4] + 0.02, bounds[5] + 0.02];
 
 		this.octree = new Octree(bounds, viewer.settings.octreeDepth);
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
@@ -71,9 +71,8 @@ export default class TilingRenderLayer extends RenderLayer {
 						return;
 					}
 					node.status = 0;
-					node.liveBuffersTransparent = [];
-					node.liveBuffersOpaque = [];
-					node.liveReusedBuffers = [];
+					
+					node.gpuBufferManager = new GpuBufferManager(this.viewer);
 					
 					node.stats = {
 						triangles: 0,
@@ -121,10 +120,7 @@ export default class TilingRenderLayer extends RenderLayer {
 						this.viewer.dirty = true;
 					};
 					executor.add(geometryLoader).then(() => {
-						if (
-								(node.liveBuffersOpaque == null || node.liveBuffersOpaque.length == 0) && 
-								(node.liveBuffersTransparent == null || node.liveBuffersTransparent.length == 0) && 
-								(node.liveReusedBuffers == null || node.liveReusedBuffers.length == 0) && 
+						if (node.gpuBufferManager.isEmpty() && 
 								(node.bufferManager == null || node.bufferManager.bufferSets.size == 0)) {
 							node.status = 0;
 						} else {
@@ -147,11 +143,6 @@ export default class TilingRenderLayer extends RenderLayer {
 		return executor.awaitTermination();
 	}
 
-	render(transparency) {
-		this.renderBuffers(transparency, false);
-		this.renderBuffers(transparency, true);
-	}
-	
 	occlude(node) {
 		// 1. Are we always showing all objects?
 		if (this.show == "all") {
@@ -227,43 +218,13 @@ export default class TilingRenderLayer extends RenderLayer {
 				}
 			}
 			
-			var buffers = node.liveBuffersOpaque;
-			if (transparency) {
-				buffers = node.liveBuffersTransparent;
+			if (node.gpuBufferManager == null) {
+				return;
 			}
 			
-			if (!reuse) {
-				if (buffers != null && buffers.length > 0) {
-					var lastUsedColorHash = null;
-					
-					for (let buffer of buffers) {
-						if (this.settings.useObjectColors) {
-							if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
-								this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
-								lastUsedColorHash = buffer.colorHash;
-							}
-						}
-						this.renderBuffer(buffer, programInfo);
-					}
-				}
-			}
-			if (reuse) {
-				if (node.liveReusedBuffers != null && node.liveReusedBuffers.length > 0) {
-					var lastUsedColorHash = null;
-					
-					for (let buffer of node.liveReusedBuffers) {
-						if (buffer.hasTransparency == transparency) {
-							if (this.settings.useObjectColors) {
-								if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
-									this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
-									lastUsedColorHash = buffer.colorHash;
-								}
-							}
-							this.renderReusedBuffer(buffer, programInfo);
-						}
-					}
-				}
-			}
+			var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
+			
+			this.renderFinalBuffers(buffers, programInfo);
 		});
 		
 		this.viewer.stats.setParameter("Drawing", "Draw calls per frame (L2)", drawCalls);
@@ -295,25 +256,6 @@ export default class TilingRenderLayer extends RenderLayer {
 			});
 			this.lineBoxGeometry.renderStop();
 		}
-	}
-
-	renderBuffer(buffer, programInfo) {
-		this.gl.bindVertexArray(buffer.vao);
-
-		this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
-
-		this.gl.bindVertexArray(null);
-	}
-	
-	renderReusedBuffer(buffer, programInfo) {
-		this.gl.bindVertexArray(buffer.vao);
-		
-		if (this.viewer.settings.quantizeVertices) {
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
-		}
-		this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
-
-		this.gl.bindVertexArray(null);
 	}
 	
 	addGeometry(loaderId, geometry, object) {
@@ -361,14 +303,14 @@ export default class TilingRenderLayer extends RenderLayer {
 			roid: roid,
 //			object: this.viewer.model.objects[oid],
 			add: (geometryId, objectId) => {
-				this.addGeometryToObject(geometryId, objectId, loader, node.liveReusedBuffers);
+				this.addGeometryToObject(geometryId, objectId, loader, node.gpuBufferManager);
 			}
 		};
 
 		loader.objects.set(oid, object);
 
 		geometryIds.forEach((id) => {
-			this.addGeometryToObject(id, object.id, loader, node.liveReusedBuffers);
+			this.addGeometryToObject(id, object.id, loader, node.gpuBufferManager);
 		});
 
 		this.viewer.stats.inc("Models", "Objects");
@@ -381,7 +323,7 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		for (var geometry of loader.geometries.values()) {
 			if (geometry.isReused) {
-				this.addGeometryReusable(geometry, loader, node.liveReusedBuffers);
+				this.addGeometryReusable(geometry, loader, node.gpuBufferManager);
 			}
 		}
 
@@ -398,165 +340,8 @@ export default class TilingRenderLayer extends RenderLayer {
 		for (var object of loader.objects.values()) {
 			object.add = null;
 		}
-		
-		for (var transparency of [false, true]) {
-			var buffers = node.liveBuffersOpaque;
-			if (transparency) {
-				buffers = node.liveBuffersTransparent;
-			}
-			if (buffers.length > 1 && !this.viewer.settings.useObjectColors) {
-				console.log("Combining buffers", buffers.length);
-				// Optimize the buffers by combining them
-				
-				var nrPositions = 0;
-				var nrNormals = 0;
-				var nrIndices = 0;
-				var nrColors = 0;
-				
-				for (var buffer of buffers) {
-					nrPositions += buffer.nrPositions;
-					nrNormals += buffer.nrNormals;
-					nrIndices += buffer.nrIndices;
-					nrColors += buffer.nrColors;
-				}
-				
-				const positionBuffer = this.gl.createBuffer();
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, this.settings.quantizeVertices ? new Int16Array(nrPositions) : new Float32Array(nrPositions), this.gl.STATIC_DRAW);
-				
-				const normalBuffer = this.gl.createBuffer();
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, this.settings.quantizeNormals ? new Int8Array(nrNormals) : new Float32Array(nrNormals), this.gl.STATIC_DRAW);
 
-				var colorBuffer = this.gl.createBuffer();
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(nrColors), this.gl.STATIC_DRAW);
-				
-				const indexBuffer = this.gl.createBuffer();
-				this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-				this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Int32Array(nrIndices), this.gl.STATIC_DRAW);
-				
-				var positionsOffset = 0;
-				var normalsOffset = 0;
-				var indicesOffset = 0;
-				var colorsOffset = 0;
-
-				for (var buffer of buffers) {
-					this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.positionBuffer);
-					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.ARRAY_BUFFER, 0, positionsOffset * (this.settings.quantizeVertices ? 2 : 4), buffer.nrPositions * (this.settings.quantizeVertices ? 2 : 4));
-					
-					this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.normalBuffer);
-					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.ARRAY_BUFFER, 0, normalsOffset * (this.settings.quantizeNormals ? 1 : 4), buffer.nrNormals * (this.settings.quantizeNormals ? 1 : 4));
-
-					this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.colorBuffer);
-					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.ARRAY_BUFFER, 0, colorsOffset * 4, buffer.nrColors * 4);
-
-					if (positionsOffset == 0) {
-						this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.indexBuffer);
-						this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-						this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.ELEMENT_ARRAY_BUFFER, 0, 0, buffer.nrIndices * 4);
-					} else {
-						var startIndex = positionsOffset / 3;
-						
-						this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.indexBuffer);
-						var tmpIndexBuffer = new Int32Array(buffer.nrIndices);
-						this.gl.getBufferSubData(this.gl.COPY_READ_BUFFER, 0, tmpIndexBuffer, 0, buffer.nrIndices);
-						
-						for (var i=0; i<buffer.nrIndices; i++) {
-							tmpIndexBuffer[i] = tmpIndexBuffer[i] + startIndex;
-						}
-						
-						this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-						this.gl.bufferSubData(this.gl.ELEMENT_ARRAY_BUFFER, indicesOffset * 4, tmpIndexBuffer, 0, buffer.nrIndices);
-					}
-
-					this.gl.deleteBuffer(buffer.positionBuffer);
-					this.gl.deleteBuffer(buffer.normalBuffer);
-					this.gl.deleteBuffer(buffer.colorBuffer);
-					this.gl.deleteBuffer(buffer.indexBuffer);
-					
-					this.gl.deleteVertexArray(buffer.vao);
-					
-					positionsOffset += buffer.nrPositions;
-					normalsOffset += buffer.nrNormals;
-					indicesOffset += buffer.nrIndices;
-					colorsOffset += buffer.nrColors;
-				}
-				
-				var programInfo = this.viewer.programManager.getProgram({
-					instancing: false,
-					useObjectColors: buffer.colors == null,
-					quantizeNormals: this.settings.quantizeNormals,
-					quantizeVertices: this.settings.quantizeVertices
-				});
-				
-				var vao = this.gl.createVertexArray();
-				this.gl.bindVertexArray(vao);
-
-				{
-					const numComponents = 3;
-					const normalize = false;
-					const stride = 0;
-					const offset = 0;
-					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-					if (this.settings.quantizeVertices) {
-						this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexPosition, numComponents, this.gl.SHORT, normalize, stride, offset);
-					} else {
-						this.gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, numComponents, this.gl.FLOAT, normalize, stride, offset);
-					}
-					this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-				}
-				{
-					const numComponents = 3;
-					const normalize = false;
-					const stride = 0;
-					const offset = 0;
-					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-					if (this.settings.quantizeNormals) {
-						this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.BYTE, normalize, stride, offset);
-					} else {
-						this.gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.FLOAT, normalize, stride, offset);
-					}
-					this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
-				}
-				
-				if (buffer.colors != null) {
-					const numComponents = 4;
-					const type = this.gl.FLOAT;
-					const normalize = false;
-					const stride = 0;
-					const offset = 0;
-					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-					this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents,	type, normalize, stride, offset);
-					this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
-				}
-
-				this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-				this.gl.bindVertexArray(null);
-				
-				var newBuffer = {
-					positionBuffer: positionBuffer,
-					normalBuffer: normalBuffer,
-					indexBuffer: indexBuffer,
-					colorBuffer: colorBuffer,
-					nrIndices: indicesOffset,
-					nrPositions: positionsOffset,
-					nrNormals: normalsOffset,
-					nrColors: colorsOffset,
-					vao: vao,
-					hasTransparency: transparency
-				};
-				
-				this.viewer.stats.dec("Buffers", "Buffer groups", buffers.length);
-				buffers.length = 0;
-				buffers.push(newBuffer);
-				this.viewer.stats.inc("Buffers", "Buffer groups", 1);
-			}
-		}
+		node.gpuBufferManager.combineBuffers();
 
 		this.removeLoader(loaderId);
 	}
@@ -681,11 +466,7 @@ export default class TilingRenderLayer extends RenderLayer {
 				newBuffer.colorHash = Utils.hash(JSON.stringify(buffer.color));
 			}
 			
-			if (newBuffer.hasTransparency) {
-				node.liveBuffersTransparent.push(newBuffer);
-			} else {
-				node.liveBuffersOpaque.push(newBuffer);
-			}
+			node.gpuBufferManager.pushBuffer(newBuffer);
 		}
 
 		var toadd = buffer.positionsIndex * (this.settings.quantizeVertices ? 2 : 4) + buffer.normalsIndex * (this.settings.quantizeNormals ? 1 : 4) + (buffer.colorsIndex != null ? buffer.colorsIndex * 4 : 0) + buffer.indicesIndex * 4;
@@ -704,7 +485,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		node.bufferManager.resetBuffer(buffer);
 		this.viewer.dirty = true;
 	}
-	
+
 	completelyDone() {
 		this.flushAllBuffers();
 		this.viewer.dirty = true;

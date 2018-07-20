@@ -1,5 +1,6 @@
 import BufferTransformer from './buffertransformer.js'
 import Utils from './utils.js'
+import GpuBufferManager from './gpubuffermanager.js'
 
 export default class RenderLayer {
 	constructor(viewer, geometryDataToReuse) {
@@ -146,7 +147,7 @@ export default class RenderLayer {
 		}
 	}
 	
-	addGeometryToObject(geometryId, objectId, loader, liveReusedBuffers) {
+	addGeometryToObject(geometryId, objectId, loader, gpuBufferManager) {
 		var geometry = loader.geometries.get(geometryId);
 		if (geometry == null) {
 			return;
@@ -164,12 +165,12 @@ export default class RenderLayer {
 		if (geometry.isReused) {
 			geometry.reuseMaterialized++;
 			if (geometry.reuseMaterialized == geometry.reused) {
-				this.addGeometryReusable(geometry, loader, liveReusedBuffers);
+				this.addGeometryReusable(geometry, loader, gpuBufferManager);
 			}
 		}
 	}
 	
-	addGeometryReusable(geometry, loader, liveReusedBuffers) {
+	addGeometryReusable(geometry, loader, gpuBufferManager) {
 		const positionBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.bufferTransformer.convertVertices(loader.roid, geometry.positions), this.gl.STATIC_DRAW, 0, 0);
@@ -284,7 +285,8 @@ export default class RenderLayer {
 				roid: geometry.roid,
 //				instances: matrices,
 				hasTransparency: geometry.hasTransparency,
-				indexType: indices instanceof Uint16Array ? this.gl.UNSIGNED_SHORT : this.gl.UNSIGNED_INT
+				indexType: indices instanceof Uint16Array ? this.gl.UNSIGNED_SHORT : this.gl.UNSIGNED_INT,
+				reuse: true
 		};
 		
 		if (this.settings.useObjectColors) {
@@ -294,7 +296,7 @@ export default class RenderLayer {
 		}
 		
 		loader.geometries.delete(geometry.id);
-		liveReusedBuffers.push(buffer);
+		gpuBufferManager.pushBuffer(buffer);
 
 		this.viewer.stats.inc("Primitives", "Nr primitives loaded", (buffer.nrIndices / 3) * geometry.matrices.length);
 		if (this.progressListener != null) {
@@ -329,16 +331,47 @@ export default class RenderLayer {
 		});
 	}
 	
-	sortBuffers(buffers) {
-		buffers.sort((a, b) => {
-			for (var i=0; i<4; i++) {
-				if (a.color[i] == b.color[i]) {
-					continue;
+	renderBuffers(transparency, reuse) {
+		console.log("Not implemented in this layer");
+	}
+	
+	render(transparency) {
+		this.renderBuffers(transparency, false);
+		this.renderBuffers(transparency, true);
+	}
+	
+	renderFinalBuffers(buffers, programInfo) {
+		if (buffers != null && buffers.length > 0) {
+			var lastUsedColorHash = null;
+			
+			for (let buffer of buffers) {
+				if (this.settings.useObjectColors) {
+					if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
+						this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
+						lastUsedColorHash = buffer.colorHash;
+					}
 				}
-				return a.color[i] - b.color[i];
+				this.renderBuffer(buffer, programInfo);
 			}
-			// Colors are the same
-			return 0;
-		});
+		}
+	}
+	
+	renderBuffer(buffer, programInfo) {
+		if (buffer.reuse) {
+			this.gl.bindVertexArray(buffer.vao);
+			
+			if (this.viewer.settings.quantizeVertices) {
+				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
+			}
+			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
+			
+			this.gl.bindVertexArray(null);
+		} else {
+			this.gl.bindVertexArray(buffer.vao);
+			
+			this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
+			
+			this.gl.bindVertexArray(null);
+		}
 	}
 }
