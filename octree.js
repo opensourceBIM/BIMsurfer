@@ -1,6 +1,11 @@
 class OctreeNode {
 	constructor(parent, id, x, y, z, width, height, depth, level) {
 		this.parent = parent;
+		if (parent != null) {
+			if (level > this.parent.deepestLevel) {
+				this.parent.deepestLevel = level;
+			}
+		}		
 		this.id = id;
 		
 		this.leaf = true;
@@ -244,6 +249,7 @@ export default class Octree extends OctreeNode {
 //	
 	prepareBreathFirst(fn) {
 		this.breathFirstList = [];
+		this.deepestLevel = 0;
 		for (var i=0; i<=this.maxDepth; i++) {
 			this.prepareBreathFirstInternal(this.breathFirstList, fn, i);
 		}
