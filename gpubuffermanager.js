@@ -29,7 +29,7 @@ export default class GpuBufferManager {
 	
 	pushBuffer(buffer) {
 		if (buffer.reuse) {
-			this.liveReuseBuffers.push(buffer);
+			this.liveReusedBuffers.push(buffer);
 		} else {
 			if (buffer.hasTransparency) {
 				this.liveBuffersTransparent.push(buffer);
