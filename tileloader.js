@@ -13,7 +13,7 @@ export default class TileLoader {
 		this.roids = roids;
 	
 		this.excludedTypes = ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"];
-		this.executor = new Executor(32);
+		this.executor = new Executor(512);
 		
 		if (this.viewer.vertexQuantization) {
 			this.quantizationMap = {};
