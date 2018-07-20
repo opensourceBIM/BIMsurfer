@@ -2,12 +2,10 @@ import RenderLayer from './renderlayer.js'
 import Octree from './octree.js'
 import Frustum from './frustum.js'
 import LineBoxGeometry from './lineboxgeometry.js'
-import Executor from './executor.js'
-import GeometryLoader from "./geometryloader.js"
 import BufferManagerTransparencyOnly from './buffermanagertransparencyonly.js'
 import BufferManagerPerColor from './buffermanagerpercolor.js'
 import Utils from './utils.js'
-import GpuBufferManager from './gpubuffermanager.js'
+import TileLoader from './tileloader.js'
 
 export default class TilingRenderLayer extends RenderLayer {
 	constructor(viewer, geometryDataToReuse, bounds) {
@@ -16,7 +14,6 @@ export default class TilingRenderLayer extends RenderLayer {
 		this.octree = new Octree(bounds, viewer.settings.octreeDepth);
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
 		
-		this.loaderCounter = 0;
 		this.loaderToNode = {};
 		
 		this.drawTileBorders = true;
@@ -26,7 +23,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		window.tilingRenderLayer = this;
 		
 		this.show = "none";
-		this.initialLoad = "all";
+		this.initialLoad = "none";
 	}
 	
 	showAll() {
@@ -35,112 +32,13 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	load(bimServerApi, densityThreshold, roids, progressListener) {
-		var executor = new Executor(32);
-		executor.setProgressListener(progressListener);
-		var excludedTypes = ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"];
-		bimServerApi.call("ServiceInterface", "getTileCounts", {
-			roids: roids,
-			excludedTypes,
-			geometryIdsToReuse: this.geometryDataToReuse,
-			threshold: densityThreshold,
-			depth: this.viewer.settings.octreeDepth
-		}, (list) => {
-			for (var i=0; i<list.length; i++) {
-				var nrObjects = list[i];
-				if (nrObjects == 0) {
-					this.viewer.stats.inc("Tiling", "Empty tiles");
-					continue;
-				}
-				this.viewer.stats.inc("Tiling", "Full tiles");
-				var node = this.octree.getNodeById(i);
-				node.nrObjects = nrObjects;
-			}
-			
-			// TODO load per level, so first level 0, then 1 etc... These calls should be submitted to the executor only after the previous layer has been submitted
-			// Mayeb we could load 2 levels at a time, to improve performance... So 0 and 1, as soon as 0 has loaded, start loading 2 etc...
-			
-			// Traversing breath-first so the big chucks are loaded first
-//			for (var l=0; l<=this.octree.deepestLevel; l++) {
-//				
-//			}
-			
+		this.tileLoader = new TileLoader(this, this.viewer, bimServerApi, densityThreshold, this.geometryDataToReuse, roids);
+		var init = this.tileLoader.initialize().then(() => {
 			if (this.initialLoad == "all") {
-				this.octree.traverseBreathFirst((node) => {
-					if (node.nrObjects == 0) {
-						// This happens for root nodes that don't contain any objects, but have children that do have objects
-						return;
-					}
-					node.status = 0;
-					
-					node.gpuBufferManager = new GpuBufferManager(this.viewer);
-					
-					node.stats = {
-						triangles: 0,
-						drawCallsPerFrame: 0
-					};
-	
-					var bounds = node.getBounds();
-					var query = {
-						type: {
-							name: "IfcProduct",
-							includeAllSubTypes: true,
-							exclude: excludedTypes
-						},
-						tiles: {
-							ids: [node.id],
-							densityUpperThreshold: densityThreshold,
-							geometryDataToReuse: Array.from(this.geometryDataToReuse),
-							maxDepth: this.viewer.settings.octreeDepth
-						},
-						include: {
-							type: "IfcProduct",
-							field: "geometry",
-							include: {
-								type: "GeometryInfo",
-								field: "data"
-							}
-						},
-						loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
-					};
-					
-					if (this.viewer.vertexQuantization) {
-						var map = {};
-						for (var roid of roids) {
-							map[roid] = this.viewer.vertexQuantization.getUntransformedVertexQuantizationMatrixForRoid(roid);
-						}
-					}
-					
-					// TODO this explodes when either the amount of roids gets high or the octree gets bigger, or both
-					// TODO maybe it will be faster to just use one loader instead of potentially 180 loaders, this will however lead to more memory used because loaders can't be closed when they are done
-					var geometryLoader = new GeometryLoader(this.loaderCounter++, bimServerApi, this, roids, this.viewer.settings.loaderSettings, map, this.viewer.stats, this.viewer.settings, query);
-					this.registerLoader(geometryLoader.loaderId);
-					this.loaderToNode[geometryLoader.loaderId] = node;
-					geometryLoader.onStart = () => {
-						node.status = 1;
-						this.viewer.dirty = true;
-					};
-					executor.add(geometryLoader).then(() => {
-						if (node.gpuBufferManager.isEmpty() && 
-								(node.bufferManager == null || node.bufferManager.bufferSets.size == 0)) {
-							node.status = 0;
-						} else {
-							node.status = 2;
-						}
-						this.done(geometryLoader.loaderId);
-					});
-				});
-			
-				executor.awaitTermination().then(() => {
-					this.completelyDone();
-					this.octree.prepareBreathFirst((node) => {
-						return true;
-					});
-					this.viewer.stats.requestUpdate();
-					document.getElementById("progress").style.display = "none";
-				});	
+				return this.tileLoader.loadAll(progressListener);
 			}
 		});
-		return executor.awaitTermination();
+		return init;
 	}
 
 	occlude(node) {
@@ -161,7 +59,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		var tileCenter = node.getCenter();
 		var sizeFactor = 1 / Math.pow(2, node.level);
 		return vec3.distance(cameraEye, tileCenter) / sizeFactor > 1000000; // TODO use something related to the total bounding box size
-//		console.log(cameraEye, tileCenter);
+
 		// Default response
 		return false;
 	}
@@ -201,9 +99,6 @@ export default class TilingRenderLayer extends RenderLayer {
 		}
 
 		this.octree.traverseBreathFirstCached((node) => {
-			// Check whether this node is completely outside of the view frustum -> discard
-			// TODO results of these checks we could store for the second render pass (the transparency pass that is)
-
 			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling 
 			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
 			// skip the remaining child nodes
@@ -218,6 +113,9 @@ export default class TilingRenderLayer extends RenderLayer {
 					if (node.stats != null) {
 						renderingTriangles += node.stats.triangles;
 						drawCalls += node.stats.drawCallsPerFrame;
+					}
+					if (node.loadingStatus == 0) {
+						this.tileLoader.loadTile(node);
 					}
 				}
 			}
@@ -245,18 +143,24 @@ export default class TilingRenderLayer extends RenderLayer {
 			this.lineBoxGeometry.renderStart();
 			this.octree.traverseBreathFirst((node) => {
 				var color = null;
-				if (node.status == 0) {
-					
-				} else if (node.status == 1) {
+				if (node.loadingStatus == 0) {
+					// No visualisation, node is not empty (or parent node)
+				} else if (node.loadingStatus == 1) {
+					// Node is waiting to start loading
 					color = [1, 0, 0, 0.5];
-				} else if (node.status == 2) {
+				} else if (node.loadingStatus == 2) {
+					// Node is loading
+				} else if (node.loadingStatus == 3) {
+					// Node is loaded
 					if (node.visibilityStatus == 0) {
 						color = [0, 1, 0, 0.5];
 					} else if (node.visibilityStatus == 1) {
 						color = [0, 0, 1, 0.5];
 					}
-				} else if (node.status == 3) {
+				} else if (node.loadingStatus == 4) {
 					color = [0.5, 0.5, 0.5, 0.5];
+				} else if (node.loadingStatus == 5) {
+					// Node has been tried to load, but no objects were returned
 				}
 				if (color != null) {
 					this.lineBoxGeometry.render(color, node.getMatrix());

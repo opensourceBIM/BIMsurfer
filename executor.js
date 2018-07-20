@@ -65,7 +65,9 @@ export default class Executor {
 	}
 	
 	done() {
-		this.resolve();
+		if (this.resolve != null) {
+			this.resolve();
+		}
 	}
 	
 	/*

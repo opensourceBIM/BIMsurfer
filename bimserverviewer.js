@@ -190,6 +190,7 @@ export default class BimServerViewer {
 			}
 
 			promise.then(() => {
+				this.viewer.dirty = true;
 				var tilingPromise = Promise.resolve();
 				if (this.viewer.settings.tilingLayerEnabled && nrPrimitivesAbove > 0) {
 					var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.geometryDataIdsToReuse, bounds);
@@ -200,6 +201,7 @@ export default class BimServerViewer {
 				tilingPromise.then(() => {
 					this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
 					this.viewer.bufferSetPool.cleanup();
+					this.viewer.dirty = true;
 				});
 			});
 		});
