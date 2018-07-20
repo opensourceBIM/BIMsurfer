@@ -264,6 +264,7 @@ export default class BimServerViewer {
 			defaultRenderLayer.completelyDone();
 			this.viewer.stats.requestUpdate();
 			console.log("layer 1 done", (performance.now() - startLayer1) + "ms");
+			this.viewer.stats.requestUpdate();
 		});
 		return executor.awaitTermination();
 	}

@@ -135,13 +135,13 @@ export default class TilingRenderLayer extends RenderLayer {
 		if (firstRunOfFrame) {
 			this.viewer.stats.setParameter("Drawing", "Draw calls per frame (L2)", drawCalls);
 			this.viewer.stats.setParameter("Drawing", "Triangles to draw (L2)", renderingTriangles);
-			this.viewer.stats.setParameter("Tiling", "Rendering tiles", renderingTiles);
+			this.viewer.stats.setParameter("Tiling", "Rendering", renderingTiles);
 		}
 
 		if (transparency && !reuse && this.drawTileBorders) {
 			// The lines are rendered in the transparency-phase only
 			this.lineBoxGeometry.renderStart();
-			this.octree.traverseBreathFirst((node) => {
+			this.octree.traverseBreathFirstCached((node) => {
 				var color = null;
 				if (node.loadingStatus == 0) {
 					// No visualisation, node is not empty (or parent node)

@@ -37,10 +37,10 @@ export default class TileLoader {
 				for (var i=0; i<list.length; i++) {
 					var nrObjects = list[i];
 					if (nrObjects == 0) {
-						this.viewer.stats.inc("Tiling", "Empty tiles");
+						this.viewer.stats.inc("Tiling", "Empty");
 						continue;
 					}
-					this.viewer.stats.inc("Tiling", "Full tiles");
+					this.viewer.stats.inc("Tiling", "Full");
 					var node = this.tilingRenderLayer.octree.getNodeById(i);
 					
 					node.loadingStatus = 0;
@@ -103,9 +103,11 @@ export default class TileLoader {
 		this.tilingRenderLayer.loaderToNode[geometryLoader.loaderId] = node;
 		geometryLoader.onStart = () => {
 			node.loadingStatus = 2;
+			this.viewer.stats.inc("Tiling", "Loading");
 			this.viewer.dirty = true;
 		};
 		executor.add(geometryLoader).then(() => {
+			this.viewer.stats.dec("Tiling", "Loading");
 			if (node.gpuBufferManager.isEmpty() && 
 					(node.bufferManager == null || node.bufferManager.bufferSets.size == 0)) {
 				node.loadingStatus = 5;
