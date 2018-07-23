@@ -58,7 +58,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		var cameraEye = this.viewer.camera.eye;
 		var tileCenter = node.getCenter();
 		var sizeFactor = 1 / Math.pow(2, node.level);
-		return vec3.distance(cameraEye, tileCenter) / sizeFactor > 1000000; // TODO use something related to the total bounding box size
+		return vec3.distance(cameraEye, tileCenter) / sizeFactor > 5000000; // TODO use something related to the total bounding box size
 
 		// Default response
 		return false;
@@ -232,8 +232,8 @@ export default class TilingRenderLayer extends RenderLayer {
 
 	addGeometryReusable(geometry, loader, gpuBufferManager) {
 		super.addGeometryReusable(geometry, loader, gpuBufferManager);
-		var node = this.loaderToNode[loader.id];
-		node.stats.triangles += ((geometry.nrIndices / 3) * (geometry.matrices.length));
+		var node = this.loaderToNode[loader.loaderId];
+		node.stats.triangles += ((geometry.indices.length / 3) * (geometry.matrices.length));
 		node.stats.drawCallsPerFrame++;
 	}
 	
