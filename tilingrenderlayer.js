@@ -41,7 +41,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		return init;
 	}
 
-	occlude(node) {
+	cull(node) {
 		// 1. Are we always showing all objects?
 		if (this.show == "all") {
 			return false;
@@ -104,7 +104,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			// skip the remaining child nodes
 
 			if (firstRunOfFrame) {
-				if (this.occlude(node)) {
+				if (this.cull(node)) {
 					node.visibilityStatus = 0;
 					return;
 				} else {
