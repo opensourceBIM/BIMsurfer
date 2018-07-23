@@ -20,6 +20,7 @@ export default class App {
 		this.settings.loaderSettings.splitGeometry = false;
 		this.settings.loaderSettings.normalizeUnitsToMM = true;
 		this.settings.loaderSettings.useSmallInts = false;
+		this.settings.loaderSettings.reportProgress = false;
 	}
 	
 	start() {
