@@ -80,21 +80,21 @@ export default class GpuBufferManager {
 				}
 				
 				const positionBuffer = this.gl.createBuffer();
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, this.settings.quantizeVertices ? new Int16Array(nrPositions) : new Float32Array(nrPositions), this.gl.STATIC_DRAW);
+				this.gl.bindBuffer(this.gl.COPY_WRITE_BUFFER, positionBuffer);
+				this.gl.bufferData(this.gl.COPY_WRITE_BUFFER, nrPositions * (this.settings.quantizeVertices ? 2 : 4) , this.gl.STATIC_DRAW);
 				
 				const normalBuffer = this.gl.createBuffer();
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, this.settings.quantizeNormals ? new Int8Array(nrNormals) : new Float32Array(nrNormals), this.gl.STATIC_DRAW);
+				this.gl.bindBuffer(this.gl.COPY_WRITE_BUFFER, normalBuffer);
+				this.gl.bufferData(this.gl.COPY_WRITE_BUFFER, nrNormals * (this.settings.quantizeNormals ? 1 : 4), this.gl.STATIC_DRAW);
 
 				var colorBuffer = this.gl.createBuffer();
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(nrColors), this.gl.STATIC_DRAW);
+				this.gl.bindBuffer(this.gl.COPY_WRITE_BUFFER, colorBuffer);
+				this.gl.bufferData(this.gl.COPY_WRITE_BUFFER, nrColors * 4, this.gl.STATIC_DRAW);
 				
 				const indexBuffer = this.gl.createBuffer();
 				this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-				this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Int32Array(nrIndices), this.gl.STATIC_DRAW);
-				
+				this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, nrIndices * 4, this.gl.STATIC_DRAW);
+
 				var positionsOffset = 0;
 				var normalsOffset = 0;
 				var indicesOffset = 0;
@@ -102,27 +102,28 @@ export default class GpuBufferManager {
 
 				for (var buffer of buffers) {
 					this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.positionBuffer);
-					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.ARRAY_BUFFER, 0, positionsOffset * (this.settings.quantizeVertices ? 2 : 4), buffer.nrPositions * (this.settings.quantizeVertices ? 2 : 4));
+					this.gl.bindBuffer(this.gl.COPY_WRITE_BUFFER, positionBuffer);
+					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.COPY_WRITE_BUFFER, 0, positionsOffset * (this.settings.quantizeVertices ? 2 : 4), buffer.nrPositions * (this.settings.quantizeVertices ? 2 : 4));
 					
 					this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.normalBuffer);
-					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.ARRAY_BUFFER, 0, normalsOffset * (this.settings.quantizeNormals ? 1 : 4), buffer.nrNormals * (this.settings.quantizeNormals ? 1 : 4));
+					this.gl.bindBuffer(this.gl.COPY_WRITE_BUFFER, normalBuffer);
+					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.COPY_WRITE_BUFFER, 0, normalsOffset * (this.settings.quantizeNormals ? 1 : 4), buffer.nrNormals * (this.settings.quantizeNormals ? 1 : 4));
 
 					this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.colorBuffer);
-					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.ARRAY_BUFFER, 0, colorsOffset * 4, buffer.nrColors * 4);
+					this.gl.bindBuffer(this.gl.COPY_WRITE_BUFFER, colorBuffer);
+					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.COPY_WRITE_BUFFER, 0, colorsOffset * 4, buffer.nrColors * 4);
 
 					if (positionsOffset == 0) {
+						// Minor optimization for the first buffer
 						this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.indexBuffer);
 						this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 						this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.ELEMENT_ARRAY_BUFFER, 0, 0, buffer.nrIndices * 4);
 					} else {
 						var startIndex = positionsOffset / 3;
 						
-						this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.indexBuffer);
+						this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, buffer.indexBuffer);
 						var tmpIndexBuffer = new Int32Array(buffer.nrIndices);
-						this.gl.getBufferSubData(this.gl.COPY_READ_BUFFER, 0, tmpIndexBuffer, 0, buffer.nrIndices);
+						this.gl.getBufferSubData(this.gl.ELEMENT_ARRAY_BUFFER, 0, tmpIndexBuffer, 0, buffer.nrIndices);
 						
 						for (var i=0; i<buffer.nrIndices; i++) {
 							tmpIndexBuffer[i] = tmpIndexBuffer[i] + startIndex;
