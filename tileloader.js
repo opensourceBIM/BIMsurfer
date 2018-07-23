@@ -13,7 +13,7 @@ export default class TileLoader {
 		this.roids = roids;
 	
 		this.excludedTypes = ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"];
-		this.executor = new Executor(128);
+		this.executor = new Executor(32);
 		
 		if (this.viewer.vertexQuantization) {
 			this.quantizationMap = {};
@@ -120,7 +120,7 @@ export default class TileLoader {
 	}
 	
 	loadAll(progressListener) {
-		var executor = new Executor(128);
+		var executor = new Executor(32);
 		executor.setProgressListener(progressListener);
 			
 			// TODO load per level, so first level 0, then 1 etc... These calls should be submitted to the executor only after the previous layer has been submitted
