@@ -150,8 +150,8 @@ export default class GeometryLoader {
 			var hasTransparency = stream.readLong() == 1;
 			geometryId = stream.readLong();
 			this.readGeometry(stream, roid, geometryId, geometryId, hasTransparency, reused, type, true);
-			if (this.dataToInfo[geometryId] != null) {
-				this.dataToInfo[geometryId].forEach((oid) => {
+			if (this.dataToInfo.has(geometryId)) {
+				this.dataToInfo.get(geometryId).forEach((oid) => {
 					var ob = this.renderLayer.getObject(this.loaderId, oid);
 					if (ob == null) {
 						console.error("Object with oid not found", oid)
@@ -159,7 +159,7 @@ export default class GeometryLoader {
 						ob.add(geometryId, oid);
 					}
 				});
-				delete this.dataToInfo[geometryId];
+				this.dataToInfo.delete(geometryId);
 			}
 		} else if (geometryType == 5) {
 			// Object
@@ -172,15 +172,16 @@ export default class GeometryLoader {
 			var objectBounds = stream.readDoubleArray(6);
 			var matrix = stream.readDoubleArray(16);
 			var geometryDataOid = stream.readLong();
-			var geometryDataOids = this.geometryIds[geometryDataOid];
+			var geometryDataOids = this.geometryIds.get(geometryDataOid);
 			if (geometryDataOids == null) {
 				geometryDataOids = [];
-				var list = this.dataToInfo[geometryDataOid];
+				var list = this.dataToInfo.get(geometryDataOid);
 				if (list == null) {
-					list = [];
-					this.dataToInfo[geometryDataOid] = list;
+					list = [oid];
+					this.dataToInfo.set(geometryDataOid, list);
+				} else {
+					list.push(oid);
 				}
-				list.push(oid);
 			}
 			this.createObject(roid, oid, oid, geometryDataOids, matrix, hasTransparency, type);
 		} else {
@@ -232,10 +233,10 @@ export default class GeometryLoader {
 		if (this.settings.useObjectColors) {
 			colors = null;
 		}
-		if (this.geometryIds[geometryDataOid] == null) {
-			this.geometryIds[geometryDataOid] = [];
+		if (!this.geometryIds.has(geometryDataOid)) {
+			this.geometryIds.set(geometryDataOid, []);
 		}
-		this.geometryIds[geometryDataOid].push(geometryId);
+		this.geometryIds.get(geometryDataOid).push(geometryId);
 		this.renderLayer.createGeometry(this.loaderId, roid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused);
 	}
 
