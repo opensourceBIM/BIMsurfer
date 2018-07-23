@@ -47,12 +47,12 @@ export default class GeometryLoader {
 		}
 
 		this.bimServerApi.getSerializerByPluginClassName("org.bimserver.serializers.binarygeometry.BinaryGeometryMessagingStreamingSerializerPlugin").then((serializer) => {
-			this.bimServerApi.call("ServiceInterface", "download", {
+			this.bimServerApi.callWithWebsocket("ServiceInterface", "download", {
 				roids: this.roids,
 				query: JSON.stringify(this.query),
 				serializerOid : serializer.oid,
 				sync : false
-			}, (topicId) => {
+			}).then((topicId) => {
 				this.topicId = topicId;
 				
 				this.state = {
@@ -99,7 +99,7 @@ export default class GeometryLoader {
 
 	readEnd(data) {
 //		this.viewer.loadingDone();
-		this.bimServerApi.call("ServiceInterface", "cleanupLongAction", {topicId: this.topicId}, function(){});
+		this.bimServerApi.callWithWebsocket("ServiceInterface", "cleanupLongAction", {topicId: this.topicId});
 		this.bimServerApi.clearBinaryDataListener(this.topicId);
 		this.resolve();
 	}
