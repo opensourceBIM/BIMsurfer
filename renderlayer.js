@@ -123,8 +123,6 @@ export default class RenderLayer {
 					// The same, just copy
 					buffer.colors.set(geometry.colors, buffer.colorsIndex);
 					buffer.colorsIndex += geometry.colors.length;
-					
-					console.log(geometry.colors.length, geometry.positions.length);
 				} else {
 					// Different, conversion required
 					var color = new Array(4);
