@@ -21,7 +21,11 @@ export default class RenderLayer {
 			bytes += positions.length * 4;
 		}
 		if (colors != null) {
-			bytes += colors.length * 4;
+			if (this.settings.quantizeColors) {
+				bytes += colors.length;
+			} else {
+				bytes += colors.length * 4;
+			}
 		}
 		if (indices.length < 65536 && this.settings.useSmallIndicesIfPossible) {
 			bytes += indices.length * 2;
@@ -115,8 +119,35 @@ export default class RenderLayer {
 				buffer.normalsIndex += 3;
 			}
 			if (geometry.colors != null) {
-				buffer.colors.set(geometry.colors, buffer.colorsIndex);
-				buffer.colorsIndex += geometry.colors.length;
+				if (geometry.colors instanceof Uint8Array == this.settings.quantizeColors) {
+					// The same, just copy
+					buffer.colors.set(geometry.colors, buffer.colorsIndex);
+					buffer.colorsIndex += geometry.colors.length;
+					
+					console.log(geometry.colors.length, geometry.positions.length);
+				} else {
+					// Different, conversion required
+					var color = new Array(4);
+					for (var i=0; i<geometry.colors.length; i+=4) {
+						color[0] = geometry.colors[i + 0];
+						color[1] = geometry.colors[i + 1];
+						color[2] = geometry.colors[i + 2];
+						color[3] = geometry.colors[i + 3];
+						if (this.settings.quantizeColors) {
+							// Quantize
+							// TODO
+						} else {
+							// Unquantize
+							color[0] = color[0] / 255;
+							color[1] = color[1] / 255;
+							color[2] = color[2] / 255;
+							color[3] = color[3] / 255;
+						}
+						
+						buffer.colors.set(color, buffer.colorsIndex);
+						buffer.colorsIndex += 4;
+					}
+				}
 			}
 			if (startIndex == 0) {
 				// Small optimization, if this is the first object in the buffer, no need to add the startIndex to each index
@@ -239,12 +270,15 @@ export default class RenderLayer {
 
 		if (!this.settings.useObjectColors) {
 			const numComponents = 4;
-			const type = this.gl.FLOAT;
 			const normalize = false;
 			const stride = 0;
 			const offset = 0;
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-			this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
+			if (this.settings.quantizeColors) {
+				this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.BYTE, normalize, stride, offset);
+			} else {
+				this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.FLOAT, normalize, stride, offset);
+			}
 			this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
 		}
 

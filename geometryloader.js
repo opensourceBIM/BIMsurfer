@@ -184,7 +184,7 @@ export default class GeometryLoader {
 			}
 			this.createObject(roid, oid, oid, geometryDataOids, matrix, hasTransparency, type);
 		} else {
-			this.warn("Unsupported geometry type: " + geometryType);
+			console.error("Unsupported geometry type: " + geometryType);
 			return;
 		}
 
@@ -215,7 +215,11 @@ export default class GeometryLoader {
 		}
 		var numColors = stream.readInt();
 		if (numColors > 0) {
-			var colors = stream.readFloatArray(numColors);
+			if (this.loaderSettings.quantizeColors) {
+				var colors = stream.readUnsignedByteArray(numColors);
+			} else {
+				var colors = stream.readFloatArray(numColors);
+			}
 		} else if (color != null && !this.settings.useObjectColors) {
 			var colors = new Float32Array(new ArrayBuffer(16 * numPositions / 3));
 			for (var i=0; i < 4 * numPositions / 3; i++) {
