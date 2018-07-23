@@ -34,14 +34,16 @@ export default class TileLoader {
 				threshold: this.densityThreshold,
 				depth: this.settings.octreeDepth
 			}, (list) => {
-				for (var i=0; i<list.length; i++) {
-					var nrObjects = list[i];
+				for (var i=0; i<list.length; i+=2) {
+					var tileId = list[i];
+					var nrObjects = list[i + 1];
 					if (nrObjects == 0) {
+						// Should not happen
 						this.viewer.stats.inc("Tiling", "Empty");
 						continue;
 					}
 					this.viewer.stats.inc("Tiling", "Full");
-					var node = this.tilingRenderLayer.octree.getNodeById(i);
+					var node = this.tilingRenderLayer.octree.getNodeById(tileId);
 					
 					node.loadingStatus = 0;
 					node.nrObjects = nrObjects;
