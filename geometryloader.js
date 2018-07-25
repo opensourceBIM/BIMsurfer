@@ -222,15 +222,29 @@ export default class GeometryLoader {
 				var colors = stream.readFloatArray(numColors);
 			}
 		} else if (color != null && !this.settings.useObjectColors) {
-			var size = (4 * numPositions) / 3;
-			var colors = new Uint8Array(size);
-			var quantizedColor = new Uint8Array(4);
-			quantizedColor[0] = color.r * 255;
-			quantizedColor[1] = color.g * 255;
-			quantizedColor[2] = color.b * 255;
-			quantizedColor[3] = color.a * 255;
-			for (var i=0; i < size / 4; i++) {
-				colors.set(quantizedColor, i * 4);
+			// When we are generating this data anyways, we might as well make sure it ends up in the format required by the GPU
+			if (this.settings.quantizeColors) {
+				var size = (4 * numPositions) / 3;
+				var colors = new Uint8Array(size);
+				var quantizedColor = new Uint8Array(4);
+				quantizedColor[0] = color.r * 255;
+				quantizedColor[1] = color.g * 255;
+				quantizedColor[2] = color.b * 255;
+				quantizedColor[3] = color.a * 255;
+				for (var i=0; i < size / 4; i++) {
+					colors.set(quantizedColor, i * 4);
+				}
+			} else {
+				var size = (4 * numPositions) / 3;
+				var colors = new Float32Array(size);
+				var nonQuantizedColor = new Float32Array(4);
+				nonQuantizedColor[0] = color.r;
+				nonQuantizedColor[1] = color.g;
+				nonQuantizedColor[2] = color.b;
+				nonQuantizedColor[3] = color.a;
+				for (var i=0; i < size / 4; i++) {
+					colors.set(nonQuantizedColor, i * 4);
+				}
 			}
 		}
 		if (this.settings.useObjectColors) {
