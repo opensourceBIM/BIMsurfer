@@ -11,6 +11,7 @@
 export default class ProgramManager {
 	constructor(gl) {
 		this.gl = gl;
+		this.loadedFiles = new Map();
 		this.programs = {};
 		this.promises = [];
 	}
@@ -179,6 +180,9 @@ export default class ProgramManager {
 	}
 
 	loadShaderFile(filename) {
+		if (this.loadedFiles.has(filename)) {
+			return this.loadedFiles.get(filename);
+		}
 		var promise = new Promise((resolve, reject) => {
 			var request = new XMLHttpRequest();
 			request.open("GET", filename, true);
@@ -187,6 +191,7 @@ export default class ProgramManager {
 			});
 			request.send();
 		});
+		this.loadedFiles.set(filename, promise);
 		return promise;
 	}
 
