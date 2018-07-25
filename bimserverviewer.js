@@ -215,6 +215,16 @@ export default class BimServerViewer {
 		var start = performance.now();
 		var executor = new Executor(4);
 
+		var fieldsToInclude = ["vertices", "indices"];
+		if (this.settings.loaderSettings.quantizeNormals) {
+			fieldsToInclude.push("normalsQuantized");
+		} else {
+			fieldsToInclude.push("normals");
+		}
+		if (!this.settings.loaderSettings.useObjectColors) {
+			fieldsToInclude.push("colorsQuantized");
+		}
+		
 		var query = {
 			type: {
 				name: "IfcProduct",
@@ -236,7 +246,11 @@ export default class BimServerViewer {
 				field: "geometry",
 				include: {
 					type: "GeometryInfo",
-					field: "data"
+					field: "data",
+					include: {
+						type: "GeometryData",
+						fieldsDirect: fieldsToInclude
+					}
 				}
 			},
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
