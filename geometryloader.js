@@ -222,12 +222,15 @@ export default class GeometryLoader {
 				var colors = stream.readFloatArray(numColors);
 			}
 		} else if (color != null && !this.settings.useObjectColors) {
-			var colors = new Float32Array(new ArrayBuffer(16 * numPositions / 3));
-			for (var i=0; i < 4 * numPositions / 3; i++) {
-				colors[i * 4 + 0] = color.r;
-				colors[i * 4 + 1] = color.g;
-				colors[i * 4 + 2] = color.b;
-				colors[i * 4 + 3] = color.a;
+			var size = (4 * numPositions) / 3;
+			var colors = new Uint8Array(size);
+			var quantizedColor = new Uint8Array(4);
+			quantizedColor[0] = color.r * 255;
+			quantizedColor[1] = color.g * 255;
+			quantizedColor[2] = color.b * 255;
+			quantizedColor[3] = color.a * 255;
+			for (var i=0; i < size / 4; i++) {
+				colors.set(quantizedColor, i * 4);
 			}
 		}
 		if (this.settings.useObjectColors) {
