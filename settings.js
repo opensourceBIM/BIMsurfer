@@ -14,7 +14,7 @@ export default class Settings {
 			defaultLayerEnabled: "boolean",
 			triangleThresholdDefaultLayer: "number",
 			tilingLayerEnabled: "boolean",
-			octreeDepth: "number",
+			maxOctreeDepth: "number",
 			assumeGpuMemoryAvailable: "number",
 			loaderSettings: {
 				quantizeNormals: "boolean",
@@ -34,7 +34,7 @@ export default class Settings {
 			defaultLayerEnabled: true,
 			triangleThresholdDefaultLayer: 100000,
 			tilingLayerEnabled: true,
-			octreeDepth: 3,
+			maxOctreeDepth: 3,
 			assumeGpuMemoryAvailable: 1024 * 1024 * 1024,
 			loaderSettings: {
 				quantizeNormals: true,

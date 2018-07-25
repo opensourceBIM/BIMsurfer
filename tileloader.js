@@ -32,7 +32,7 @@ export default class TileLoader {
 				excludedTypes: this.excludedTypes,
 				geometryIdsToReuse: this.geometryDataToReuse,
 				threshold: this.densityThreshold,
-				depth: this.settings.octreeDepth
+				depth: this.settings.maxOctreeDepth
 			}, (list) => {
 				for (var i=0; i<list.length; i+=2) {
 					var tileId = list[i];
@@ -85,7 +85,7 @@ export default class TileLoader {
 				ids: [node.id],
 				densityUpperThreshold: this.densityThreshold,
 				geometryDataToReuse: Array.from(this.geometryDataToReuse),
-				maxDepth: this.settings.octreeDepth
+				maxDepth: this.settings.maxOctreeDepth
 			},
 			include: {
 				type: "IfcProduct",
