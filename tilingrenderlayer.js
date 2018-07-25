@@ -31,8 +31,8 @@ export default class TilingRenderLayer extends RenderLayer {
 		this.viewer.dirty = true;
 	}
 
-	load(bimServerApi, densityThreshold, roids, progressListener) {
-		this.tileLoader = new TileLoader(this, this.viewer, bimServerApi, densityThreshold, this.geometryDataToReuse, roids);
+	load(bimServerApi, densityThreshold, roids, fieldsToInclude, progressListener) {
+		this.tileLoader = new TileLoader(this, this.viewer, bimServerApi, densityThreshold, this.geometryDataToReuse, roids, fieldsToInclude);
 		var init = this.tileLoader.initialize().then(() => {
 			if (this.initialLoad == "all") {
 				return this.tileLoader.loadAll(progressListener);

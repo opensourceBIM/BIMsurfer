@@ -3,7 +3,7 @@ import GpuBufferManager from './gpubuffermanager.js'
 import GeometryLoader from "./geometryloader.js"
 
 export default class TileLoader {
-	constructor(tilingRenderLayer, viewer, bimServerApi, densityThreshold, geometryDataToReuse, roids) {
+	constructor(tilingRenderLayer, viewer, bimServerApi, densityThreshold, geometryDataToReuse, roids, fieldsToInclude) {
 		this.tilingRenderLayer = tilingRenderLayer;
 		this.viewer = viewer;
 		this.settings = viewer.settings;
@@ -11,6 +11,7 @@ export default class TileLoader {
 		this.densityThreshold = densityThreshold;
 		this.geometryDataToReuse = geometryDataToReuse;
 		this.roids = roids;
+		this.fieldsToInclude = fieldsToInclude;
 	
 		this.excludedTypes = ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"];
 		this.executor = new Executor(32);
@@ -92,7 +93,11 @@ export default class TileLoader {
 				field: "geometry",
 				include: {
 					type: "GeometryInfo",
-					field: "data"
+					field: "data",
+					include: {
+						type: "GeometryData",
+						fieldsDirect: this.fieldsToInclude
+					}
 				}
 			},
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))

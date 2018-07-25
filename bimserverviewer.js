@@ -176,6 +176,23 @@ export default class BimServerViewer {
 
 			this.viewer.setModelBounds(bounds);
 
+			
+			// TODO This is very BIMserver specific, clutters the code, should move somewhere else (maybe GeometryLoader)
+			var fieldsToInclude = ["indices"];
+			if (this.settings.loaderSettings.quantizeNormals) {
+				fieldsToInclude.push("normalsQuantized");
+			} else {
+				fieldsToInclude.push("normals");
+			}
+			if (this.settings.loaderSettings.quantizeVertices) {
+				fieldsToInclude.push("verticesQuantized");
+			} else {
+				fieldsToInclude.push("vertices");
+			}
+			if (!this.settings.loaderSettings.useObjectColors) {
+				fieldsToInclude.push("colorsQuantized");
+			}
+			
 			var promise = Promise.resolve();
 			if (this.viewer.settings.defaultLayerEnabled && nrPrimitivesBelow) {
 				var defaultRenderLayer = new DefaultRenderLayer(this.viewer, this.geometryDataIdsToReuse);
@@ -186,7 +203,7 @@ export default class BimServerViewer {
 					document.getElementById("progress").style.width = percentage + "%";
 				});
 
-				promise = this.loadDefaultLayer(defaultRenderLayer, projects, bounds);
+				promise = this.loadDefaultLayer(defaultRenderLayer, projects, bounds, fieldsToInclude);
 			}
 
 			promise.then(() => {
@@ -196,7 +213,7 @@ export default class BimServerViewer {
 					var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.geometryDataIdsToReuse, bounds);
 					this.viewer.renderLayers.push(tilingRenderLayer);
 					
-					tilingPromise = this.loadTilingLayer(tilingRenderLayer, projects, bounds);
+					tilingPromise = this.loadTilingLayer(tilingRenderLayer, projects, bounds, fieldsToInclude);
 				}
 				tilingPromise.then(() => {
 					this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
@@ -207,7 +224,7 @@ export default class BimServerViewer {
 		});
 	}
 	
-	loadDefaultLayer(defaultRenderLayer, projects, totalBounds) {
+	loadDefaultLayer(defaultRenderLayer, projects, totalBounds, fieldsToInclude) {
 		document.getElementById("progress").style.display = "block";
 
 		var startLayer1 = performance.now();
@@ -215,21 +232,6 @@ export default class BimServerViewer {
 		var start = performance.now();
 		var executor = new Executor(4);
 
-		var fieldsToInclude = ["indices"];
-		if (this.settings.loaderSettings.quantizeNormals) {
-			fieldsToInclude.push("normalsQuantized");
-		} else {
-			fieldsToInclude.push("normals");
-		}
-		if (this.settings.loaderSettings.quantizeVertices) {
-			fieldsToInclude.push("verticesQuantized");
-		} else {
-			fieldsToInclude.push("vertices");
-		}
-		if (!this.settings.loaderSettings.useObjectColors) {
-			fieldsToInclude.push("colorsQuantized");
-		}
-		
 		var query = {
 			type: {
 				name: "IfcProduct",
@@ -288,7 +290,7 @@ export default class BimServerViewer {
 		return executor.awaitTermination();
 	}
 
-	loadTilingLayer(tilingLayer, projects, totalBounds) {
+	loadTilingLayer(tilingLayer, projects, totalBounds, fieldsToInclude) {
 		var startLayer2 = performance.now();
 		document.getElementById("progress").style.display = "block";
 
@@ -299,7 +301,7 @@ export default class BimServerViewer {
 			roids.push(project.lastRevisionId);
 		}
 		
-		var p = tilingLayer.load(this.bimServerApi, this.densityThreshold, roids, (percentage) => {
+		var p = tilingLayer.load(this.bimServerApi, this.densityThreshold, roids, fieldsToInclude, (percentage) => {
 			document.getElementById("progress").style.width = percentage + "%";
 		});
 		this.viewer.dirty = true;
