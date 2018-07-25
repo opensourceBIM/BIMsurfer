@@ -58,29 +58,13 @@ export default class ProgramManager {
 			for (var useObjectColors of [true, false]) {
 				for (var quantizeNormals of [true, false]) {
 					for (var quantizeVertices of [true, false]) {
-						var vertexShaderName = "shaders/vertex";
-						if (instancing) {
-							vertexShaderName += "_ins";
-						}
 						if (useObjectColors) {
-							vertexShaderName += "_oc";
+							this.generateShaders(defaultSetup, settings, instancing, useObjectColors, quantizeNormals, quantizeVertices, false);
+						} else {
+							for (var quantizeColors of [true, false]) {
+								this.generateShaders(defaultSetup, settings, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
+							}							
 						}
-						if (quantizeNormals) {
-							vertexShaderName += "_in";
-						}
-						if (quantizeVertices) {
-							vertexShaderName += "_iv";
-						}
-						vertexShaderName += ".glsl";
-
-						var settings = {
-							instancing: instancing,
-							useObjectColors: useObjectColors,
-							quantizeNormals: quantizeNormals,
-							quantizeVertices: quantizeVertices
-						};
-
-						this.setupProgram(vertexShaderName, "shaders/fragment.glsl", defaultSetup, this.generateSetup(settings), settings);
 					}
 				}
 			}
@@ -100,6 +84,36 @@ export default class ProgramManager {
 		}, this.generateSetup(settings), settings);
 
 		return Promise.all(this.promises);
+	}
+	
+	generateShaders(defaultSetup, settings, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors) {
+		var vertexShaderName = "shaders/vertex";
+		if (instancing) {
+			vertexShaderName += "_ins";
+		}
+		if (useObjectColors) {
+			vertexShaderName += "_oc";
+		}
+		if (quantizeNormals) {
+			vertexShaderName += "_in";
+		}
+		if (quantizeVertices) {
+			vertexShaderName += "_iv";
+		}
+		if (quantizeColors) {
+			vertexShaderName += "_qc";
+		}
+		vertexShaderName += ".glsl";
+
+		var settings = {
+			instancing: instancing,
+			useObjectColors: useObjectColors,
+			quantizeNormals: quantizeNormals,
+			quantizeVertices: quantizeVertices,
+			quantizeColors: quantizeColors
+		};
+
+		this.setupProgram(vertexShaderName, "shaders/fragment.glsl", defaultSetup, this.generateSetup(settings), settings);
 	}
 
 	getProgram(settings) {

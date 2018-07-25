@@ -81,7 +81,8 @@ export default class TilingRenderLayer extends RenderLayer {
 			instancing: reuse,
 			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: this.settings.quantizeNormals,
-			quantizeVertices: this.settings.quantizeVertices
+			quantizeVertices: this.settings.quantizeVertices,
+			quantizeColors: this.settings.quantizeColors
 		});
 		this.gl.useProgram(programInfo.program);
 		// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)

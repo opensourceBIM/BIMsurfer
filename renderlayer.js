@@ -69,7 +69,6 @@ export default class RenderLayer {
 		var startIndex = buffer.positionsIndex / 3;
 
 		try {
-			
 			var vertex = Array(3);
 			for (var i=0; i<geometry.positions.length; i+=3) {
 				// When quantizeVertices is on and we use the buffers in a combined buffer (which is what this method, addGeometry does),
@@ -133,7 +132,10 @@ export default class RenderLayer {
 						color[3] = geometry.colors[i + 3];
 						if (this.settings.quantizeColors) {
 							// Quantize
-							// TODO
+							color[0] = color[0] * 255;
+							color[1] = color[1] * 255;
+							color[2] = color[2] * 255;
+							color[3] = color[3] * 255;
 						} else {
 							// Unquantize
 							color[0] = color[0] / 255;
@@ -234,7 +236,8 @@ export default class RenderLayer {
 			instancing: true,
 			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: this.settings.quantizeNormals,
-			quantizeVertices: this.settings.quantizeVertices
+			quantizeVertices: this.settings.quantizeVertices,
+			quantizeColors: this.settings.quantizeColors
 		});
 
 		{
@@ -273,7 +276,7 @@ export default class RenderLayer {
 			const offset = 0;
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
 			if (this.settings.quantizeColors) {
-				this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.BYTE, normalize, stride, offset);
+				this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.UNSIGNED_BYTE, normalize, stride, offset);
 			} else {
 				this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.FLOAT, normalize, stride, offset);
 			}
@@ -419,7 +422,8 @@ export default class RenderLayer {
 			instancing: false,
 			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: this.settings.quantizeNormals,
-			quantizeVertices: this.settings.quantizeVertices
+			quantizeVertices: this.settings.quantizeVertices,
+			quantizeColors: this.settings.quantizeColors
 		});
 		
 		if (!this.settings.fakeLoading) {
@@ -478,7 +482,11 @@ export default class RenderLayer {
 				const stride = 0;
 				const offset = 0;
 				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-				this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents,	type, normalize, stride, offset);
+				if (this.settings.quantizeColors) {
+					this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.UNSIGNED_BYTE, normalize, stride, offset);
+				} else {
+					this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.FLOAT, normalize, stride, offset);
+				}
 				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
 			}
 
@@ -510,7 +518,7 @@ export default class RenderLayer {
 			this.viewer.dirty = true;
 		}
 		
-		var toadd = buffer.positionsIndex * (this.settings.quantizeVertices ? 2 : 4) + buffer.normalsIndex * (this.settings.quantizeNormals ? 1 : 4) + (buffer.colorsIndex != null ? buffer.colorsIndex * 4 : 0) + buffer.indicesIndex * 4;
+		var toadd = buffer.positionsIndex * (this.settings.quantizeVertices ? 2 : 4) + buffer.normalsIndex * (this.settings.quantizeNormals ? 1 : 4) + (buffer.colorsIndex != null ? buffer.colorsIndex * (this.settings.quantizeColors ? 1 : 4) : 0) + buffer.indicesIndex * 4;
 
 		this.viewer.stats.inc("Primitives", "Nr primitives loaded", buffer.nrIndices / 3);
 		if (this.progressListener != null) {

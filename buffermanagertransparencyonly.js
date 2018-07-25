@@ -25,7 +25,7 @@ export default class BufferManagerTransparencyOnly extends BufferManager {
 	}
 	
 	getDefaultByteSize() {
-		return super.getDefaultByteSize() + this.defaultSizes.colors * 4;
+		return super.getDefaultByteSize() + this.defaultSizes.colors * (this.settings.quantizeColors ? 1 : 4);
 	}
 	
 	/* 
@@ -33,7 +33,7 @@ export default class BufferManagerTransparencyOnly extends BufferManager {
 	 */
 	createBufferSet(transparency, color, sizes) {
 		var buffer = super.createBufferSet(transparency, color, sizes);
-		buffer.colors = new Float32Array(sizes.colors);
+		buffer.colors = this.settings.quantizeColors ? new Uint8Array(sizes.colors) : new Float32Array(sizes.colors);
 		buffer.colorsIndex = 0;
 		return buffer;
 	}

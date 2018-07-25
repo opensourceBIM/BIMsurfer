@@ -89,7 +89,7 @@ export default class GpuBufferManager {
 
 				var colorBuffer = this.gl.createBuffer();
 				this.gl.bindBuffer(this.gl.COPY_WRITE_BUFFER, colorBuffer);
-				this.gl.bufferData(this.gl.COPY_WRITE_BUFFER, nrColors * 4, this.gl.STATIC_DRAW);
+				this.gl.bufferData(this.gl.COPY_WRITE_BUFFER, nrColors * (this.settings.quantizeColors ? 1 : 4), this.gl.STATIC_DRAW);
 				
 				const indexBuffer = this.gl.createBuffer();
 				this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
@@ -111,7 +111,7 @@ export default class GpuBufferManager {
 
 					this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.colorBuffer);
 					this.gl.bindBuffer(this.gl.COPY_WRITE_BUFFER, colorBuffer);
-					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.COPY_WRITE_BUFFER, 0, colorsOffset * 4, buffer.nrColors * 4);
+					this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.COPY_WRITE_BUFFER, 0, colorsOffset * (this.settings.quantizeColors ? 1 : 4), buffer.nrColors * (this.settings.quantizeColors ? 1 : 4));
 
 					if (positionsOffset == 0) {
 						// Minor optimization for the first buffer
@@ -150,7 +150,8 @@ export default class GpuBufferManager {
 					instancing: false,
 					useObjectColors: this.settings.useObjectColors,
 					quantizeNormals: this.settings.quantizeNormals,
-					quantizeVertices: this.settings.quantizeVertices
+					quantizeVertices: this.settings.quantizeVertices,
+					quantizeColors: this.settings.quantizeColors
 				});
 				
 				var vao = this.gl.createVertexArray();
@@ -184,12 +185,15 @@ export default class GpuBufferManager {
 				}
 				{
 					const numComponents = 4;
-					const type = this.gl.FLOAT;
 					const normalize = false;
 					const stride = 0;
 					const offset = 0;
 					this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-					this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents,	type, normalize, stride, offset);
+					if (this.settings.quantizeColors) {
+						this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.UNSIGNED_BYTE, normalize, stride, offset);
+					} else {
+						this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.FLOAT, normalize, stride, offset);
+					}
 					this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
 				}
 
