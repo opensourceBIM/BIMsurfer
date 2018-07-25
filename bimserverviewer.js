@@ -215,11 +215,16 @@ export default class BimServerViewer {
 		var start = performance.now();
 		var executor = new Executor(4);
 
-		var fieldsToInclude = ["vertices", "indices"];
+		var fieldsToInclude = ["indices"];
 		if (this.settings.loaderSettings.quantizeNormals) {
 			fieldsToInclude.push("normalsQuantized");
 		} else {
 			fieldsToInclude.push("normals");
+		}
+		if (this.settings.loaderSettings.quantizeVertices) {
+			fieldsToInclude.push("verticesQuantized");
+		} else {
+			fieldsToInclude.push("vertices");
 		}
 		if (!this.settings.loaderSettings.useObjectColors) {
 			fieldsToInclude.push("colorsQuantized");
