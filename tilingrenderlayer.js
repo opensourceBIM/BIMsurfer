@@ -58,8 +58,10 @@ export default class TilingRenderLayer extends RenderLayer {
 		var cameraEye = this.viewer.camera.eye;
 		var tileCenter = node.getCenter();
 		var sizeFactor = 1 / Math.pow(2, node.level);
-		return vec3.distance(cameraEye, tileCenter) / sizeFactor > 5000000; // TODO use something related to the total bounding box size
-
+		if (vec3.distance(cameraEye, tileCenter) / sizeFactor > 5000000) { // TODO use something related to the total bounding box size
+			return true;
+		}
+		
 		// Default response
 		return false;
 	}
