@@ -99,7 +99,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
 		}
 
-		this.octree.traverseBreathFirstCached((node) => {
+		this.octree.traverse((node) => {
 			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling 
 			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
 			// skip the remaining child nodes
@@ -142,7 +142,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		if (transparency && !reuse && this.drawTileBorders) {
 			// The lines are rendered in the transparency-phase only
 			this.lineBoxGeometry.renderStart();
-			this.octree.traverseBreathFirstCached((node) => {
+			this.octree.traverse((node) => {
 				var color = null;
 				if (node.loadingStatus == 0) {
 					// No visualisation, node is not empty (or parent node)
@@ -270,7 +270,7 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	flushAllBuffers() {
-		this.octree.traverseBreathFirst((node) => {
+		this.octree.traverse((node) => {
 			var bufferManager = node.bufferManager;
 			if (bufferManager != null) {
 				for (var buffer of bufferManager.getAllBuffers()) {

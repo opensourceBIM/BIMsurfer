@@ -214,6 +214,7 @@ export default class Octree extends OctreeNode {
 		super(null, 0, bounds[0], bounds[1], bounds[2], bounds[3] - bounds[0], bounds[4] - bounds[1], bounds[5] - bounds[2]);
 		this.maxDepth = maxDepth;
 		this.level = 0;
+		this.breathFirstList = [];
 //		this.split(maxDepth);
 	}
 	
@@ -231,12 +232,8 @@ export default class Octree extends OctreeNode {
 	}
 	
 	traverseBreathFirstCached(fn) {
-		if (this.breathFirstList != null) {
-			for (var node of this.breathFirstList) {
-				fn(node);
-			}
-		} else {
-			this.traverseBreathFirst(fn);
+		for (var node of this.breathFirstList) {
+			fn(node);
 		}
 	}
 	
@@ -247,11 +244,11 @@ export default class Octree extends OctreeNode {
 //		}
 //	}
 //	
-	prepareBreathFirst(fn) {
-		this.breathFirstList = [];
-		this.deepestLevel = 0;
-		for (var i=0; i<=this.maxDepth; i++) {
-			this.prepareBreathFirstInternal(this.breathFirstList, fn, i);
-		}
-	}
+//	prepareBreathFirst(fn) {
+//		this.breathFirstList = [];
+//		this.deepestLevel = 0;
+//		for (var i=0; i<=this.maxDepth; i++) {
+//			this.prepareBreathFirstInternal(this.breathFirstList, fn, i);
+//		}
+//	}
 }
