@@ -138,15 +138,15 @@ export default class TileLoader {
 //				
 //			}
 			
-		this.tilingRenderLayer.octree.traverseBreathFirstCached((node) => {
+		this.tilingRenderLayer.octree.traverseBreathFirst((node) => {
 			this.loadTile(node, executor);
 		});
 	
 		executor.awaitTermination().then(() => {
 			this.tilingRenderLayer.completelyDone();
-			this.tilingRenderLayer.octree.prepareBreathFirst((node) => {
-				return true;
-			});
+//			this.tilingRenderLayer.octree.prepareBreathFirst((node) => {
+//				return true;
+//			});
 			this.viewer.stats.requestUpdate();
 			document.getElementById("progress").style.display = "none";
 		});	
