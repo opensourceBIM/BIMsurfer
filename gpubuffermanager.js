@@ -59,6 +59,8 @@ export default class GpuBufferManager {
 	}
 	
 	combineBuffers() {
+		// Disabled for now
+		return 0;
 		for (var transparency of [false, true]) {
 			var buffers = this.getBuffers(transparency, false);
 			
@@ -121,9 +123,9 @@ export default class GpuBufferManager {
 					} else {
 						var startIndex = positionsOffset / 3;
 						
-						this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, buffer.indexBuffer);
+						this.gl.bindBuffer(this.gl.COPY_READ_BUFFER, buffer.indexBuffer);
 						var tmpIndexBuffer = new Int32Array(buffer.nrIndices);
-						this.gl.getBufferSubData(this.gl.ELEMENT_ARRAY_BUFFER, 0, tmpIndexBuffer, 0, buffer.nrIndices);
+						this.gl.getBufferSubData(this.gl.COPY_READ_BUFFER, 0, tmpIndexBuffer, 0, buffer.nrIndices);
 						
 						for (var i=0; i<buffer.nrIndices; i++) {
 							tmpIndexBuffer[i] = tmpIndexBuffer[i] + startIndex;
