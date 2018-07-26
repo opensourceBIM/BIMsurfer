@@ -141,7 +141,7 @@ export default class BimServerViewer {
 			var totalBounds = responses[0].result;
 			var totalBoundsUntransformed = responses[1].result;
 			this.geometryDataIdsToReuse = new Set(responses[2].result);
-			console.log("Geometry Data IDs to reuse", this.geometryDataIdsToReuse);
+//			console.log("Geometry Data IDs to reuse", this.geometryDataIdsToReuse);
 
 			var modelBoundsUntransformed = new Map();
 			for (var i=0; i<(responses.length - 3) / 2; i++) {
@@ -269,15 +269,29 @@ export default class BimServerViewer {
 				map[project.lastRevisionId] = this.viewer.vertexQuantization.getUntransformedVertexQuantizationMatrixForRoid(project.lastRevisionId);
 			}
 		}
+		
 		// TODO maybe it will be faster to just use one loader instead of potentially 180 loaders, this will however lead to more memory used because loaders can't be closed when they are done
-		projects.forEach((project) => {
-			var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, defaultRenderLayer, [project.lastRevisionId], this.settings.loaderSettings, map, this.stats, this.settings, query);
-			defaultRenderLayer.registerLoader(geometryLoader.loaderId);
-			executor.add(geometryLoader).then(() => {
-				defaultRenderLayer.done(geometryLoader.loaderId);
-				this.viewer.stats.inc("Models", "Models loaded");
-			});
+		// Later: This seems to make no difference...
+		
+		var roids = [];
+		for (var project of projects) {
+			roids.push(project.lastRevisionId);
+		}
+		
+		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, defaultRenderLayer, roids, this.settings.loaderSettings, map, this.stats, this.settings, query);
+		defaultRenderLayer.registerLoader(geometryLoader.loaderId);
+		executor.add(geometryLoader).then(() => {
+			defaultRenderLayer.done(geometryLoader.loaderId);
+			this.viewer.stats.inc("Models", "Models loaded", roids.length);
 		});
+//		projects.forEach((project) => {
+//			var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, defaultRenderLayer, [project.lastRevisionId], this.settings.loaderSettings, map, this.stats, this.settings, query);
+//			defaultRenderLayer.registerLoader(geometryLoader.loaderId);
+//			executor.add(geometryLoader).then(() => {
+//				defaultRenderLayer.done(geometryLoader.loaderId);
+//				this.viewer.stats.inc("Models", "Models loaded");
+//			});
+//		});
 		
 		executor.awaitTermination().then(() => {
 			document.getElementById("progress").style.display = "none";
