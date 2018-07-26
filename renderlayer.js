@@ -219,7 +219,7 @@ export default class RenderLayer {
 		const indexBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 		var indices = this.bufferTransformer.convertIndices(geometry.indices, geometry.positions.length);
-		this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, indices, this.gl.STATIC_DRAW, 0, 0);
+		this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, indices, this.gl.STATIC_READ, 0, 0);
 
 		const instancesBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancesBuffer);
@@ -443,7 +443,7 @@ export default class RenderLayer {
 
 			const indexBuffer = this.gl.createBuffer();
 			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-			this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, buffer.indices, this.gl.STATIC_DRAW, 0, buffer.indicesIndex);
+			this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, buffer.indices, this.gl.STATIC_READ, 0, buffer.indicesIndex);
 
 			var vao = this.gl.createVertexArray();
 			this.gl.bindVertexArray(vao);
