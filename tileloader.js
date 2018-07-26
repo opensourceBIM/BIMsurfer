@@ -14,7 +14,7 @@ export default class TileLoader {
 		this.fieldsToInclude = fieldsToInclude;
 	
 		this.excludedTypes = ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"];
-		this.executor = new Executor(32);
+		this.executor = new Executor(64);
 		
 		if (this.viewer.vertexQuantization) {
 			this.quantizationMap = {};
@@ -127,7 +127,7 @@ export default class TileLoader {
 	}
 	
 	loadAll(progressListener) {
-		var executor = new Executor(32);
+		var executor = new Executor(64);
 		executor.setProgressListener(progressListener);
 			
 			// TODO load per level, so first level 0, then 1 etc... These calls should be submitted to the executor only after the previous layer has been submitted

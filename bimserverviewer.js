@@ -297,7 +297,6 @@ export default class BimServerViewer {
 			document.getElementById("progress").style.display = "none";
 			this.viewer.stats.setParameter("Loading time", "Layer 1", performance.now() - start);
 			defaultRenderLayer.completelyDone();
-			this.viewer.stats.requestUpdate();
 			console.log("layer 1 done", (performance.now() - startLayer1) + "ms");
 			this.viewer.stats.requestUpdate();
 		});
