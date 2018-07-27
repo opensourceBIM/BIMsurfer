@@ -239,13 +239,6 @@ export default class BimServerViewer {
 				exclude: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"]
 			},
 			inBoundingBox: {
-			    "x": totalBounds[0],
-			    "y": totalBounds[1],
-			    "z": totalBounds[2],
-			    "width": totalBounds[3] - totalBounds[0],
-			    "height": totalBounds[4] - totalBounds[1],
-			    "depth": totalBounds[5] - totalBounds[2],
-			    "partial": true,
 			    "densityLowerThreshold": this.densityThreshold
 			},
 			include: {
