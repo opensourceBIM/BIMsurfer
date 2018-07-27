@@ -6,10 +6,10 @@ precision mediump float;
 in vec3 vertexPosition;
 in vec3 vertexNormal;
 
-uniform vec4 vertexColor;
+uniform vec4 objectColor;
 uniform mat4 projectionMatrix;
-uniform mat4 normalMatrix;
-uniform mat4 modelViewMatrix;
+uniform mat4 viewNormalMatrix;
+uniform mat4 viewMatrix;
 
 uniform LightData {
 	vec3 lightPosition;
@@ -19,15 +19,15 @@ uniform LightData {
 } lightData;
 
 out mediump vec4 color;
-out mediump vec3 vertex;
-out mediump vec3 normal;
 
 void main(void) {
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(vertexPosition, 1);
+  gl_Position = projectionMatrix * viewMatrix * vec4(vertexPosition, 1);
   
-  vertex = vec3(gl_Position);
-  
-  normal = vec3( normalMatrix * vec4(vertexNormal, 0.0));
+  vec3 viewNormal = (viewNormalMatrix * vec4(normalize(vertexNormal), 0.0)).xyz;
 
-  color = vertexColor;
+//  vec3 lightDir = normalize(vec3(0.5, 0.5, -1.0));
+//  float lambertian = max(dot(viewNormal, lightDir), 0.0);
+//  color = vec4(lambertian + objectColor.rgb, objectColor.a);
+
+    color = objectColor;
 }

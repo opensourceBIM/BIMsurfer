@@ -6,13 +6,13 @@ precision mediump float;
 in vec3 vertexPosition;
 in mat4 instances;
 
-uniform vec4 vertexColor;
+uniform vec4 objectColor;
 uniform mat4 projectionMatrix;
-uniform mat4 modelViewMatrix;
+uniform mat4 viewMatrix;
 
 out mediump vec4 color;
 
 void main(void) {
-  gl_Position = projectionMatrix * modelViewMatrix * instances * vec4(vertexPosition, 1);
-  color = vertexColor;
+  gl_Position = projectionMatrix * viewMatrix * instances * vec4(vertexPosition, 1);
+  color = objectColor;
 }

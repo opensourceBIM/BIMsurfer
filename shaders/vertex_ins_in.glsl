@@ -9,8 +9,8 @@ in vec4 vertexColor;
 in mat4 instances;
 
 uniform mat4 projectionMatrix;
-uniform mat4 normalMatrix;
-uniform mat4 modelViewMatrix;
+uniform mat4 viewNormalMatrix;
+uniform mat4 viewMatrix;
 
 uniform LightData {
 	vec3 lightPosition;
@@ -20,14 +20,14 @@ uniform LightData {
 } lightData;
 
 out mediump vec4 color;
-out mediump vec3 vertex;
-out mediump vec3 normal;
 
 void main(void) {
-  gl_Position = projectionMatrix * modelViewMatrix * instances * vec4(vertexPosition, 1);
-  vertex = vec3(gl_Position);
+  gl_Position = projectionMatrix * viewMatrix * instances * vec4(vertexPosition, 1);
   
-  normal = vec3( normalMatrix * instances * vec4(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0, 0.0));
+//  vec3 normal = vec3( viewNormalMatrix * instances * vec4(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0, 0.0));
+//  vec3 lightDir = vec3(0.5, 0.5, 0.5);
+//  float lambertian = max(dot(normal, lightDir), 0.0);
+//  color = lambertian * vertexColor;
 
-  color = vertexColor;
+color = vertexColor;
 }
