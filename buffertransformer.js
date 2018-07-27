@@ -31,11 +31,11 @@ export default class BufferTransformer {
 			vertex[2] = vertices[i + 2];
 			
 //			if (this.settings.loaderSettings.quantizeVertices) {
-//				vec3.transformMat4(vertex, vertex, vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(roid));
+//				vec3.transformMat4(vertex, vertex, this.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(roid));
 //			}
-			
+			// TODO something is wrong here
 //			if (this.settings.quantizeVertices) {
-//				vec3.transformMat4(vertex, vertex, this.settings.combinedVertexQuantizationMatrix);
+//				vec3.transformMat4(vertex, vertex, this.vertexQuantization.getUntransformedVertexQuantizationMatrix());
 //			}
 			
 			newPositions.set(vertex, i);
