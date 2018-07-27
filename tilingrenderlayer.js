@@ -6,6 +6,7 @@ import BufferManagerTransparencyOnly from './buffermanagertransparencyonly.js'
 import BufferManagerPerColor from './buffermanagerpercolor.js'
 import Utils from './utils.js'
 import TileLoader from './tileloader.js'
+import ReuseLoader from './reuseloader.js'
 
 export default class TilingRenderLayer extends RenderLayer {
 	constructor(viewer, geometryDataToReuse, bounds) {
@@ -15,12 +16,14 @@ export default class TilingRenderLayer extends RenderLayer {
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
 		
 		this.loaderToNode = {};
-		
+
 		this.drawTileBorders = true;
 
 		this._frustum = new Frustum();
 		
 		window.tilingRenderLayer = this;
+		
+		this.enabled = false;
 		
 		this.show = "none";
 		this.initialLoad = "none";
@@ -32,13 +35,24 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	load(bimServerApi, densityThreshold, roids, fieldsToInclude, progressListener) {
-		this.tileLoader = new TileLoader(this, this.viewer, bimServerApi, densityThreshold, this.geometryDataToReuse, roids, fieldsToInclude);
-		var init = this.tileLoader.initialize().then(() => {
-			if (this.initialLoad == "all") {
-				return this.tileLoader.loadAll(progressListener);
-			}
+		var reuseLowerThreshold = 1000;
+		this.tileLoader = new TileLoader(this, this.viewer, bimServerApi, densityThreshold, reuseLowerThreshold, this.geometryDataToReuse, roids, fieldsToInclude);
+		var promise = new Promise((resolve, reject) => {
+			var init = this.tileLoader.initialize().then(() => {
+				this.loadReusedObjects(bimServerApi, fieldsToInclude, roids, reuseLowerThreshold).then(() => {
+					this.enabled = true;
+					if (this.initialLoad == "all") {
+						return this.tileLoader.loadAll(progressListener);
+					}
+					resolve();
+				});
+			});
 		});
-		return init;
+		return promise;
+	}
+	
+	loadReusedObjects(bimServerApi, fieldsToInclude, roids, reuseLowerThreshold) {
+		return new ReuseLoader(this.viewer, reuseLowerThreshold, bimServerApi, fieldsToInclude, roids, this.tileLoader.quantizationMap, this.reusedGeometryCache, this.geometryDataToReuse).start();
 	}
 
 	cull(node) {
@@ -58,7 +72,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		var cameraEye = this.viewer.camera.eye;
 		var tileCenter = node.getCenter();
 		var sizeFactor = 1 / Math.pow(2, node.level);
-		if (vec3.distance(cameraEye, tileCenter) / sizeFactor > 5000000) { // TODO use something related to the total bounding box size
+		if (vec3.distance(cameraEye, tileCenter) / sizeFactor > 2000000) { // TODO use something related to the total bounding box size
 			return true;
 		}
 		

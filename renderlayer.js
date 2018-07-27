@@ -1,6 +1,7 @@
 import BufferTransformer from './buffertransformer.js'
 import Utils from './utils.js'
 import GpuBufferManager from './gpubuffermanager.js'
+import ReuseLoader from './reuseloader.js'
 
 export default class RenderLayer {
 	constructor(viewer, geometryDataToReuse) {
@@ -8,6 +9,9 @@ export default class RenderLayer {
 		this.viewer = viewer;
 		this.gl = viewer.gl;
 		this.geometryDataToReuse = geometryDataToReuse;
+
+		// GeometryData ID -> geometry
+		this.reusedGeometryCache = new Map();
 
 		this.loaders = new Map();
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
@@ -178,10 +182,22 @@ export default class RenderLayer {
 		}
 	}
 	
+	storeMissingGeometry(map) {
+		console.log(map);
+		
+		// We need to start loading some GeometryData at some point, and add the missing pieces
+		
+	}
+	
 	addGeometryToObject(geometryId, objectId, loader, gpuBufferManager) {
 		var geometry = loader.geometries.get(geometryId);
 		if (geometry == null) {
-			return;
+			if (this.reusedGeometryCache.has(geometryId)) {
+				geometry = this.reusedGeometryCache.get(geometryId);
+			} else {
+				console.error("Missing geometry id");
+				return;
+			}
 		}
 		var object = loader.objects.get(objectId);
 		if (object.visible) {
@@ -204,7 +220,7 @@ export default class RenderLayer {
 	addGeometryReusable(geometry, loader, gpuBufferManager) {
 		const positionBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.bufferTransformer.convertVertices(loader.roid, geometry.positions), this.gl.STATIC_DRAW, 0, 0);
+		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.bufferTransformer.convertVertices(geometry.roid, geometry.positions), this.gl.STATIC_DRAW, 0, 0);
 		
 		const normalBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
@@ -219,7 +235,7 @@ export default class RenderLayer {
 		const indexBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 		var indices = this.bufferTransformer.convertIndices(geometry.indices, geometry.positions.length);
-		this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, indices, this.gl.STATIC_READ, 0, 0);
+		this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, indices, this.gl.STATIC_DRAW, 0, 0);
 
 		const instancesBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancesBuffer);
@@ -339,7 +355,7 @@ export default class RenderLayer {
 		}
 
 		var toadd = geometry.bytes + geometry.matrices.length * 16 * 4;
-		this.viewer.stats.inc("Drawing", "Draw calls per frame");
+		this.viewer.stats.inc("Drawing", "Draw calls per frame (L1)");
 		this.viewer.stats.inc("Data", "GPU bytes reuse", toadd);
 		this.viewer.stats.inc("Data", "GPU bytes total", toadd);
 
@@ -392,22 +408,17 @@ export default class RenderLayer {
 	}
 	
 	renderBuffer(buffer, programInfo) {
+		this.gl.bindVertexArray(buffer.vao);
 		if (buffer.reuse) {
-			this.gl.bindVertexArray(buffer.vao);
-			
+			// TODO we only need to bind this again for every new roid, maybe sort by buffer.roid before iterating through the buffers?
 			if (this.viewer.settings.quantizeVertices) {
 				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
 			}
 			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
-			
-			this.gl.bindVertexArray(null);
 		} else {
-			this.gl.bindVertexArray(buffer.vao);
-			
 			this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
-			
-			this.gl.bindVertexArray(null);
 		}
+		this.gl.bindVertexArray(null);
 	}
 	
 	flushBuffer(buffer, gpuBufferManager) {
@@ -443,7 +454,7 @@ export default class RenderLayer {
 
 			const indexBuffer = this.gl.createBuffer();
 			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-			this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, buffer.indices, this.gl.STATIC_READ, 0, buffer.indicesIndex);
+			this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, buffer.indices, this.gl.STATIC_DRAW, 0, buffer.indicesIndex);
 
 			var vao = this.gl.createVertexArray();
 			this.gl.bindVertexArray(vao);
