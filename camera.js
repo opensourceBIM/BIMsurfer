@@ -2,6 +2,7 @@ import Perspective from './perspective.js'
 import Orthographic from './orthographic.js'
 
 var tempMat4 = mat4.create();
+var tempMat4b = mat4.create();
 var tempVec3 = vec3.create();
 var tempVec3b = vec3.create();
 var tempVec3c = vec3.create();
@@ -20,7 +21,7 @@ export default class Camera {
 
         this._projection = this.perspective; // Currently active projection
         this._viewMatrix = mat4.create();
-        this._normalMatrix = mat4.create();
+        this._viewNormalMatrix = mat4.create();
 
         this._worldScale = 1.0;
 
@@ -53,8 +54,8 @@ export default class Camera {
             mat4.identity(tempMat4);
             mat4.scale(tempMat4, tempMat4, scale);
             mat4.multiply(this._viewMatrix, tempMat4, this._viewMatrix);
-            mat4.invert(this._normalMatrix, this._viewMatrix);
-            mat4.transpose(this._normalMatrix, this._normalMatrix);
+            mat4.invert(tempMat4b, this._viewMatrix);
+            mat4.transpose(this._viewNormalMatrix, tempMat4b);
             this._dirty = false;
         }
     }
@@ -75,11 +76,11 @@ export default class Camera {
         return this._viewMatrix;
     }
 
-    get normalMatrix() {
+    get viewNormalMatrix() {
         if (this._dirty) {
             this._build();
         }
-        return this._normalMatrix;
+        return this._viewNormalMatrix;
     }
 
     get projMatrix() {
