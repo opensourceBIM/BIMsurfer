@@ -10,7 +10,6 @@ import RenderBuffer from './renderBuffer.js'
  * - Keep track of width/height of viewport
  * - Keeps track of dirty scene
  * - (To camera/scene) Contains light source(s)
- * - (To camera) Keeps track of matrices for model/view/projection
  * - Contains the basic render loop (and delegates to the render layers)
  * - (To camera) Does the rotation/zoom
  */
@@ -29,8 +28,8 @@ export default class Viewer {
         this.renderLayers = [];
         this.animationListeners = [];
 
-        // Temporary hack until real navigation is implemented
-        this.navigationActive = true;
+        this.viewObjectsByPickId = [];
+        this.viewObjects = {};
     }
 
     init() {
@@ -212,20 +211,39 @@ export default class Viewer {
             renderLayer.renderForPick();
         }
 
-        var color = this.renderBuffer.read(Math.round(canvasPos[0]), Math.round(canvasPos[1]));
+        var pickColor = this.renderBuffer.read(Math.round(canvasPos[0]), Math.round(canvasPos[1]));
+
+        console.log(pickColor);
 
         this.renderBuffer.unbind();
 
-        var objectId = color[0] + (color[1] * 256) + (color[2] * 256 * 256) + (color[3] * 256 * 256 * 256);
-        objectId--;
+        var viewObject = this.getViewObject(pickColor);
 
-        var picked = (objectId >= 0);
-
-        if (picked) {
-            return {objectId: objectId};
+        if (viewObject) {
+            return viewObject;
         }
 
         return null;
+    }
+
+    getViewObject(pickColor) {
+        var pickId = pickColor[0] + (pickColor[1] * 256) + (pickColor[2] * 256 * 256) + (pickColor[3] * 256 * 256 * 256);
+        pickId--;
+        var viewObject = this.viewObjectsByPickId[pickId];
+        return viewObject;
+    }
+
+    getPickColor(objectViewId) {
+        var a = objectViewId >> 24 & 0xFF;
+        var b = objectViewId >> 16 & 0xFF;
+        var g = objectViewId >> 8 & 0xFF;
+        var r = objectViewId & 0xFF;
+        var pickColor = vec4.create();
+        pickColor[3] = a / 255;
+        pickColor[2] = b / 255;
+        pickColor[1] = g / 255;
+        pickColor[0] = r / 255;
+        return pickColor;
     }
 
     setModelBounds(modelBounds) {

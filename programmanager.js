@@ -24,7 +24,7 @@ export default class ProgramManager {
 			settings.attributes.push("instances");
 		}
 		if (inputSettings.useObjectColors) {
-			settings.uniforms.push("vertexColor");
+			settings.uniforms.push("objectColor");
 		} else {
 			settings.attributes.push("vertexColor");
 		}
@@ -45,8 +45,8 @@ export default class ProgramManager {
 				],
 			uniforms: [
 				"projectionMatrix",
-				"normalMatrix",
-				"modelViewMatrix"
+				"viewNormalMatrix",
+				"viewMatrix"
 			],
 			uniformBlocks: [
 			//	"LightData"
@@ -95,7 +95,7 @@ export default class ProgramManager {
 				"matrix",
 				"inputColor",
 				"projectionMatrix",
-				"modelViewMatrix"
+				"viewMatrix"
 			]
 		}, this.generateSetup(settings), settings);
 
@@ -129,7 +129,7 @@ export default class ProgramManager {
 	}
 
 	getProgram(settings) {
-		console.log("getProgram('" + JSON.stringify(settings) + "', program");
+		//console.log("getProgram('" + JSON.stringify(settings) + "', program");
 		var program = this.programs[JSON.stringify(settings)];
 		if (program == null) {
 			console.error("Program not found", settings);
@@ -138,7 +138,7 @@ export default class ProgramManager {
 	}
 
 	setProgram(settings, program) {
-		console.log("setProgram('" + JSON.stringify(settings) + "', program");
+		//console.log("setProgram('" + JSON.stringify(settings) + "', program");
 		this.programs[JSON.stringify(settings)] = program;
 	}
 
@@ -155,23 +155,31 @@ export default class ProgramManager {
 						uniformBlocks: {}
 					};
 
+					//console.log("----------------------------------------");
+					//console.log("setupProgram (" + vertexShader + ", " + fragmentShader + ")");
+
 					for (var setup of [defaultSetup, specificSetup]) {
 						if (setup.attributes != null) {
+							//console.log("attributes:");
 							for (var attribute of setup.attributes) {
 								programInfo.attribLocations[attribute] = this.gl.getAttribLocation(shaderProgram, attribute);
+								//console.log("attribute  '" + attribute + "' = " + programInfo.attribLocations[attribute]);
 							}
 						}
 						if (setup.uniforms != null) {
+							//console.log("uniforms:");
 							for (var uniform of setup.uniforms) {
 								programInfo.uniformLocations[uniform] = this.gl.getUniformLocation(shaderProgram, uniform);
+								//console.log("uniform '" + uniform + "' = " + programInfo.uniformLocations[uniform]);
 							}
 						}
 						if (setup.uniformBlocks != null) {
+							//console.log("uniformBlocks:");
 							if (setup.uniformBlocks != null) {
 								for (var uniformBlock of setup.uniformBlocks) {
 									programInfo.uniformBlocks[uniformBlock] = this.gl.getUniformBlockIndex(shaderProgram, uniformBlock);
-
 									this.gl.uniformBlockBinding(shaderProgram, programInfo.uniformBlocks[uniformBlock], 0);
+									//console.log("uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock]);
 								}
 							}
 						}

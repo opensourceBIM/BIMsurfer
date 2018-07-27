@@ -75,11 +75,11 @@ export default class PerObjectRenderer {
 		return object;
 	}
 	
-	renderObject(modelViewMatrix, normalMatrix, object) {
+	renderObject(viewMatrix, viewNormalMatrix, object) {
 		if (object.objectMatrix == null) {
 			object.objectMatrix = mat4.create();
 		}
-		  mat4.multiply(object.objectMatrix, modelViewMatrix, object.matrix);
+		  mat4.multiply(object.objectMatrix, viewMatrix, object.matrix);
 		  object.geometry.forEach((geometryId) => {
 			  var geometry = this.geometry[geometryId];
 			  {
@@ -139,8 +139,8 @@ export default class PerObjectRenderer {
 				  this.gl.useProgram(this.viewer.programInfo.program);
 
 				  this.gl.uniformMatrix4fv(this.viewer.programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-				  this.gl.uniformMatrix4fv(this.viewer.programInfo.uniformLocations.normalMatrix, false, normalMatrix);
-				  this.gl.uniformMatrix4fv(this.viewer.programInfo.uniformLocations.modelViewMatrix, false, object.objectMatrix);
+				  this.gl.uniformMatrix4fv(this.viewer.programInfo.uniformLocations.viewNormalMatrix, false, viewNormalMatrix);
+				  this.gl.uniformMatrix4fv(this.viewer.programInfo.uniformLocations.viewMatrix, false, object.objectMatrix);
 				  
 				  this.gl.uniform3fv(this.viewer.programInfo.uniformLocations.lightPosition, this.viewer.lightPosition);
 				  this.gl.uniform3fv(this.viewer.programInfo.uniformLocations.lightColor, this.viewer.lightColor);
@@ -166,7 +166,7 @@ export default class PerObjectRenderer {
 		  for (const oid in this.objects) {
 			  const object = this.objects[oid];
 			  if (!object.hasTransparency) {
-				  this.renderObject(this.viewer.camera.viewMatrix, this.viewer.camera.normalMatrix, object);
+				  this.renderObject(this.viewer.camera.viewMatrix, this.viewer.camera.viewNormalMatrix, object);
 			  }
 		  }
 		this.gl.enable(this.gl.BLEND);
@@ -176,7 +176,7 @@ export default class PerObjectRenderer {
 	  for (const oid in this.objects) {
 		  const object = this.objects[oid];
 		  if (object.hasTransparency) {
-			  this.renderObject(this.viewer.camera.viewMatrix, this.viewer.camera.normalMatrix, object);
+			  this.renderObject(this.viewer.camera.viewMatrix, this.viewer.camera.viewNormalMatrix, object);
 		  }
 	  }
 	}

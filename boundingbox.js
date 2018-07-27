@@ -65,7 +65,7 @@ export default class BoundingBox {
 		
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.matrix, false, this.matrix);
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 		
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.verticesBuffer);
 		

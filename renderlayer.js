@@ -6,7 +6,7 @@ export default class RenderLayer {
 
 		this.loaders = new Map();
 	}
-	
+
 	createGeometry(loaderId, roid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
 		var bytes = 0;
 		if (this.settings.quantizeVertices) {
@@ -112,6 +112,22 @@ export default class RenderLayer {
 				buffer.colors.set(geometry.colors, buffer.colorsIndex);
 				buffer.colorsIndex += geometry.colors.length;
 			}
+
+			var viewObject = this.viewer.viewObjects[object.id];
+			if (viewObject) {
+				var pickColor = this.viewer.getPickColor(viewObject.pickId);
+				var numPickColors = (geometry.positions.length / 3) * 4;
+				for (var j = buffer.pickColorsIndex, lenj = buffer.pickColorsIndex + numPickColors; j < lenj; j+=4) {
+					buffer.pickColors[j + 0] = pickColor[0];
+					buffer.pickColors[j + 1] = pickColor[1];
+					buffer.pickColors[j + 2] = pickColor[2];
+					buffer.pickColors[j + 3] = pickColor[3];
+				}
+				buffer.pickColorsIndex += numPickColors;
+			} else {
+				console.log("viewObject not found: " + object.id);
+			}
+
 			if (startIndex == 0) {
 				// Small optimization, if this is the first object in the buffer, no need to add the startIndex to each index
 				buffer.indices.set(geometry.indices, 0);

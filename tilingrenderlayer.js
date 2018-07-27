@@ -134,8 +134,8 @@ export default class TilingRenderLayer extends RenderLayer {
 		this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, programInfo.uniformBlocks.LightData, this.viewer.lighting.lightingBuffer);
 
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, this.viewer.camera.normalMatrix);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 		if (this.settings.quantizeVertices) {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 		}
@@ -171,7 +171,7 @@ export default class TilingRenderLayer extends RenderLayer {
 					if (buffer.hasTransparency == transparency) {
 						if (this.settings.useObjectColors) {
 							if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
-								this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
+								this.gl.uniform4fv(programInfo.uniformLocations.objectColor, buffer.color);
 								lastUsedColorHash = buffer.colorHash;
 							}
 						}
@@ -230,7 +230,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		this.gl.useProgram(programInfo.program);
 
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 
 		if (this.settings.quantizeVertices) {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
@@ -255,7 +255,7 @@ export default class TilingRenderLayer extends RenderLayer {
                 for (let buffer of buffers) {
                     // if (this.settings.useObjectColors) {
                     //     if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
-                    //         this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
+                    //         this.gl.uniform4fv(programInfo.uniformLocations.objectColor, buffer.color);
                     //         lastUsedColorHash = buffer.colorHash;
                     //     }
                     // }

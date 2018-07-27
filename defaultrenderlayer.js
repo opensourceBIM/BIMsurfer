@@ -49,6 +49,14 @@ export default class DefaultRenderLayer extends RenderLayer {
 		var loader = this.getLoader(loaderId);
 		loader.objects[oid] = object;
 
+		var viewObject = {
+			objectId: objectId,
+			oid: oid,
+			pickId: this.viewer.viewObjectsByPickId.length
+		};
+		this.viewer.viewObjectsByPickId.push(viewObject);
+		this.viewer.viewObjects[objectId] = viewObject;
+
 		geometryIds.forEach((id) => {
 			this.addGeometryToObject(id, object.id, loader);
 		});
@@ -112,7 +120,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		var vao = this.gl.createVertexArray();
 		this.gl.bindVertexArray(vao);
 
-		var programInfo = this.viewer.programManager.getProgram({
+		var drawProgramInfo = this.viewer.programManager.getProgram({
 			instancing: true,
 			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: this.settings.quantizeNormals,
@@ -127,11 +135,11 @@ export default class DefaultRenderLayer extends RenderLayer {
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
 
 			if (this.settings.quantizeVertices) {
-				this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexPosition, numComponents, this.gl.SHORT, normalize, stride, offset);
+				this.gl.vertexAttribIPointer(drawProgramInfo.attribLocations.vertexPosition, numComponents, this.gl.SHORT, normalize, stride, offset);
 			} else {
-				this.gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition,	numComponents, this.gl.FLOAT, normalize, stride, offset);
+				this.gl.vertexAttribPointer(drawProgramInfo.attribLocations.vertexPosition,	numComponents, this.gl.FLOAT, normalize, stride, offset);
 			}
-			this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+			this.gl.enableVertexAttribArray(drawProgramInfo.attribLocations.vertexPosition);
 		}
 		{
 			const numComponents = 3;
@@ -141,11 +149,11 @@ export default class DefaultRenderLayer extends RenderLayer {
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
 
 			if (this.settings.quantizeNormals) {
-				this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.BYTE, normalize, stride, offset);
+				this.gl.vertexAttribIPointer(drawProgramInfo.attribLocations.vertexNormal, numComponents, this.gl.BYTE, normalize, stride, offset);
 			} else {
-				this.gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.FLOAT, normalize, stride, offset);
+				this.gl.vertexAttribPointer(drawProgramInfo.attribLocations.vertexNormal, numComponents, this.gl.FLOAT, normalize, stride, offset);
 			}
-			this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
+			this.gl.enableVertexAttribArray(drawProgramInfo.attribLocations.vertexNormal);
 		}
 
 		if (!this.settings.useObjectColors) {
@@ -155,28 +163,28 @@ export default class DefaultRenderLayer extends RenderLayer {
 			const stride = 0;
 			const offset = 0;
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-			this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
-			this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+			this.gl.vertexAttribPointer(drawProgramInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
+			this.gl.enableVertexAttribArray(drawProgramInfo.attribLocations.vertexColor);
 		}
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancesBuffer);
 
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instances);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instances + 0, 4, this.gl.FLOAT, false, 64, 0);
+		this.gl.enableVertexAttribArray(drawProgramInfo.attribLocations.instances);
+		this.gl.vertexAttribPointer(drawProgramInfo.attribLocations.instances + 0, 4, this.gl.FLOAT, false, 64, 0);
 
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instances + 1);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instances + 1, 4, this.gl.FLOAT, false, 64, 16);
+		this.gl.enableVertexAttribArray(drawProgramInfo.attribLocations.instances + 1);
+		this.gl.vertexAttribPointer(drawProgramInfo.attribLocations.instances + 1, 4, this.gl.FLOAT, false, 64, 16);
 
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instances + 2);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instances + 2, 4, this.gl.FLOAT, false, 64, 32);
+		this.gl.enableVertexAttribArray(drawProgramInfo.attribLocations.instances + 2);
+		this.gl.vertexAttribPointer(drawProgramInfo.attribLocations.instances + 2, 4, this.gl.FLOAT, false, 64, 32);
 
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instances + 3);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instances + 3, 4, this.gl.FLOAT, false, 64, 48);
+		this.gl.enableVertexAttribArray(drawProgramInfo.attribLocations.instances + 3);
+		this.gl.vertexAttribPointer(drawProgramInfo.attribLocations.instances + 3, 4, this.gl.FLOAT, false, 64, 48);
 
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instances + 0, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instances + 1, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instances + 2, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instances + 3, 1);
+		this.gl.vertexAttribDivisor(drawProgramInfo.attribLocations.instances + 0, 1);
+		this.gl.vertexAttribDivisor(drawProgramInfo.attribLocations.instances + 1, 1);
+		this.gl.vertexAttribDivisor(drawProgramInfo.attribLocations.instances + 2, 1);
+		this.gl.vertexAttribDivisor(drawProgramInfo.attribLocations.instances + 3, 1);
 
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
@@ -319,8 +327,9 @@ export default class DefaultRenderLayer extends RenderLayer {
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.colors, this.gl.STATIC_DRAW, 0, buffer.colorsIndex);
             }
 
+            var pickColorBuffer;
             if (buffer.pickColors) {
-                const pickColorBuffer = this.gl.createBuffer();
+                pickColorBuffer = this.gl.createBuffer();
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.pickColors, this.gl.STATIC_DRAW, 0, buffer.colorsIndex); // TODO: is colorsIndex correct?
             }
@@ -406,8 +415,8 @@ export default class DefaultRenderLayer extends RenderLayer {
                 const stride = 0;
                 const offset = 0;
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
-                this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
-                this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+                this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
+                this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexColor);
             }
 
             this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
@@ -459,7 +468,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		this.bufferManager.resetBuffer(buffer);
 	}
 
-	renderBuffer(buffer, programInfo) {
+	renderBuffer(buffer, drawProgramInfo) {
 		this.gl.bindVertexArray(buffer.vao);
 
 		this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
@@ -467,11 +476,11 @@ export default class DefaultRenderLayer extends RenderLayer {
 		this.gl.bindVertexArray(null);
 	}
 
-	renderReusedBuffer(buffer, programInfo) {
+	renderReusedBuffer(buffer, drawProgramInfo) {
 		this.gl.bindVertexArray(buffer.vao);
 
 		if (this.settings.quantizeVertices) {
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
+			this.gl.uniformMatrix4fv(drawProgramInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
 		}
 		this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 
@@ -485,22 +494,22 @@ export default class DefaultRenderLayer extends RenderLayer {
 
 	renderBuffers(transparency, buffers, reuse) {
 		if (buffers.length > 0) {
-			var programInfo = this.viewer.programManager.getProgram({
+			var drawProgramInfo = this.viewer.programManager.getProgram({
 				instancing: reuse,
-				useObjectColors: this.settings.useObjectColors,
-				quantizeNormals: this.settings.quantizeNormals,
-				quantizeVertices: this.settings.quantizeVertices
+				useObjectColors: !!this.settings.useObjectColors,
+				quantizeNormals: !!this.settings.quantizeNormals,
+				quantizeVertices: !!this.settings.quantizeVertices
 			});
-			this.gl.useProgram(programInfo.program);
+			this.gl.useProgram(drawProgramInfo.program);
 			// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
-			this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, programInfo.uniformBlocks.LightData, this.viewer.lighting.lightingBuffer);
+			this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, drawProgramInfo.uniformBlocks.LightData, this.viewer.lighting.lightingBuffer);
 
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, this.viewer.camera.normalMatrix);
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
+			this.gl.uniformMatrix4fv(drawProgramInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
+			this.gl.uniformMatrix4fv(drawProgramInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
+			this.gl.uniformMatrix4fv(drawProgramInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 			if (this.settings.quantizeVertices) {
 				if (!reuse) {
-					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
+					this.gl.uniformMatrix4fv(drawProgramInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 				}
 			}
 
@@ -510,14 +519,14 @@ export default class DefaultRenderLayer extends RenderLayer {
 				if (buffer.hasTransparency == transparency) {
 					if (this.settings.useObjectColors) {
 						if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
-							this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
+							this.gl.uniform4fv(drawProgramInfo.uniformLocations.objectColor, buffer.color);
 							lastUsedColorHash = buffer.colorHash;
 						}
 					}
 					if (reuse) {
-						this.renderReusedBuffer(buffer, programInfo);
+						this.renderReusedBuffer(buffer, drawProgramInfo);
 					} else {
-						this.renderBuffer(buffer, programInfo);
+						this.renderBuffer(buffer, drawProgramInfo);
 					}
 				}
 			}
@@ -532,21 +541,21 @@ export default class DefaultRenderLayer extends RenderLayer {
 	renderBuffersForPick(buffers, reuse) {
 		if (buffers.length > 0) {
 
-			var programInfo = this.viewer.programManager.getProgram({
+			var pickProgramInfo = this.viewer.programManager.getProgram({
 				picking: true,
-				instancing: this.settings.instancing,
-				useObjectColors: this.settings.useObjectColors,
-				quantizeVertices: this.settings.quantizeVertices
+				instancing: reuse,
+				useObjectColors: !!this.settings.useObjectColors,
+				quantizeVertices: !!this.settings.quantizeVertices
 			});
 
-			this.gl.useProgram(programInfo.program);
+			this.gl.useProgram(pickProgramInfo.program);
 
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
+			this.gl.uniformMatrix4fv(pickProgramInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
+			this.gl.uniformMatrix4fv(pickProgramInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 
 			if (this.settings.quantizeVertices) {
 				if (!reuse) {
-					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
+					this.gl.uniformMatrix4fv(pickProgramInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 				}
 			}
 
@@ -555,31 +564,31 @@ export default class DefaultRenderLayer extends RenderLayer {
 			for (let buffer of buffers) {
 				// if (this.settings.useObjectColors) {
 				// 	if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
-				// 		this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
+				// 		this.gl.uniform4fv(pickProgramInfo.uniformLocations.objectColor, buffer.color);
 				// 		lastUsedColorHash = buffer.colorHash;
 				// 	}
 				// }
 				if (reuse) {
-					this.renderReusedBufferForPick(buffer, programInfo);
+					this.renderReusedBufferForPick(buffer, pickProgramInfo);
 				} else {
-					this.renderBufferForPick(buffer, programInfo);
+					this.renderBufferForPick(buffer, pickProgramInfo);
 				}
 			}
 		}
 	}
 
-	renderBufferForPick(buffer, programInfo) {
+	renderReusedBufferForPick(buffer, pickProgramInfo) {
 		this.gl.bindVertexArray(buffer.vaoPick);
-		this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
+		if (this.settings.quantizeVertices) {
+			this.gl.uniformMatrix4fv(pickProgramInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
+		}
+		this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 		this.gl.bindVertexArray(null);
 	}
 
-	renderReusedBufferForPick(buffer, programInfo) {
+	renderBufferForPick(buffer, pickProgramInfo) {
 		this.gl.bindVertexArray(buffer.vaoPick);
-		if (this.settings.quantizeVertices) {
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
-		}
-		this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
+		this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
 		this.gl.bindVertexArray(null);
 	}
 
