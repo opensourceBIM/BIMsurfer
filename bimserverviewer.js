@@ -7,6 +7,7 @@ import WorkForce from './workforce.js'
 import Executor from './executor.js'
 import GeometryLoader from "./geometryloader.js"
 import VirtualFrustum from "./virtualfrustum.js"
+import BufferHelper from "./bufferhelper.js"
 
 export default class BimServerViewer {
 	constructor(bimServerApi, settings, width, height, stats) {
@@ -53,14 +54,18 @@ export default class BimServerViewer {
 			}, (densityAtThreshold) => {
 				this.densityAtThreshold = densityAtThreshold;
 				this.densityThreshold = densityAtThreshold.density;
-				var nrPrimitives = densityAtThreshold.triangles;
+				var nrPrimitivesBelow = densityAtThreshold.trianglesBelow;
+				var nrPrimitivesAbove = densityAtThreshold.trianglesAbove;
+				
+				console.log(nrPrimitivesBelow, nrPrimitivesAbove);
+					
 				this.bimServerApi.call("ServiceInterface", "getRevision", {
 					roid: project.lastRevisionId
 				}, (revision) => {
 					if (project.subProjects.length == 0) {
 						if (project.lastRevisionId != -1) {
 							projectsToLoad.push(project);
-							this.loadModels(projectsToLoad, nrPrimitives);
+							this.loadModels(projectsToLoad, nrPrimitivesBelow, nrPrimitivesAbove);
 						}
 					} else {
 						this.bimServerApi.call("ServiceInterface", "getAllRelatedProjects", {poid: project.oid}, (projects) => {
@@ -71,7 +76,7 @@ export default class BimServerViewer {
 									}
 								}
 							});
-							this.loadModels(projectsToLoad, nrPrimitives);
+							this.loadModels(projectsToLoad, nrPrimitivesBelow, nrPrimitivesAbove);
 						});
 					}
 				});
@@ -82,19 +87,30 @@ export default class BimServerViewer {
 	/*
 	 * Private method
 	 */
-	loadModels(projects, nrPrimitives) {
+	loadModels(projects, nrPrimitivesBelow, nrPrimitivesAbove) {
 		this.viewer.stats.setParameter("Models", "Models to load", projects.length);
 
 		var roids = projects.map((project) => {
 			return project.lastRevisionId;
 		});
 
+		console.log("Total triangles", nrPrimitivesBelow + nrPrimitivesAbove);
+		var estimatedNonReusedByteSize = BufferHelper.trianglesToBytes(this.settings, nrPrimitivesBelow + nrPrimitivesAbove);
+		
+		console.log("Estimated non reuse byte size", estimatedNonReusedByteSize);
+		console.log("GPU memory available", this.settings.assumeGpuMemoryAvailable);
+		
 		var requests = [
 			["ServiceInterface", "getTotalBounds", {
 				roids: roids
 			}],
 			["ServiceInterface", "getTotalUntransformedBounds", {
 				roids: roids
+			}],
+			["ServiceInterface", "getGeometryDataToReuse", {
+				roids: roids,
+				excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"],
+				trianglesToSave: BufferHelper.bytesToTriangles(this.settings, Math.max(0, estimatedNonReusedByteSize - this.settings.assumeGpuMemoryAvailable))
 			}]
 		];
 		
@@ -117,40 +133,25 @@ export default class BimServerViewer {
 		const zNear = 1;
 		const zFar = 50.0;
 
-		var virtualProjectionMatrix = mat4.create();
-
-		mat4.perspective(virtualProjectionMatrix, fieldOfView, aspect, zNear, zFar);
-		
+//		var virtualProjectionMatrix = mat4.create();
+//		mat4.perspective(virtualProjectionMatrix, fieldOfView, aspect, zNear, zFar);
 //		this.debugRenderLayer.addVirtualFrustum(new VirtualFrustum(this.viewer, virtualProjectionMatrix, zNear, zFar));
 		
 		this.bimServerApi.multiCall(requests, (responses) => {
 			var totalBounds = responses[0].result;
 			var totalBoundsUntransformed = responses[1].result;
-			
+			this.geometryDataIdsToReuse = new Set(responses[2].result);
+//			console.log("Geometry Data IDs to reuse", this.geometryDataIdsToReuse);
+
 			var modelBoundsUntransformed = new Map();
-			for (var i=0; i<(responses.length - 2) / 2; i++) {
-				modelBoundsUntransformed.set(roids[i], responses[i + 2].result);
+			for (var i=0; i<(responses.length - 3) / 2; i++) {
+				modelBoundsUntransformed.set(roids[i], responses[i + 3].result);
 			}
 			var modelBoundsTransformed = new Map();
-			for (var i=0; i<(responses.length - 2) / 2; i++) {
-				modelBoundsTransformed.set(roids[i], responses[(responses.length - 2) / 2 + i + 2].result);
+			for (var i=0; i<(responses.length - 3) / 2; i++) {
+				modelBoundsTransformed.set(roids[i], responses[(responses.length - 3) / 2 + i + 3].result);
 			}
 			
-			var reusedVerticesFactor = 0.8;
-			var estimatedNonReusedByteSize = 0;
-			if (!this.settings.useObjectColors) {
-				estimatedNonReusedByteSize += nrPrimitives * 3 * 4;
-			}
-			estimatedNonReusedByteSize += nrPrimitives * 3 * (this.settings.useSmallIndicesIfPossible ? 2 : 4); // indices
-			estimatedNonReusedByteSize += reusedVerticesFactor * nrPrimitives * 3 * 4 * (this.settings.quantizeVertices ? 2 : 4); // vertices
-			estimatedNonReusedByteSize += reusedVerticesFactor * nrPrimitives * 3 * 4 * (this.settings.quantizeNormals ? 1 : 4); // normals
-
-			if (estimatedNonReusedByteSize < this.settings.assumeGpuMemoryAvailable) {
-				this.settings.reuseFn = () => {
-					return false;
-				};
-			}
-
 			if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
 				this.viewer.vertexQuantization = new VertexQuantization(this.settings);
 				for (var roid of modelBoundsUntransformed.keys()) {
@@ -170,41 +171,62 @@ export default class BimServerViewer {
 			
 //			this.workforce = new WorkForce();
 
-			this.viewer.stats.inc("Primitives", "Primitives to load", nrPrimitives);
+			this.viewer.stats.inc("Primitives", "Primitives to load (L1)", nrPrimitivesBelow);
+			this.viewer.stats.inc("Primitives", "Primitives to load (L2)", nrPrimitivesAbove);
 
 			this.viewer.setModelBounds(bounds);
 
+			
+			// TODO This is very BIMserver specific, clutters the code, should move somewhere else (maybe GeometryLoader)
+			var fieldsToInclude = ["indices"];
+			if (this.settings.loaderSettings.quantizeNormals) {
+				fieldsToInclude.push("normalsQuantized");
+			} else {
+				fieldsToInclude.push("normals");
+			}
+			if (this.settings.loaderSettings.quantizeVertices) {
+				fieldsToInclude.push("verticesQuantized");
+			} else {
+				fieldsToInclude.push("vertices");
+			}
+			if (!this.settings.loaderSettings.useObjectColors) {
+				fieldsToInclude.push("colorsQuantized");
+			}
+			
 			var promise = Promise.resolve();
-			if (this.viewer.settings.defaultLayerEnabled) {
-				var defaultRenderLayer = new DefaultRenderLayer(this.viewer);
+			if (this.viewer.settings.defaultLayerEnabled && nrPrimitivesBelow) {
+				var defaultRenderLayer = new DefaultRenderLayer(this.viewer, this.geometryDataIdsToReuse);
 				this.viewer.renderLayers.push(defaultRenderLayer);
 
 				defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
-					var percentage = 100 * nrPrimitivesLoaded / nrPrimitives;
+					var percentage = 100 * nrPrimitivesLoaded / nrPrimitivesBelow;
 					document.getElementById("progress").style.width = percentage + "%";
 				});
 
-				promise = this.loadDefaultLayer(defaultRenderLayer, projects, bounds);
+				promise = this.loadDefaultLayer(defaultRenderLayer, projects, bounds, fieldsToInclude);
 			}
 
 			promise.then(() => {
+				this.viewer.dirty = true;
 				var tilingPromise = Promise.resolve();
-				if (this.viewer.settings.tilingLayerEnabled) {
-					var tilingRenderLayer = new TilingRenderLayer(this.viewer, bounds);
+				if (this.viewer.settings.tilingLayerEnabled && nrPrimitivesAbove > 0) {
+					var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.geometryDataIdsToReuse, bounds);
 					this.viewer.renderLayers.push(tilingRenderLayer);
 					
-					// TODO only start loading layer 2 if we are sure that not all content has already been loaded in layer 1
-					tilingPromise = this.loadTilingLayer(tilingRenderLayer, projects, bounds);
+					tilingPromise = this.loadTilingLayer(tilingRenderLayer, projects, bounds, fieldsToInclude);
 				}
 				tilingPromise.then(() => {
 					this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
 					this.viewer.bufferSetPool.cleanup();
+					this.viewer.dirty = true;
 				});
 			});
 		});
 	}
 	
-	loadDefaultLayer(defaultRenderLayer, projects, totalBounds) {
+	loadDefaultLayer(defaultRenderLayer, projects, totalBounds, fieldsToInclude) {
+		document.getElementById("progress").style.display = "block";
+
 		var startLayer1 = performance.now();
 
 		var start = performance.now();
@@ -231,7 +253,11 @@ export default class BimServerViewer {
 				field: "geometry",
 				include: {
 					type: "GeometryInfo",
-					field: "data"
+					field: "data",
+					include: {
+						type: "GeometryData",
+						fieldsDirect: fieldsToInclude
+					}
 				}
 			},
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
@@ -243,29 +269,42 @@ export default class BimServerViewer {
 				map[project.lastRevisionId] = this.viewer.vertexQuantization.getUntransformedVertexQuantizationMatrixForRoid(project.lastRevisionId);
 			}
 		}
+		
 		// TODO maybe it will be faster to just use one loader instead of potentially 180 loaders, this will however lead to more memory used because loaders can't be closed when they are done
-		projects.forEach((project) => {
-			var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, defaultRenderLayer, [project.lastRevisionId], this.settings.loaderSettings, map, this.stats, this.settings, query);
-			defaultRenderLayer.registerLoader(geometryLoader.loaderId);
-			executor.add(geometryLoader).then(() => {
-				defaultRenderLayer.done(geometryLoader.loaderId);
-				this.viewer.stats.inc("Models", "Models loaded");
-			});
+		// Later: This seems to make no difference...
+		
+		var roids = [];
+		for (var project of projects) {
+			roids.push(project.lastRevisionId);
+		}
+		
+		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, defaultRenderLayer, roids, this.settings.loaderSettings, map, this.stats, this.settings, query);
+		defaultRenderLayer.registerLoader(geometryLoader.loaderId);
+		executor.add(geometryLoader).then(() => {
+			defaultRenderLayer.done(geometryLoader.loaderId);
+			this.viewer.stats.inc("Models", "Models loaded", roids.length);
 		});
+//		projects.forEach((project) => {
+//			var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, defaultRenderLayer, [project.lastRevisionId], this.settings.loaderSettings, map, this.stats, this.settings, query);
+//			defaultRenderLayer.registerLoader(geometryLoader.loaderId);
+//			executor.add(geometryLoader).then(() => {
+//				defaultRenderLayer.done(geometryLoader.loaderId);
+//				this.viewer.stats.inc("Models", "Models loaded");
+//			});
+//		});
 		
 		executor.awaitTermination().then(() => {
+			document.getElementById("progress").style.display = "none";
 			this.viewer.stats.setParameter("Loading time", "Layer 1", performance.now() - start);
 			defaultRenderLayer.completelyDone();
-			this.viewer.stats.requestUpdate();
-			document.getElementById("progress").style.display = "none";
 			console.log("layer 1 done", (performance.now() - startLayer1) + "ms");
+			this.viewer.stats.requestUpdate();
 		});
 		return executor.awaitTermination();
 	}
 
-	loadTilingLayer(tilingLayer, projects, totalBounds) {
+	loadTilingLayer(tilingLayer, projects, totalBounds, fieldsToInclude) {
 		var startLayer2 = performance.now();
-
 		document.getElementById("progress").style.display = "block";
 
 		var layer2Start = performance.now();
@@ -274,11 +313,15 @@ export default class BimServerViewer {
 		for (var project of projects) {
 			roids.push(project.lastRevisionId);
 		}
-
-		var p = tilingLayer.load(this.bimServerApi, this.densityThreshold, roids);
+		
+		var p = tilingLayer.load(this.bimServerApi, this.densityThreshold, roids, fieldsToInclude, (percentage) => {
+			document.getElementById("progress").style.width = percentage + "%";
+		});
+		this.viewer.dirty = true;
 		p.then(() => {
 			this.viewer.stats.setParameter("Loading time", "Layer 2", performance.now() - layer2Start);
 			this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
+			document.getElementById("progress").style.display = "none";
 			
 			this.viewer.bufferSetPool.cleanup();
 

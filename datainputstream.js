@@ -100,6 +100,16 @@ export default class DataInputStream {
 			console.error(e, this.arrayBuffer.byteLength, this.pos, length);
 		}
 	}
+
+	readUnsignedByteArray(length) {
+		try {
+			var result = new Uint8Array(this.arrayBuffer, this.pos, length);
+			this.pos += length;
+			return result;
+		} catch (e) {
+			console.error(e, this.arrayBuffer.byteLength, this.pos, length);
+		}
+	}
 	
 	readDoubleArray(length) {
 		var result = new Float64Array(this.arrayBuffer, this.pos, length);

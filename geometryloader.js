@@ -47,12 +47,12 @@ export default class GeometryLoader {
 		}
 
 		this.bimServerApi.getSerializerByPluginClassName("org.bimserver.serializers.binarygeometry.BinaryGeometryMessagingStreamingSerializerPlugin").then((serializer) => {
-			this.bimServerApi.call("ServiceInterface", "download", {
+			this.bimServerApi.callWithWebsocket("ServiceInterface", "download", {
 				roids: this.roids,
 				query: JSON.stringify(this.query),
 				serializerOid : serializer.oid,
 				sync : false
-			}, (topicId) => {
+			}).then((topicId) => {
 				this.topicId = topicId;
 				
 				this.state = {
@@ -82,24 +82,24 @@ export default class GeometryLoader {
 		} else {
 			this.readObject(stream, messageType);
 		}
-		if (stream.remaining() > 0) {
-			this.processMessage(stream);
-//			console.log("Remaining", stream.remaining());
-		}
+		stream.align8();
+		return stream.remaining() > 0;
 	}
 	
 	binaryDataListener(data) {
 		var stream = new DataInputStream(data);
 		var channel = stream.readLong();
 
-		this.processMessage(stream);
+		while (this.processMessage(stream)) {
+			
+		}
 		
 		this.stats.inc("Network", "Bytes OTL", stream.pos);
 	}
 
 	readEnd(data) {
 //		this.viewer.loadingDone();
-		this.bimServerApi.call("ServiceInterface", "cleanupLongAction", {topicId: this.topicId}, function(){});
+		this.bimServerApi.callWithWebsocket("ServiceInterface", "cleanupLongAction", {topicId: this.topicId});
 		this.bimServerApi.clearBinaryDataListener(this.topicId);
 		this.resolve();
 	}
@@ -150,8 +150,8 @@ export default class GeometryLoader {
 			var hasTransparency = stream.readLong() == 1;
 			geometryId = stream.readLong();
 			this.readGeometry(stream, roid, geometryId, geometryId, hasTransparency, reused, type, true);
-			if (this.dataToInfo[geometryId] != null) {
-				this.dataToInfo[geometryId].forEach((oid) => {
+			if (this.dataToInfo.has(geometryId)) {
+				this.dataToInfo.get(geometryId).forEach((oid) => {
 					var ob = this.renderLayer.getObject(this.loaderId, oid);
 					if (ob == null) {
 						console.error("Object with oid not found", oid)
@@ -159,7 +159,7 @@ export default class GeometryLoader {
 						ob.add(geometryId, oid);
 					}
 				});
-				delete this.dataToInfo[geometryId];
+				this.dataToInfo.delete(geometryId);
 			}
 		} else if (geometryType == 5) {
 			// Object
@@ -172,19 +172,20 @@ export default class GeometryLoader {
 			var objectBounds = stream.readDoubleArray(6);
 			var matrix = stream.readDoubleArray(16);
 			var geometryDataOid = stream.readLong();
-			var geometryDataOids = this.geometryIds[geometryDataOid];
+			var geometryDataOids = this.geometryIds.get(geometryDataOid);
 			if (geometryDataOids == null) {
 				geometryDataOids = [];
-				var list = this.dataToInfo[geometryDataOid];
+				var list = this.dataToInfo.get(geometryDataOid);
 				if (list == null) {
-					list = [];
-					this.dataToInfo[geometryDataOid] = list;
+					list = [oid];
+					this.dataToInfo.set(geometryDataOid, list);
+				} else {
+					list.push(oid);
 				}
-				list.push(oid);
 			}
 			this.createObject(roid, oid, oid, geometryDataOids, matrix, hasTransparency, type);
 		} else {
-			this.warn("Unsupported geometry type: " + geometryType);
+			console.error("Unsupported geometry type: " + geometryType);
 			return;
 		}
 
@@ -215,23 +216,44 @@ export default class GeometryLoader {
 		}
 		var numColors = stream.readInt();
 		if (numColors > 0) {
-			var colors = stream.readFloatArray(numColors);
+			if (this.loaderSettings.quantizeColors) {
+				var colors = stream.readUnsignedByteArray(numColors);
+			} else {
+				var colors = stream.readFloatArray(numColors);
+			}
 		} else if (color != null && !this.settings.useObjectColors) {
-			var colors = new Float32Array(new ArrayBuffer(16 * numPositions / 3));
-			for (var i=0; i < 4 * numPositions / 3; i++) {
-				colors[i * 4 + 0] = color.r;
-				colors[i * 4 + 1] = color.g;
-				colors[i * 4 + 2] = color.b;
-				colors[i * 4 + 3] = color.a;
+			// When we are generating this data anyways, we might as well make sure it ends up in the format required by the GPU
+			if (this.settings.quantizeColors) {
+				var size = (4 * numPositions) / 3;
+				var colors = new Uint8Array(size);
+				var quantizedColor = new Uint8Array(4);
+				quantizedColor[0] = color.r * 255;
+				quantizedColor[1] = color.g * 255;
+				quantizedColor[2] = color.b * 255;
+				quantizedColor[3] = color.a * 255;
+				for (var i=0; i < size / 4; i++) {
+					colors.set(quantizedColor, i * 4);
+				}
+			} else {
+				var size = (4 * numPositions) / 3;
+				var colors = new Float32Array(size);
+				var nonQuantizedColor = new Float32Array(4);
+				nonQuantizedColor[0] = color.r;
+				nonQuantizedColor[1] = color.g;
+				nonQuantizedColor[2] = color.b;
+				nonQuantizedColor[3] = color.a;
+				for (var i=0; i < size / 4; i++) {
+					colors.set(nonQuantizedColor, i * 4);
+				}
 			}
 		}
 		if (this.settings.useObjectColors) {
 			colors = null;
 		}
-		if (this.geometryIds[geometryDataOid] == null) {
-			this.geometryIds[geometryDataOid] = [];
+		if (!this.geometryIds.has(geometryDataOid)) {
+			this.geometryIds.set(geometryDataOid, []);
 		}
-		this.geometryIds[geometryDataOid].push(geometryId);
+		this.geometryIds.get(geometryDataOid).push(geometryId);
 		this.renderLayer.createGeometry(this.loaderId, roid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused);
 	}
 

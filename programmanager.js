@@ -11,6 +11,7 @@
 export default class ProgramManager {
 	constructor(gl) {
 		this.gl = gl;
+		this.loadedFiles = new Map();
 		this.programs = {};
 		this.promises = [];
 	}
@@ -58,29 +59,13 @@ export default class ProgramManager {
 			for (var useObjectColors of [true, false]) {
 				for (var quantizeNormals of [true, false]) {
 					for (var quantizeVertices of [true, false]) {
-						var vertexShaderName = "shaders/vertex";
-						if (instancing) {
-							vertexShaderName += "_ins";
-						}
 						if (useObjectColors) {
-							vertexShaderName += "_oc";
+							this.generateShaders(defaultSetup, settings, instancing, useObjectColors, quantizeNormals, quantizeVertices, false);
+						} else {
+							for (var quantizeColors of [true, false]) {
+								this.generateShaders(defaultSetup, settings, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
+							}							
 						}
-						if (quantizeNormals) {
-							vertexShaderName += "_in";
-						}
-						if (quantizeVertices) {
-							vertexShaderName += "_iv";
-						}
-						vertexShaderName += ".glsl";
-
-						var settings = {
-							instancing: instancing,
-							useObjectColors: useObjectColors,
-							quantizeNormals: quantizeNormals,
-							quantizeVertices: quantizeVertices
-						};
-
-						this.setupProgram(vertexShaderName, "shaders/fragment.glsl", defaultSetup, this.generateSetup(settings), settings);
 					}
 				}
 			}
@@ -126,6 +111,36 @@ export default class ProgramManager {
         }
 
         return Promise.all(this.promises);
+	}
+	
+	generateShaders(defaultSetup, settings, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors) {
+		var vertexShaderName = "shaders/vertex";
+		if (instancing) {
+			vertexShaderName += "_ins";
+		}
+		if (useObjectColors) {
+			vertexShaderName += "_oc";
+		}
+		if (quantizeNormals) {
+			vertexShaderName += "_in";
+		}
+		if (quantizeVertices) {
+			vertexShaderName += "_iv";
+		}
+		if (quantizeColors) {
+			vertexShaderName += "_qc";
+		}
+		vertexShaderName += ".glsl";
+
+		var settings = {
+			instancing: instancing,
+			useObjectColors: useObjectColors,
+			quantizeNormals: quantizeNormals,
+			quantizeVertices: quantizeVertices,
+			quantizeColors: quantizeColors
+		};
+
+		this.setupProgram(vertexShaderName, "shaders/fragment.glsl", defaultSetup, this.generateSetup(settings), settings);
 	}
 
 	getProgram(settings) {
@@ -201,6 +216,9 @@ export default class ProgramManager {
 	}
 
 	loadShaderFile(filename) {
+		if (this.loadedFiles.has(filename)) {
+			return this.loadedFiles.get(filename);
+		}
 		var promise = new Promise((resolve, reject) => {
 			var request = new XMLHttpRequest();
 			request.open("GET", filename, true);
@@ -209,6 +227,7 @@ export default class ProgramManager {
 			});
 			request.send();
 		});
+		this.loadedFiles.set(filename, promise);
 		return promise;
 	}
 

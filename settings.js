@@ -8,16 +8,18 @@ export default class Settings {
 		var settingsDefinition = {
 			quantizeNormals: "boolean",
 			quantizeVertices: "boolean",
+			quantizeColors: "boolean",
 			useObjectColors: "boolean",
 			useSmallIndicesIfPossible: "boolean",
 			defaultLayerEnabled: "boolean",
 			triangleThresholdDefaultLayer: "number",
 			tilingLayerEnabled: "boolean",
-			octreeDepth: "number",
+			maxOctreeDepth: "number",
 			assumeGpuMemoryAvailable: "number",
 			loaderSettings: {
 				quantizeNormals: "boolean",
 				quantizeVertices: "boolean",
+				quantizeColors: "boolean",
 				useObjectColors: "boolean"
 			}
 		};
@@ -26,16 +28,18 @@ export default class Settings {
 		this.settings = settingsObject == null ? {
 			quantizeNormals: true,
 			quantizeVertices: true,
+			quantizeColors: true,
 			useObjectColors: true,
 			useSmallIndicesIfPossible: true,
 			defaultLayerEnabled: true,
 			triangleThresholdDefaultLayer: 100000,
 			tilingLayerEnabled: true,
-			octreeDepth: 3,
+			maxOctreeDepth: 3,
 			assumeGpuMemoryAvailable: 1024 * 1024 * 1024,
 			loaderSettings: {
 				quantizeNormals: true,
 				quantizeVertices: true,
+				quantizeColors: true,
 				useObjectColors: true
 			}
 		} : JSON.parse(settingsObject);
