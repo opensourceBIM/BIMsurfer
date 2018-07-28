@@ -2,6 +2,7 @@ import Perspective from './perspective.js'
 import Orthographic from './orthographic.js'
 
 var tempMat4 = mat4.create();
+var tempMat4b = mat4.create();
 var tempVec3 = vec3.create();
 var tempVec3b = vec3.create();
 var tempVec3c = vec3.create();
@@ -20,7 +21,7 @@ export default class Camera {
 
         this._projection = this.perspective; // Currently active projection
         this._viewMatrix = mat4.create();
-        this._normalMatrix = mat4.create();
+        this._viewNormalMatrix = mat4.create();
 
         this._worldScale = 1.0;
 
@@ -34,6 +35,7 @@ export default class Camera {
         this._worldForward = vec3.fromValues(0, 0, -1); // Direction of "forward" in World-space
 
         this._gimbalLock = true; // When true, orbiting world-space "up", else orbiting camera's local "up"
+        this._constrainPitch = true; // When true, will prevent camera from being rotated upside-down
 
         this._dirty = true; // Lazy-builds view matrix
     }
@@ -53,8 +55,8 @@ export default class Camera {
             mat4.identity(tempMat4);
             mat4.scale(tempMat4, tempMat4, scale);
             mat4.multiply(this._viewMatrix, tempMat4, this._viewMatrix);
-            mat4.invert(this._normalMatrix, this._viewMatrix);
-            mat4.transpose(this._normalMatrix, this._normalMatrix);
+            mat4.invert(tempMat4b, this._viewMatrix);
+            mat4.transpose(this._viewNormalMatrix, tempMat4b);
             this._dirty = false;
         }
     }
@@ -75,11 +77,11 @@ export default class Camera {
         return this._viewMatrix;
     }
 
-    get normalMatrix() {
+    get viewNormalMatrix() {
         if (this._dirty) {
             this._build();
         }
-        return this._normalMatrix;
+        return this._viewNormalMatrix;
     }
 
     get projMatrix() {
@@ -142,6 +144,14 @@ export default class Camera {
         return this._gimbalLock;
     }
 
+    set constrainPitch(constrainPitch) {
+        this._constrainPitch = constrainPitch;
+    }
+
+    get constrainPitch() {
+        return this._constrainPitch;
+    }
+
     /**
      Indicates the up, right and forward axis of the World coordinate system.
 
@@ -195,8 +205,15 @@ export default class Camera {
         var axis = vec3.cross(tempVec3b, a, b); // Pivot vector is orthogonal to target->eye
         mat4.fromRotation(tempMat4, degrees * 0.0174532925, axis);
         vec3.transformMat4(targetToEye, targetToEye, tempMat4); // Rotate vector
+        var newUp = vec3.transformMat4(tempVec3d, this._up, tempMat4); // Rotate 'up' vector
+        if (this._constrainPitch) {
+            var angle = vec3.dot(newUp, this._worldUp) / 0.0174532925; // Don't allow 'up' to go up[side-down with respect to World 'up'
+            if (angle < 1) {
+                return;
+            }
+        }
+        this._up.set(newUp);
         vec3.add(this._eye, this._target, targetToEye); // Derive 'eye' from vector and 'target'
-        vec3.transformMat4(this._up, this._up, tempMat4); // Rotate 'up' vector
         this._setDirty();
     }
 
@@ -218,8 +235,15 @@ export default class Camera {
         var axis = vec3.cross(tempVec3b, a, b); // Pivot vector is orthogonal to target->eye
         mat4.fromRotation(tempMat4, degrees * 0.0174532925, axis);
         vec3.transformMat4(eyeToTarget, eyeToTarget, tempMat4); // Rotate vector
+        var newUp = vec3.transformMat4(tempVec3d, this._up, tempMat4); // Rotate 'up' vector
+        if (this._constrainPitch) {
+            var angle = vec3.dot(newUp, this._worldUp) / 0.0174532925; // Don't allow 'up' to go up[side-down with respect to World 'up'
+            if (angle < 1) {
+                return;
+            }
+        }
+        this._up.set(newUp);
         vec3.add(this._target, this._eye, eyeToTarget); // Derive 'target' from eye and vector
-        vec3.transformMat4(this._up, this._up, tempMat4); // Rotate 'up' vector
         this._setDirty();
     }
 
