@@ -73,7 +73,7 @@ export default class TilingRenderLayer extends RenderLayer {
 //		}
 		
 		// TODO would be nicer if this was passed as an integer argument, indicating the iteration count of this frame
-		var firstRunOfFrame = !transparency && !reuse
+		var firstRunOfFrame = !transparency && !reuse;
 
 		var renderingTiles = 0;
 		var renderingTriangles = 0;
@@ -91,8 +91,8 @@ export default class TilingRenderLayer extends RenderLayer {
 		this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, programInfo.uniformBlocks.LightData, this.viewer.lighting.lightingBuffer);
 		
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, this.viewer.camera.normalMatrix);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 		if (this.settings.quantizeVertices) {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 		}
@@ -171,6 +171,51 @@ export default class TilingRenderLayer extends RenderLayer {
 			});
 			this.lineBoxGeometry.renderStop();
 		}
+	}
+
+	pickBuffers(transparency, reuse) {
+		var firstRunOfFrame = !transparency && !reuse;
+		var programInfo = this.viewer.programManager.getProgram({
+			picking: true,
+			instancing: reuse,
+			useObjectColors: !!this.settings.useObjectColors,
+			quantizeVertices: !!this.settings.quantizeVertices
+		});
+		this.gl.useProgram(programInfo.program);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
+		if (this.settings.quantizeVertices) {
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
+		}
+		if (firstRunOfFrame) { // Saves us from initializing two times per frame
+			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
+		}
+		this.octree.traverse((node) => {
+			if (firstRunOfFrame) {
+				if (this.cull(node)) {
+					node.visibilityStatus = 0;
+					return;
+				} else {
+					node.visibilityStatus = 1;
+					renderingTiles++;
+					if (node.stats != null) {
+						renderingTriangles += node.stats.triangles;
+						drawCalls += node.stats.drawCallsPerFrame;
+					}
+					if (node.loadingStatus == 0) {
+						this.tileLoader.loadTile(node);
+					}
+				}
+			}
+			if (node.visibilityStatus == 1) {
+				if (node.gpuBufferManager == null) {
+					// Not initialized yet
+					return;
+				}
+				var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
+				this.pickFinalBuffers(buffers, programInfo);
+			}
+		});
 	}
 
 	addGeometry(loaderId, geometry, object) {

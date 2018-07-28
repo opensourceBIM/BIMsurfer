@@ -208,7 +208,7 @@ export default class Viewer {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
         for (var renderLayer of this.renderLayers) {
-            renderLayer.renderForPick();
+            renderLayer.pick();
         }
 
         var pickColor = this.renderBuffer.read(Math.round(canvasPos[0]), Math.round(canvasPos[1]));

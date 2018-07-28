@@ -148,8 +148,8 @@ export default class DefaultRenderLayer extends RenderLayer {
 			this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, programInfo.uniformBlocks.LightData, this.viewer.lighting.lightingBuffer);
 			
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, this.viewer.camera.normalMatrix);
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 			if (this.settings.quantizeVertices) {
 				if (!reuse) {
 					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
@@ -160,63 +160,25 @@ export default class DefaultRenderLayer extends RenderLayer {
 		}
 	}
 
-	renderForPick() {
-		this.renderBuffersForPick(this.liveBuffers,  false);
-		this.renderBuffersForPick(this.liveReusedBuffers, true);
-	}
-
-	renderBuffersForPick(buffers, reuse) {
+	pickBuffers(transparency, reuse) {
+		var buffers = this.gpuBufferManager.getBuffers(transparency, reuse);
 		if (buffers.length > 0) {
-
-			var pickProgramInfo = this.viewer.programManager.getProgram({
+			var programInfo = this.viewer.programManager.getProgram({
 				picking: true,
 				instancing: reuse,
 				useObjectColors: !!this.settings.useObjectColors,
 				quantizeVertices: !!this.settings.quantizeVertices
 			});
-
-			this.gl.useProgram(pickProgramInfo.program);
-
-			this.gl.uniformMatrix4fv(pickProgramInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-			this.gl.uniformMatrix4fv(pickProgramInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
-
+			this.gl.useProgram(programInfo.program);
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 			if (this.settings.quantizeVertices) {
 				if (!reuse) {
-					this.gl.uniformMatrix4fv(pickProgramInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
+					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 				}
 			}
-
-			// var lastUsedColorHash = null;
-
-			for (let buffer of buffers) {
-				// if (this.settings.useObjectColors) {
-				// 	if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
-				// 		this.gl.uniform4fv(pickProgramInfo.uniformLocations.objectColor, buffer.color);
-				// 		lastUsedColorHash = buffer.colorHash;
-				// 	}
-				// }
-				if (reuse) {
-					this.renderReusedBufferForPick(buffer, pickProgramInfo);
-				} else {
-					this.renderBufferForPick(buffer, pickProgramInfo);
-				}
-			}
+			this.pickFinalBuffers(buffers, programInfo);
 		}
-	}
-
-	renderReusedBufferForPick(buffer, pickProgramInfo) {
-		this.gl.bindVertexArray(buffer.vaoPick);
-		if (this.settings.quantizeVertices) {
-			this.gl.uniformMatrix4fv(pickProgramInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
-		}
-		this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
-		this.gl.bindVertexArray(null);
-	}
-
-	renderBufferForPick(buffer, pickProgramInfo) {
-		this.gl.bindVertexArray(buffer.vaoPick);
-		this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
-		this.gl.bindVertexArray(null);
 	}
 
 	setProgressListener(progressListener) {

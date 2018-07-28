@@ -245,6 +245,8 @@ export default class RenderLayer {
 		});
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, matrices, this.gl.STATIC_DRAW, 0, 0);
 
+		// Create VAO for drawing
+
 		var vao = this.gl.createVertexArray();
 		this.gl.bindVertexArray(vao);
 		
@@ -322,12 +324,47 @@ export default class RenderLayer {
 
 		this.gl.bindVertexArray(null);
 
+		// Create VAO for picking
+
+		var vaoPick = this.gl.createVertexArray();
+
+		this.gl.bindVertexArray(vaoPick);
+		{
+			const numComponents = 3;
+			const normalize = false;
+			const stride = 0;
+			const offset = 0;
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
+			if (this.settings.quantizeVertices) {
+				this.gl.vertexAttribIPointer(pickProgramInfo.attribLocations.vertexPosition, numComponents, this.gl.SHORT, normalize, stride, offset);
+			} else {
+				this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexPosition, numComponents, this.gl.FLOAT, normalize, stride, offset);
+			}
+			this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexPosition);
+		}
+
+		if (buffer.pickColors) {
+			const numComponents = 4;
+			const type = this.gl.FLOAT;
+			const normalize = false;
+			const stride = 0;
+			const offset = 0;
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
+			this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
+			this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexColor);
+		}
+
+		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+		this.gl.bindVertexArray(null);
+
 		var buffer = {
 				positionBuffer: positionBuffer,
 				normalBuffer: normalBuffer,
 				indexBuffer: indexBuffer,
 				nrIndices: geometry.indices.length,
 				vao: vao,
+				vaoPick: vaoPick,
 //				matrices: geometry.matrices,
 //				dirtyMatrices: false,
 				nrProcessedMatrices: geometry.matrices.length,
@@ -425,7 +462,35 @@ export default class RenderLayer {
 			this.gl.bindVertexArray(null);
 		}
 	}
-	
+
+	pickFinalBuffers(buffers, programInfo) {
+		if (buffers != null && buffers.length > 0) {
+			var lastUsedColorHash = null;
+			for (let buffer of buffers) {
+				if (this.settings.useObjectColors) { // TODO: Adapt to picking?
+					if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
+						this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
+						lastUsedColorHash = buffer.colorHash;
+					}
+				}
+				this.pickBuffer(buffer, programInfo);
+			}
+		}
+	}
+
+	pickBuffer(buffer, programInfo) {
+		if (buffer.reuse) {
+			this.gl.bindVertexArray(buffer.vaoPick);
+			this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
+			this.gl.bindVertexArray(null);
+		}
+	}
+
+	pick() {
+		this.pickBuffers(this.liveBuffers,  false);
+		this.pickBuffers(this.liveReusedBuffers, true);
+	}
+
 	flushBuffer(buffer, gpuBufferManager) {
 		if (buffer == null) {
 			return;
@@ -440,6 +505,13 @@ export default class RenderLayer {
 			quantizeNormals: this.settings.quantizeNormals,
 			quantizeVertices: this.settings.quantizeVertices,
 			quantizeColors: this.settings.quantizeColors
+		});
+
+		var pickProgramInfo = this.viewer.programManager.getProgram({
+			picking: true,
+			instancing: false,
+			useObjectColors: !!buffer.colors,
+			quantizeVertices: this.settings.quantizeVertices
 		});
 		
 		if (!this.settings.fakeLoading) {
@@ -457,9 +529,18 @@ export default class RenderLayer {
 				this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.colors, this.gl.STATIC_DRAW, 0, buffer.colorsIndex);
 			}
 
+			var pickColorBuffer;
+			if (buffer.pickColors) {
+				pickColorBuffer = this.gl.createBuffer();
+				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
+				this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.pickColors, this.gl.STATIC_DRAW, 0, buffer.colorsIndex); // TODO: is colorsIndex correct?
+			}
+
 			const indexBuffer = this.gl.createBuffer();
 			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 			this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, buffer.indices, this.gl.STATIC_READ, 0, buffer.indicesIndex);
+
+			// Normal drawing VAO
 
 			var vao = this.gl.createVertexArray();
 			this.gl.bindVertexArray(vao);
@@ -510,6 +591,40 @@ export default class RenderLayer {
 
 			this.gl.bindVertexArray(null);
 
+			// Picking VAO
+
+			var vaoPick = this.gl.createVertexArray();
+			this.gl.bindVertexArray(vaoPick);
+
+			{
+				const numComponents = 3;
+				const normalize = false;
+				const stride = 0;
+				const offset = 0;
+				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
+				if (this.settings.quantizeVertices) {
+					this.gl.vertexAttribIPointer(pickProgramInfo.attribLocations.vertexPosition, numComponents, this.gl.SHORT, normalize, stride, offset);
+				} else {
+					this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexPosition, numComponents, this.gl.FLOAT, normalize, stride, offset);
+				}
+				this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexPosition);
+			}
+
+			if (buffer.pickColors) {
+				const numComponents = 4;
+				const type = this.gl.FLOAT;
+				const normalize = false;
+				const stride = 0;
+				const offset = 0;
+				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
+				this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
+				this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexColor);
+			}
+
+			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+			this.gl.bindVertexArray(null);
+
 			var newBuffer = {
 				positionBuffer: positionBuffer,
 				normalBuffer: normalBuffer,
@@ -518,6 +633,7 @@ export default class RenderLayer {
 				nrNormals: buffer.normalsIndex,
 				nrPositions: buffer.positionsIndex,
 				vao: vao,
+				vaoPick: vaoPick,
 				hasTransparency: buffer.hasTransparency,
 				reuse: false
 			};
@@ -528,6 +644,10 @@ export default class RenderLayer {
 			} else {
 				newBuffer.colorBuffer = colorBuffer;
 				newBuffer.nrColors = buffer.colorsIndex;
+			}
+
+			if (buffer.pickColors) {
+				newBuffer.pickColorBuffer = pickColorBuffer;
 			}
 			
 			gpuBufferManager.pushBuffer(newBuffer);

@@ -54,17 +54,20 @@ export default class ProgramManager {
 			]
 		};
 
-		// These 4 loops basically generate all 16 combinations
-		for (var instancing of [true, false]) {
-			for (var useObjectColors of [true, false]) {
-				for (var quantizeNormals of [true, false]) {
-					for (var quantizeVertices of [true, false]) {
-						if (useObjectColors) {
-							this.generateShaders(defaultSetup, settings, instancing, useObjectColors, quantizeNormals, quantizeVertices, false);
-						} else {
-							for (var quantizeColors of [true, false]) {
-								this.generateShaders(defaultSetup, settings, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
-							}							
+		// These 4 loops basically generate all 16 drawing combinations
+		{
+			let picking = false;
+			for (var instancing of [true, false]) {
+				for (var useObjectColors of [true, false]) {
+					for (var quantizeNormals of [true, false]) {
+						for (var quantizeVertices of [true, false]) {
+							if (useObjectColors) {
+								this.generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, false);
+							} else {
+								for (var quantizeColors of [true, false]) {
+									this.generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
+								}
+							}
 						}
 					}
 				}
@@ -85,36 +88,31 @@ export default class ProgramManager {
 		}, this.generateSetup(settings), settings);
 
         //  Picking shaders - 8 combinations
-        for (var instancing of [true, false]) {
-			for (var useObjectColors of [true, false]) {
-				for (var quantizeVertices of [true, false]) {
-					var vertexShaderName = "shaders/vertex_pk";
-					if (instancing) {
-						vertexShaderName += "_ins";
+		{
+			let picking = true;
+			let quantizeColors = false;
+			let quantizeNormals = false;
+			for (var instancing of [true, false]) {
+				for (var useObjectColors of [true, false]) {
+					for (var quantizeVertices of [true, false]) {
+						if (useObjectColors) {
+							this.generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
+						} else {
+							this.generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
+						}
 					}
-					if (useObjectColors) {
-						vertexShaderName += "_oc";
-					}
-					if (quantizeVertices) {
-						vertexShaderName += "_iv";
-					}
-					vertexShaderName += ".glsl";
-					var settings = {
-						picking: true,
-						instancing: instancing,
-						useObjectColors: useObjectColors,
-						quantizeVertices: quantizeVertices
-					};
-					this.setupProgram(vertexShaderName, "shaders/fragment_pk.glsl", defaultSetup, this.generateSetup(settings), settings);
 				}
 			}
-        }
+		}
 
         return Promise.all(this.promises);
 	}
 	
-	generateShaders(defaultSetup, settings, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors) {
+	generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors) {
 		var vertexShaderName = "shaders/vertex";
+		if (picking) {
+			vertexShaderName += "_pk";
+		}
 		if (instancing) {
 			vertexShaderName += "_ins";
 		}
@@ -133,6 +131,7 @@ export default class ProgramManager {
 		vertexShaderName += ".glsl";
 
 		var settings = {
+			picking: picking,
 			instancing: instancing,
 			useObjectColors: useObjectColors,
 			quantizeNormals: quantizeNormals,
@@ -140,7 +139,8 @@ export default class ProgramManager {
 			quantizeColors: quantizeColors
 		};
 
-		this.setupProgram(vertexShaderName, "shaders/fragment.glsl", defaultSetup, this.generateSetup(settings), settings);
+		var fragShaderName = picking ? "shaders/fragment_pk.glsl" : "shaders/fragment.glsl";
+		this.setupProgram(vertexShaderName, fragShaderName, defaultSetup, this.generateSetup(settings), settings);
 	}
 
 	getProgram(settings) {

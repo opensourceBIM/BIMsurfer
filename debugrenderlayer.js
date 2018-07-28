@@ -25,7 +25,7 @@ export default class DebugRenderLayer extends RenderLayer{
 		}
 	}
 
-	renderForPick() {
+	pick() {
 	}
 	
 	addVirtualFrustum(virtualFrustum) {
