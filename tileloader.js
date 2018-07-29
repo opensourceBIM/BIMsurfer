@@ -3,12 +3,13 @@ import GpuBufferManager from './gpubuffermanager.js'
 import GeometryLoader from "./geometryloader.js"
 
 export default class TileLoader {
-	constructor(tilingRenderLayer, viewer, bimServerApi, densityThreshold, geometryDataToReuse, roids, fieldsToInclude) {
+	constructor(tilingRenderLayer, viewer, bimServerApi, densityThreshold, reuseLowerThreshold, geometryDataToReuse, roids, fieldsToInclude) {
 		this.tilingRenderLayer = tilingRenderLayer;
 		this.viewer = viewer;
 		this.settings = viewer.settings;
 		this.bimServerApi = bimServerApi;
 		this.densityThreshold = densityThreshold;
+		this.reuseLowerThreshold = reuseLowerThreshold;
 		this.geometryDataToReuse = geometryDataToReuse;
 		this.roids = roids;
 		this.fieldsToInclude = fieldsToInclude;
@@ -40,6 +41,7 @@ export default class TileLoader {
 					var nrObjects = list[i + 1];
 					if (nrObjects == 0) {
 						// Should not happen
+						debugger;
 						this.viewer.stats.inc("Tiling", "Empty");
 						continue;
 					}
@@ -60,6 +62,9 @@ export default class TileLoader {
 	}
 	
 	loadTile(node, executor) {
+		if (!this.tilingRenderLayer.enabled) {
+			return;
+		}
 		if (node.loadingStatus != 0) {
 			return;
 		}
@@ -69,7 +74,7 @@ export default class TileLoader {
 		}
 		if (node.nrObjects == 0) {
 			node.loadingStatus = 2;
-			// This happens for root nodes that don't contain any objects, but have children that do have objects
+			// This happens for parent nodes that don't contain any objects, but have children that do have objects
 			return;
 		}
 		
@@ -85,6 +90,7 @@ export default class TileLoader {
 			tiles: {
 				ids: [node.id],
 				densityUpperThreshold: this.densityThreshold,
+				reuseLowerThreshold: this.reuseLowerThreshold,
 				geometryDataToReuse: Array.from(this.geometryDataToReuse),
 				maxDepth: this.settings.maxOctreeDepth
 			},
@@ -103,9 +109,7 @@ export default class TileLoader {
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 		};
 		
-		// TODO this explodes when either the amount of roids gets high or the octree gets bigger, or both
-		// TODO maybe it will be faster to just use one loader instead of potentially 180 loaders, this will however lead to more memory used because loaders can't be closed when they are done
-		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, this.tilingRenderLayer, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query);
+		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, this.tilingRenderLayer, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, this.tilingRenderLayer.reusedGeometryCache);
 		this.tilingRenderLayer.registerLoader(geometryLoader.loaderId);
 		this.tilingRenderLayer.loaderToNode[geometryLoader.loaderId] = node;
 		geometryLoader.onStart = () => {

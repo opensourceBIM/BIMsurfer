@@ -35,6 +35,13 @@ export default class VertexQuantization {
 		return this.vertexQuantizationMatrix;
 	}
 
+	getUntransformedVertexQuantizationMatrix() {
+		if (this.untransformedVertexQuantizationMatrix == null) {
+			throw "Not found: untransformedVertexQuantizationMatrix";
+		}
+		return this.vertexQuantizationMatrix;
+	}
+
 	getTransformedInverseVertexQuantizationMatrix() {
 		if (this.inverseVertexQuantizationMatrix == null) {
 			throw "Not found: inverseVertexQuantizationMatrix";
@@ -120,23 +127,26 @@ export default class VertexQuantization {
 		
 		// Again
 		
-//		var matrix = mat4.create();
+		var matrix = mat4.create();
 
-		// Scale the model to make sure all values fit within a 2-byte signed short
-//		mat4.scale(matrix, matrix, vec3.fromValues(
-//				scale / (totalBounds.max.x - totalBounds.min.x),
-//				scale / (totalBounds.max.y - totalBounds.min.y),
-//				scale / (totalBounds.max.z - totalBounds.min.z)
-//		));
-//
-//		// Move the model with its center to the origin
-//		mat4.translate(matrix, matrix, vec3.fromValues(
-//				-(totalBounds.max.x + totalBounds.min.x) / 2,
-//				-(totalBounds.max.y + totalBounds.min.y) / 2,
-//				-(totalBounds.max.z + totalBounds.min.z) / 2
-//		));
-//
-//		this.transformedVertexQuantizationMatrix = matrix;
+//		 Scale the model to make sure all values fit within a 2-byte signed short
+		mat4.scale(matrix, matrix, vec3.fromValues(
+				scale / (totalBoundsUntransformed.max.x - totalBoundsUntransformed.min.x),
+				scale / (totalBoundsUntransformed.max.y - totalBoundsUntransformed.min.y),
+				scale / (totalBoundsUntransformed.max.z - totalBoundsUntransformed.min.z)
+		));
+
+		// Move the model with its center to the origin
+		mat4.translate(matrix, matrix, vec3.fromValues(
+				-(totalBoundsUntransformed.max.x + totalBoundsUntransformed.min.x) / 2,
+				-(totalBoundsUntransformed.max.y + totalBoundsUntransformed.min.y) / 2,
+				-(totalBoundsUntransformed.max.z + totalBoundsUntransformed.min.z) / 2
+		));
+
+		this.untransformedVertexQuantizationMatrix = this.toArray(matrix);
+		
+		console.log(this.untransformedVertexQuantizationMatrix);
+		console.log(this.vertexQuantizationMatrix);
 //		this.inverseVertexQuantizationMatrix = matrix;
 ////		settings.vertexQuantizationMatrix = matrix;
 //

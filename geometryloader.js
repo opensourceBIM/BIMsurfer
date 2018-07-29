@@ -7,7 +7,7 @@ import DefaultColors from "./defaultcolors.js"
 
 export default class GeometryLoader {
 
-	constructor(loaderId, bimServerApi, renderLayer, roids, loaderSettings, vertexQuantizationMatrices, stats, settings, query) {
+	constructor(loaderId, bimServerApi, renderLayer, roids, loaderSettings, vertexQuantizationMatrices, stats, settings, query, geometryCache) {
 		this.renderLayer = renderLayer;
 		this.settings = settings;
 		
@@ -19,6 +19,7 @@ export default class GeometryLoader {
 		this.roids = roids;
 		this.vertexQuantizationMatrices = vertexQuantizationMatrices;
 		this.stats = stats;
+		this.geometryCache = geometryCache;
 
 		this.state = {};
 		this.objectAddedListeners = [];
@@ -98,6 +99,12 @@ export default class GeometryLoader {
 	}
 
 	readEnd(data) {
+		if (this.dataToInfo.size > 0) {
+			// We need to tell the renderlayer that not all data has been loaded
+			this.renderLayer.storeMissingGeometry(this.dataToInfo);
+		}
+//		console.log(this.dataToInfo);
+
 //		this.viewer.loadingDone();
 		this.bimServerApi.callWithWebsocket("ServiceInterface", "cleanupLongAction", {topicId: this.topicId});
 		this.bimServerApi.clearBinaryDataListener(this.topicId);
@@ -148,18 +155,20 @@ export default class GeometryLoader {
 			stream.align8();
 			var roid = stream.readLong();
 			var hasTransparency = stream.readLong() == 1;
-			geometryId = stream.readLong();
-			this.readGeometry(stream, roid, geometryId, geometryId, hasTransparency, reused, type, true);
-			if (this.dataToInfo.has(geometryId)) {
-				this.dataToInfo.get(geometryId).forEach((oid) => {
+			var geometryDataId = stream.readLong();
+			this.readGeometry(stream, roid, geometryDataId, geometryDataId, hasTransparency, reused, type, true);
+			if (this.dataToInfo.has(geometryDataId)) {
+				// There are objects that have already been loaded, that are waiting for this GeometryData
+				this.dataToInfo.get(geometryDataId).forEach((oid) => {
 					var ob = this.renderLayer.getObject(this.loaderId, oid);
 					if (ob == null) {
 						console.error("Object with oid not found", oid)
 					} else {
-						ob.add(geometryId, oid);
+						ob.add(geometryDataId, oid);
 					}
 				});
-				this.dataToInfo.delete(geometryId);
+				// Now we can clean it up, nobody is waiting anymore
+				this.dataToInfo.delete(geometryDataId);
 			}
 		} else if (geometryType == 5) {
 			// Object
@@ -174,13 +183,17 @@ export default class GeometryLoader {
 			var geometryDataOid = stream.readLong();
 			var geometryDataOids = this.geometryIds.get(geometryDataOid);
 			if (geometryDataOids == null) {
-				geometryDataOids = [];
-				var list = this.dataToInfo.get(geometryDataOid);
-				if (list == null) {
-					list = [oid];
-					this.dataToInfo.set(geometryDataOid, list);
+				if (this.geometryCache != null && this.geometryCache.has(geometryDataOid)) {
+					geometryDataOids = [geometryDataOid];
 				} else {
-					list.push(oid);
+					geometryDataOids = [];
+					var list = this.dataToInfo.get(geometryDataOid);
+					if (list == null) {
+						list = [oid];
+						this.dataToInfo.set(geometryDataOid, list);
+					} else {
+						list.push(oid);
+					}
 				}
 			}
 			this.createObject(roid, oid, oid, geometryDataOids, matrix, hasTransparency, type);
