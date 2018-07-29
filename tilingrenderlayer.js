@@ -193,17 +193,12 @@ export default class TilingRenderLayer extends RenderLayer {
 		this.octree.traverse((node) => {
 			if (firstRunOfFrame) {
 				if (this.cull(node)) {
-					node.visibilityStatus = 0;
+					node.visibilityStatus = 0; // TODO: Should this be updated on pick?
 					return;
 				} else {
 					node.visibilityStatus = 1;
-					renderingTiles++;
-					if (node.stats != null) {
-						renderingTriangles += node.stats.triangles;
-						drawCalls += node.stats.drawCallsPerFrame;
-					}
 					if (node.loadingStatus == 0) {
-						this.tileLoader.loadTile(node);
+						this.tileLoader.loadTile(node); // TODO: On-demand loading make sense for picking?
 					}
 				}
 			}
