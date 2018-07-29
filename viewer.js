@@ -188,7 +188,7 @@ export default class Viewer {
 //		);
     }
 
-    pick(params) {
+    pick(params) { // Returns info on the object at the given canvas coordinates
 
         var canvasPos = params.canvasPos;
         if (!canvasPos) { 
@@ -207,7 +207,7 @@ export default class Viewer {
 
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
-        for (var renderLayer of this.renderLayers) {
+        for (var renderLayer of this.renderLayers) {// Render each layer for picking
             renderLayer.pick();
         }
 
@@ -215,9 +215,10 @@ export default class Viewer {
 
         console.log(pickColor);
 
-        this.renderBuffer.unbind();
+        var pickId = pickColor[0] + (pickColor[1] * 256) + (pickColor[2] * 256 * 256) + (pickColor[3] * 256 * 256 * 256);
+        pickId--;
 
-        var viewObject = this.getViewObject(pickColor);
+        var viewObject = this.viewObjectsByPickId[pickId];
 
         if (viewObject) {
             return viewObject;
@@ -226,14 +227,7 @@ export default class Viewer {
         return null;
     }
 
-    getViewObject(pickColor) {
-        var pickId = pickColor[0] + (pickColor[1] * 256) + (pickColor[2] * 256 * 256) + (pickColor[3] * 256 * 256 * 256);
-        pickId--;
-        var viewObject = this.viewObjectsByPickId[pickId];
-        return viewObject;
-    }
-
-    getPickColor(objectViewId) {
+    getPickColor(objectViewId) { // Converts an integer to a pick color
         var a = objectViewId >> 24 & 0xFF;
         var b = objectViewId >> 16 & 0xFF;
         var g = objectViewId >> 8 & 0xFF;
