@@ -491,6 +491,8 @@ export default class RenderLayer {
 
 	pickBuffer(buffer, programInfo) {
 		if (buffer.reuse) {
+			// TODO ?
+		} else {
 			this.gl.bindVertexArray(buffer.vaoPick);
 			this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
 			this.gl.bindVertexArray(null);
@@ -498,8 +500,9 @@ export default class RenderLayer {
 	}
 
 	pick() {
-		this.pickBuffers(this.liveBuffers,  false);
-		this.pickBuffers(this.liveReusedBuffers, true);
+		var transparency = false;
+		this.pickBuffers(transparency,  false);
+		this.pickBuffers(transparency, true);
 	}
 
 	flushBuffer(buffer, gpuBufferManager) {
