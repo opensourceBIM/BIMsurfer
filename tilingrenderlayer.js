@@ -94,6 +94,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		var drawCalls = 0;
 
 		var programInfo = this.viewer.programManager.getProgram({
+			picking: false,
 			instancing: reuse,
 			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: this.settings.quantizeNormals,
@@ -193,7 +194,9 @@ export default class TilingRenderLayer extends RenderLayer {
 			picking: true,
 			instancing: reuse,
 			useObjectColors: !!this.settings.useObjectColors,
-			quantizeVertices: !!this.settings.quantizeVertices
+			quantizeNormals: false,
+			quantizeVertices: !!this.settings.quantizeVertices,
+			quantizeColors: false
 		});
 		this.gl.useProgram(programInfo.program);
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
