@@ -6,7 +6,6 @@ export default class RenderBuffer {
         this.canvas = canvas;
         this.buffer = null;
         this.bound = false;
-        this.size = [0,0];
     }
 
     bind() {
@@ -20,16 +19,9 @@ export default class RenderBuffer {
     }
 
     _touch() { // Lazy-creates buffer if needed, resizes to canvas if needed
-        var width;
-        var height;
         var gl = this.gl;
-        if (this.size) {
-            width = this.size[0];
-            height = this.size[1];
-        } else {
-            width = this.canvas.clientWidth;
-            height = this.canvas.clientHeight;
-        }
+        var width = this.canvas.clientWidth;
+        var height = this.canvas.clientHeight;
         if (this.buffer) {
             if (this.buffer.width === width && this.buffer.height === height) {
                 return;
