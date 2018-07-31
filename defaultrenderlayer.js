@@ -18,7 +18,7 @@ import GpuBufferManager from './gpubuffermanager.js'
 export default class DefaultRenderLayer extends RenderLayer {
 	constructor(viewer, geometryDataToReuse) {
 		super(viewer, geometryDataToReuse);
-
+		
 		if (this.settings.useObjectColors) {
 			this.bufferManager = new BufferManagerPerColor(this.settings, this, this.viewer.bufferSetPool);
 		} else {
@@ -64,7 +64,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 
 		return object;
 	}
-
+	
 	addGeometry(loaderId, geometry, object) {
 		// TODO some of this is duplicate code, also in tilingrenderlayer.js
 
@@ -86,7 +86,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 
 		super.addGeometry(loaderId, geometry, object, buffer, sizes);
 	}
-
+	
 	done(loaderId) {
 		var loader = this.getLoader(loaderId);
 
@@ -102,30 +102,30 @@ export default class DefaultRenderLayer extends RenderLayer {
 
 		this.removeLoader(loaderId);
 	}
-
+	
 	completelyDone() {
 		this.flushAllBuffers();
-
+		
 		if (this.settings.useObjectColors) {
 			// When using object colors, it makes sense to sort the buffers by color, so we can potentially skip a few uniform binds
 			// It might be beneficiary to do this sorting on-the-lfy and not just when everything is loaded
 			this.gpuBufferManager.sortAllBuffers();
 		} else {
 			var savedBuffers = this.gpuBufferManager.combineBuffers();
-
+			
 			this.viewer.stats.dec("Drawing", "Draw calls per frame (L1)", savedBuffers);
 			this.viewer.stats.dec("Buffers", "Buffer groups", savedBuffers);
 		}
-
+		
 		this.bufferManager.clear();
 	}
-
+	
 	flushAllBuffers() {
 		for (var buffer of this.bufferManager.getAllBuffers()) {
 			this.flushBuffer(buffer);
 		}
 	}
-
+	
 	flushBuffer(buffer) {
 		super.flushBuffer(buffer, this.gpuBufferManager);
 
