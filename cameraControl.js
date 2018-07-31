@@ -96,8 +96,9 @@ export default class CameraControl {
                     if (closeEnoughCanvas(mouseDownPos, mousePos)) {
                         var viewObject = self.viewer.pick({canvasPos: mousePos});
                         if (viewObject) {
-                            //self.viewer.camera.target =
-                            alert("picked");
+                            var aabb = viewObject.aabb;
+                            var center = [(aabb[0] + aabb[3]) / 2, (aabb[1] + aabb[4]) / 2, (aabb[0] + aabb[5]) / 2];
+                            self.viewer.camera.target = center;
                         }
                     }
                     break;

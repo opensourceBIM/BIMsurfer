@@ -223,7 +223,7 @@ export default class Viewer {
         console.log(pickColor);
 
         var pickId = pickColor[0] + (pickColor[1] * 256) + (pickColor[2] * 256 * 256) + (pickColor[3] * 256 * 256 * 256);
-        pickId--;
+       // pickId--;
 
         var viewObject = this.viewObjectsByPickId[pickId];
 

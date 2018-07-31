@@ -262,7 +262,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		super.addGeometry(loaderId, geometry, object, buffer, sizes);
 	}
 	
-	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type) {
+	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb) {
 		var loader = this.getLoader(loaderId);
 		var node = this.loaderToNode[loaderId];
 		var object = {
@@ -283,6 +283,7 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		var viewObject = {
 			type: type,
+			aabb: aabb,
 			objectId: objectId,
 			oid: oid,
 			pickId: this.viewer.viewObjectsByPickId.length
