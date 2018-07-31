@@ -281,6 +281,15 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		loader.objects.set(oid, object);
 
+		var viewObject = {
+			type: type,
+			objectId: objectId,
+			oid: oid,
+			pickId: this.viewer.viewObjectsByPickId.length
+		};
+		this.viewer.viewObjectsByPickId.push(viewObject);
+		this.viewer.viewObjects[objectId] = viewObject;
+
 		geometryIds.forEach((id) => {
 			this.addGeometryToObject(id, object.id, loader, node.gpuBufferManager);
 		});
