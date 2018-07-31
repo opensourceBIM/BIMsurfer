@@ -30,6 +30,11 @@ export default class Viewer {
 
         this.viewObjectsByPickId = [];
         this.viewObjects = {};
+
+        var self = this;
+        window.testPick = function() {
+            self.pick({ canvasPos: [100,100]});
+        }
     }
 
     init() {
@@ -207,11 +212,13 @@ export default class Viewer {
 
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
-        for (var renderLayer of this.renderLayers) {// Render each layer for picking
+        for (var renderLayer of this.renderLayers) {
             renderLayer.pick();
         }
 
         var pickColor = this.renderBuffer.read(Math.round(canvasPos[0]), Math.round(canvasPos[1]));
+
+        this.renderBuffer.unbind();
 
         console.log(pickColor);
 
