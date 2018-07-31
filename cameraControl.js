@@ -8,11 +8,13 @@ export default class CameraControl {
 
         this.mousePanSensitivity = 0.5;
         this.mouseOrbitSensitivity = 0.5;
+        this.canvasPickTolerance = 4;
 
         var canvas = viewer.canvas;
         var camera = viewer.camera;
 
         var mousePos = vec2.create();
+        var mouseDownPos = vec2.create();
         var over = false; // True when mouse over canvas
         var down = false; // True when any mouse button is down
         var lastX; // Last canvas pos while dragging
@@ -63,25 +65,19 @@ export default class CameraControl {
         })();
 
         canvas.addEventListener("mousedown", function (e) {
+            getCanvasPosFromEvent(e, mousePos);
             switch (e.which) {
                 case 1:
                     mouseDownLeft = true;
-                    getCanvasPosFromEvent(e, mousePos);
-
-                    // var viewObject = self.viewer.pick({ canvasPos: mousePos});
-                    // if (viewObject) {
-                    //     console.log("PICKED: " + viewObject.pickId);
-                    // }
-
                     lastX = mousePos[0];
                     lastY = mousePos[1];
+                    mouseDownPos.set(mousePos);
                     break;
                 case 2:
                     mouseDownMiddle = true;
                     break;
                 case 3:
                     mouseDownRight = true;
-                    getCanvasPosFromEvent(e, mousePos);
                     lastX = mousePos[0];
                     lastY = mousePos[1];
                     break;
@@ -93,9 +89,17 @@ export default class CameraControl {
         });
 
         canvas.addEventListener("mouseup", function (e) {
+            getCanvasPosFromEvent(e, mousePos);
             switch (e.which) {
                 case 1:
                     mouseDownLeft = false;
+                    if (closeEnoughCanvas(mouseDownPos, mousePos)) {
+                        var viewObject = self.viewer.pick({canvasPos: mousePos});
+                        if (viewObject) {
+                            //self.viewer.camera.target =
+                            alert("picked");
+                        }
+                    }
                     break;
                 case 2:
                     mouseDownMiddle = false;
@@ -171,5 +175,15 @@ export default class CameraControl {
             camera.zoom(zoom);
             e.preventDefault();
         });
+
+        // Returns true if the two Canvas-space points are
+        // close enough to be considered the same point
+
+        function closeEnoughCanvas(p, q) {
+            return p[0] >= (q[0] - self.canvasPickTolerance) &&
+                p[0] <= (q[0] + self.canvasPickTolerance) &&
+                p[1] >= (q[1] - self.canvasPickTolerance) &&
+                p[1] <= (q[1] + self.canvasPickTolerance);
+        }
     }
 }
