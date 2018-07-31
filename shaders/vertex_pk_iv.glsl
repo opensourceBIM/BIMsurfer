@@ -4,7 +4,7 @@ precision mediump int;
 precision mediump float;
 
 in ivec3 vertexPosition;
-in vec4 vertexColor;
+in vec4 vertexPickColor;
 
 uniform mat4 vertexQuantizationMatrix;
 uniform mat4 projectionMatrix;
@@ -18,5 +18,5 @@ void main(void) {
   
   gl_Position = projectionMatrix * viewMatrix * floatVertex;
 
-  color = vertexColor;
+  color = vertexPickColor;
 }
