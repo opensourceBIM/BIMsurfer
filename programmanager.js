@@ -25,10 +25,11 @@ export default class ProgramManager {
 			settings.attributes.push("instances");
 		}
 		if (inputSettings.useObjectColors) {
-			settings.uniforms.push("vertexColor");
+			settings.uniforms.push("objectColor");
 		} else {
 			settings.attributes.push("vertexColor");
 		}
+		settings.attributes.push("vertexPickColor");
 		if (inputSettings.quantizeNormals) {
 			// Has no effect on locations
 		}
@@ -46,31 +47,34 @@ export default class ProgramManager {
 				],
 			uniforms: [
 				"projectionMatrix",
-				"normalMatrix",
-				"modelViewMatrix"
+				"viewNormalMatrix",
+				"viewMatrix"
 			],
 			uniformBlocks: [
-				"LightData"
+			//	"LightData"
 			]
 		};
 
-		// These 4 loops basically generate all 16 combinations
-		for (var instancing of [true, false]) {
-			for (var useObjectColors of [true, false]) {
-				for (var quantizeNormals of [true, false]) {
-					for (var quantizeVertices of [true, false]) {
-						if (useObjectColors) {
-							this.generateShaders(defaultSetup, settings, instancing, useObjectColors, quantizeNormals, quantizeVertices, false);
-						} else {
-							for (var quantizeColors of [true, false]) {
-								this.generateShaders(defaultSetup, settings, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
-							}							
+		// These 4 loops basically generate all 16 drawing combinations
+		{
+			let picking = false;
+			for (var instancing of [true, false]) {
+				for (var useObjectColors of [true, false]) {
+					for (var quantizeNormals of [true, false]) {
+						for (var quantizeVertices of [true, false]) {
+							if (useObjectColors) {
+								this.generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, false);
+							} else {
+								for (var quantizeColors of [true, false]) {
+									this.generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
+								}
+							}
 						}
 					}
 				}
 			}
 		}
-		
+
 		var settings = {
 			specialType: "line"
 		};
@@ -80,15 +84,36 @@ export default class ProgramManager {
 				"matrix",
 				"inputColor",
 				"projectionMatrix",
-				"modelViewMatrix"
+				"viewMatrix"
 			]
 		}, this.generateSetup(settings), settings);
 
-		return Promise.all(this.promises);
+        //  Picking shaders - 8 combinations
+		{
+			let picking = true;
+			let quantizeColors = false;
+			let quantizeNormals = false;
+			for (var instancing of [true, false]) {
+				for (var useObjectColors of [true, false]) {
+					for (var quantizeVertices of [true, false]) {
+						if (useObjectColors) {
+							this.generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
+						} else {
+							this.generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
+						}
+					}
+				}
+			}
+		}
+
+        return Promise.all(this.promises);
 	}
 	
-	generateShaders(defaultSetup, settings, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors) {
+	generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors) {
 		var vertexShaderName = "shaders/vertex";
+		if (picking) {
+			vertexShaderName += "_pk";
+		}
 		if (instancing) {
 			vertexShaderName += "_ins";
 		}
@@ -107,6 +132,7 @@ export default class ProgramManager {
 		vertexShaderName += ".glsl";
 
 		var settings = {
+			picking: picking,
 			instancing: instancing,
 			useObjectColors: useObjectColors,
 			quantizeNormals: quantizeNormals,
@@ -114,10 +140,12 @@ export default class ProgramManager {
 			quantizeColors: quantizeColors
 		};
 
-		this.setupProgram(vertexShaderName, "shaders/fragment.glsl", defaultSetup, this.generateSetup(settings), settings);
+		var fragShaderName = picking ? "shaders/fragment_pk.glsl" : "shaders/fragment.glsl";
+		this.setupProgram(vertexShaderName, fragShaderName, defaultSetup, this.generateSetup(settings), settings);
 	}
 
 	getProgram(settings) {
+		//console.log("getProgram('" + JSON.stringify(settings) + "', program");
 		var program = this.programs[JSON.stringify(settings)];
 		if (program == null) {
 			console.error("Program not found", settings);
@@ -126,6 +154,7 @@ export default class ProgramManager {
 	}
 
 	setProgram(settings, program) {
+		//console.log("setProgram('" + JSON.stringify(settings) + "', program");
 		this.programs[JSON.stringify(settings)] = program;
 	}
 
@@ -142,23 +171,31 @@ export default class ProgramManager {
 						uniformBlocks: {}
 					};
 
+					//console.log("----------------------------------------");
+					//console.log("setupProgram (" + vertexShader + ", " + fragmentShader + ")");
+
 					for (var setup of [defaultSetup, specificSetup]) {
 						if (setup.attributes != null) {
+							//console.log("attributes:");
 							for (var attribute of setup.attributes) {
 								programInfo.attribLocations[attribute] = this.gl.getAttribLocation(shaderProgram, attribute);
+								//console.log("attribute  '" + attribute + "' = " + programInfo.attribLocations[attribute]);
 							}
 						}
 						if (setup.uniforms != null) {
+							//console.log("uniforms:");
 							for (var uniform of setup.uniforms) {
 								programInfo.uniformLocations[uniform] = this.gl.getUniformLocation(shaderProgram, uniform);
+								//console.log("uniform '" + uniform + "' = " + programInfo.uniformLocations[uniform]);
 							}
 						}
 						if (setup.uniformBlocks != null) {
+							//console.log("uniformBlocks:");
 							if (setup.uniformBlocks != null) {
 								for (var uniformBlock of setup.uniformBlocks) {
 									programInfo.uniformBlocks[uniformBlock] = this.gl.getUniformBlockIndex(shaderProgram, uniformBlock);
-
 									this.gl.uniformBlockBinding(shaderProgram, programInfo.uniformBlocks[uniformBlock], 0);
+									//console.log("uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock]);
 								}
 							}
 						}

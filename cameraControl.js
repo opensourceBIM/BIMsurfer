@@ -67,6 +67,12 @@ export default class CameraControl {
                 case 1:
                     mouseDownLeft = true;
                     getCanvasPosFromEvent(e, mousePos);
+
+                    // var viewObject = self.viewer.pick({ canvasPos: mousePos});
+                    // if (viewObject) {
+                    //     console.log("PICKED: " + viewObject.pickId);
+                    // }
+
                     lastX = mousePos[0];
                     lastY = mousePos[1];
                     break;

@@ -3,13 +3,13 @@ import Lighting from './lighting.js'
 import BufferSetPool from './buffersetpool.js'
 import Camera from './camera.js'
 import CameraControl from './cameraControl.js'
+import RenderBuffer from './renderBuffer.js'
 
 /*
  * Main viewer class, too many responsibilities:
  * - Keep track of width/height of viewport
  * - Keeps track of dirty scene
  * - (To camera/scene) Contains light source(s)
- * - (To camera) Keeps track of matrices for model/view/projection
  * - Contains the basic render loop (and delegates to the render layers)
  * - (To camera) Does the rotation/zoom
  */
@@ -28,8 +28,13 @@ export default class Viewer {
         this.renderLayers = [];
         this.animationListeners = [];
 
-        // Temporary hack until real navigation is implemented
-        this.navigationActive = true;
+        this.viewObjectsByPickId = [];
+        this.viewObjects = {};
+
+        var self = this;
+        window.testPick = function() {
+            self.pick({ canvasPos: [100,100]});
+        }
     }
 
     init() {
@@ -81,6 +86,8 @@ export default class Viewer {
                     this.render(now);
                 });
             });
+
+            this.renderBuffer = new RenderBuffer(this.canvas, this.gl);
         });
         return promise;
     }
@@ -148,7 +155,7 @@ export default class Viewer {
             var scale = 1 / diagonal;
 
             if (!this.cameraSet) { // HACK to look at model origin as soon as available
-                this.camera.target = [0,0,0];
+                this.camera.target = [0, 0, 0];
                 this.camera.eye = [0, 1, 0];
                 this.camera.up = [0, 0, 1];
                 this.camera.worldAxis = [ // Set the +Z axis as World "up"
@@ -184,6 +191,60 @@ export default class Viewer {
 //		    0, 0, this.width, this.height,
 //		    this.gl.COLOR_BUFFER_BIT, this.gl.NEAREST
 //		);
+    }
+
+    pick(params) { // Returns info on the object at the given canvas coordinates
+
+        var canvasPos = params.canvasPos;
+        if (!canvasPos) { 
+            throw "param expected: canvasPos";
+        }
+
+        this.renderBuffer.bind();
+
+        this.gl.depthMask(true);
+        this.gl.clearColor(1, 1, 1, 1.0);
+        this.gl.clearDepth(1);
+        this.gl.enable(this.gl.DEPTH_TEST);
+        this.gl.depthFunc(this.gl.LEQUAL);
+        this.gl.disable(this.gl.BLEND);
+        this.gl.depthMask(true);
+
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+
+        for (var renderLayer of this.renderLayers) {
+            renderLayer.pick();
+        }
+
+        var pickColor = this.renderBuffer.read(Math.round(canvasPos[0]), Math.round(canvasPos[1]));
+
+        this.renderBuffer.unbind();
+
+        console.log(pickColor);
+
+        var pickId = pickColor[0] + (pickColor[1] * 256) + (pickColor[2] * 256 * 256) + (pickColor[3] * 256 * 256 * 256);
+        pickId--;
+
+        var viewObject = this.viewObjectsByPickId[pickId];
+
+        if (viewObject) {
+            return viewObject;
+        }
+
+        return null;
+    }
+
+    getPickColor(objectViewId) { // Converts an integer to a pick color
+        var a = objectViewId >> 24 & 0xFF;
+        var b = objectViewId >> 16 & 0xFF;
+        var g = objectViewId >> 8 & 0xFF;
+        var r = objectViewId & 0xFF;
+        var pickColor = vec4.create();
+        pickColor[3] = a / 255;
+        pickColor[2] = b / 255;
+        pickColor[1] = g / 255;
+        pickColor[0] = r / 255;
+        return pickColor;
     }
 
     setModelBounds(modelBounds) {

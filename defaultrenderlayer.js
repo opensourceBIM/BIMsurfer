@@ -28,6 +28,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		this.gpuBufferManager = new GpuBufferManager(this.viewer);
 	}
 
+	// TODO: Move into base class
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type) {
 		var object = {
 				id: objectId,
@@ -45,6 +46,15 @@ export default class DefaultRenderLayer extends RenderLayer {
 
 		var loader = this.getLoader(loaderId);
 		loader.objects.set(oid , object);
+
+		var viewObject = {
+            type: type,
+			objectId: objectId,
+			oid: oid,
+			pickId: this.viewer.viewObjectsByPickId.length
+		};
+		this.viewer.viewObjectsByPickId.push(viewObject);
+		this.viewer.viewObjects[objectId] = viewObject;
 
 		geometryIds.forEach((id) => {
 			this.addGeometryToObject(id, object.id, loader, this.gpuBufferManager);
@@ -129,6 +139,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		var buffers = this.gpuBufferManager.getBuffers(transparency, reuse);
 		if (buffers.length > 0) {
 			var programInfo = this.viewer.programManager.getProgram({
+				picking: false,
 				instancing: reuse,
 				useObjectColors: this.settings.useObjectColors,
 				quantizeNormals: this.settings.quantizeNormals,
@@ -140,8 +151,8 @@ export default class DefaultRenderLayer extends RenderLayer {
 			this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, programInfo.uniformBlocks.LightData, this.viewer.lighting.lightingBuffer);
 			
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, this.viewer.camera.viewNormalMatrix);
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 			if (this.settings.quantizeVertices) {
 				if (!reuse) {
 					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
@@ -151,7 +162,30 @@ export default class DefaultRenderLayer extends RenderLayer {
 			this.renderFinalBuffers(buffers, programInfo);
 		}
 	}
-	
+
+	pickBuffers(transparency, reuse) {
+		var buffers = this.gpuBufferManager.getBuffers(transparency, reuse);
+		if (buffers.length > 0) {
+			var programInfo = this.viewer.programManager.getProgram({
+				picking: true,
+				instancing: reuse,
+				useObjectColors: !!this.settings.useObjectColors,
+				quantizeNormals: false,
+				quantizeVertices: !!this.settings.quantizeVertices,
+				quantizeColors: false
+			});
+			this.gl.useProgram(programInfo.program);
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
+			if (this.settings.quantizeVertices) {
+				if (!reuse) {
+					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
+				}
+			}
+			this.pickFinalBuffers(buffers, programInfo);
+		}
+	}
+
 	setProgressListener(progressListener) {
 		this.progressListener = progressListener;
 	}

@@ -14,7 +14,7 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		this.octree = new Octree(bounds, viewer.settings.maxOctreeDepth);
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
-		
+
 		this.loaderToNode = {};
 
 		this.drawTileBorders = true;
@@ -63,11 +63,11 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		// 2. Is the complete Tile outside of the view frustum?
 		var isect = this._frustum.intersectsWorldAABB(node.bounds);
-		
+
 		if (isect === Frustum.OUTSIDE_FRUSTUM) {
 			return true;
 		}
-		
+
 		// 3. In the tile too far away?
 		var cameraEye = this.viewer.camera.eye;
 		var tileCenter = node.getCenter();
@@ -75,11 +75,11 @@ export default class TilingRenderLayer extends RenderLayer {
 		if (vec3.distance(cameraEye, tileCenter) / sizeFactor > 2000000) { // TODO use something related to the total bounding box size
 			return true;
 		}
-		
+
 		// Default response
 		return false;
 	}
-	
+
 	renderBuffers(transparency, reuse) {
 		// TODO when navigation is active (rotating, panning etc...), this would be the place to decide to for example not-render anything in this layer, or maybe apply more aggressive culling
 //		if (this.viewer.navigationActive) {
@@ -87,13 +87,14 @@ export default class TilingRenderLayer extends RenderLayer {
 //		}
 		
 		// TODO would be nicer if this was passed as an integer argument, indicating the iteration count of this frame
-		var firstRunOfFrame = !transparency && !reuse
-		
+		var firstRunOfFrame = !transparency && !reuse;
+
 		var renderingTiles = 0;
 		var renderingTriangles = 0;
 		var drawCalls = 0;
 
 		var programInfo = this.viewer.programManager.getProgram({
+			picking: false,
 			instancing: reuse,
 			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: this.settings.quantizeNormals,
@@ -105,8 +106,8 @@ export default class TilingRenderLayer extends RenderLayer {
 		this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, programInfo.uniformBlocks.LightData, this.viewer.lighting.lightingBuffer);
 		
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.normalMatrix, false, this.viewer.camera.viewNormalMatrix);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, this.viewer.camera.viewMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 		if (this.settings.quantizeVertices) {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 		}
@@ -142,13 +143,13 @@ export default class TilingRenderLayer extends RenderLayer {
 					// Not initialized yet
 					return;
 				}
-				
+
 				var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
-				
+
 				this.renderFinalBuffers(buffers, programInfo);
 			}
 		});
-		
+
 		if (firstRunOfFrame) {
 			this.viewer.stats.setParameter("Drawing", "Draw calls per frame (L2)", drawCalls);
 			this.viewer.stats.setParameter("Drawing", "Triangles to draw (L2)", renderingTriangles);
@@ -186,7 +187,49 @@ export default class TilingRenderLayer extends RenderLayer {
 			this.lineBoxGeometry.renderStop();
 		}
 	}
-	
+
+	pickBuffers(transparency, reuse) {
+		var firstRunOfFrame = !transparency && !reuse;
+		var programInfo = this.viewer.programManager.getProgram({
+			picking: true,
+			instancing: reuse,
+			useObjectColors: !!this.settings.useObjectColors,
+			quantizeNormals: false,
+			quantizeVertices: !!this.settings.quantizeVertices,
+			quantizeColors: false
+		});
+		this.gl.useProgram(programInfo.program);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
+		if (this.settings.quantizeVertices) {
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
+		}
+		if (firstRunOfFrame) { // Saves us from initializing two times per frame
+			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
+		}
+		this.octree.traverse((node) => {
+			if (firstRunOfFrame) {
+				if (this.cull(node)) {
+					node.visibilityStatus = 0; // TODO: Should this be updated on pick?
+					return;
+				} else {
+					node.visibilityStatus = 1;
+					if (node.loadingStatus == 0) {
+						this.tileLoader.loadTile(node); // TODO: On-demand loading make sense for picking?
+					}
+				}
+			}
+			if (node.visibilityStatus == 1) {
+				if (node.gpuBufferManager == null) {
+					// Not initialized yet
+					return;
+				}
+				var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
+				this.pickFinalBuffers(buffers, programInfo);
+			}
+		});
+	}
+
 	addGeometry(loaderId, geometry, object) {
 		var sizes = {
 			vertices: geometry.positions.length,
@@ -194,16 +237,16 @@ export default class TilingRenderLayer extends RenderLayer {
 			indices: geometry.indices.length,
 			colors: (geometry.colors != null ? geometry.colors.length : 0)
 		};
-		
+
 		// TODO some of this is duplicate code, also in defaultrenderlayer.js
 		if (geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id)) {
 			geometry.matrices.push(object.matrix);
-			
+
 			this.viewer.stats.inc("Drawing", "Triangles to draw", geometry.indices.length / 3);
 
 			return;
 		}
-		
+
 		var node = this.loaderToNode[loaderId];
 		
 		if (node.bufferManager == null) {
@@ -253,7 +296,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		node.stats.triangles += ((geometry.indices.length / 3) * (geometry.matrices.length));
 		node.stats.drawCallsPerFrame++;
 	}
-	
+
 	done(loaderId) {
 		var loader = this.getLoader(loaderId);
 		var node = this.loaderToNode[loaderId];

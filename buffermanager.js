@@ -34,7 +34,8 @@ export default class BufferManager {
 			vertices: this.MAX_BUFFER_SIZE,
 			normals: this.MAX_BUFFER_SIZE,
 			indices: this.MAX_BUFFER_SIZE * this.indicesVerticesFactor,
-			colors: this.MAX_BUFFER_SIZE * this.colorBufferFactor
+			colors: this.MAX_BUFFER_SIZE * this.colorBufferFactor,
+			pickColors: this.MAX_BUFFER_SIZE
 		};
 	}
 
@@ -99,6 +100,8 @@ export default class BufferManager {
 			positionsIndex: 0,
 			normals: this.settings.quantizeNormals ? new Int8Array(sizes.normals) : new Float32Array(sizes.normals),
 			normalsIndex: 0,
+			pickColors: new Float32Array(sizes.pickColors),
+			pickColorsIndex: 0,
 			indices: new Uint32Array(sizes.indices), // The optimal buffer size is most definitely above the Uint16 threshold, so always use Uint32Array
 			indicesIndex: 0,
 			nrIndices: 0,
@@ -125,6 +128,7 @@ export default class BufferManager {
 	resetBuffer(bufferSet) {
 		bufferSet.positionsIndex = 0;
 		bufferSet.normalsIndex = 0;
+		bufferSet.pickColorsIndex = 0;
 		bufferSet.indicesIndex = 0;
 		bufferSet.nrIndices = 0;
 	}
