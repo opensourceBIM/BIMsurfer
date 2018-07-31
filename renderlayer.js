@@ -157,14 +157,14 @@ export default class RenderLayer {
 			var viewObject = this.viewer.viewObjects[object.id];
 			if (viewObject) {
 				var pickColor = this.viewer.getPickColor(viewObject.pickId);
-				var numPickColors = (geometry.positions.length / 3) * 4;
-				for (var j = buffer.pickColorsIndex, lenj = buffer.pickColorsIndex + numPickColors; j < lenj; j+=4) {
+				var lenObjectPickColors = (geometry.positions.length / 3) * 4;
+				for (var j = buffer.pickColorsIndex, lenj = buffer.pickColorsIndex + lenObjectPickColors; j < lenj; j+=4) {
 					buffer.pickColors[j + 0] = pickColor[0];
 					buffer.pickColors[j + 1] = pickColor[1];
 					buffer.pickColors[j + 2] = pickColor[2];
 					buffer.pickColors[j + 3] = pickColor[3];
+					buffer.pickColorsIndex += 4;
 				}
-				buffer.pickColorsIndex += numPickColors;
 			} else {
 				console.log("viewObject not found: " + object.id);
 			}
@@ -366,8 +366,8 @@ export default class RenderLayer {
 			const stride = 0;
 			const offset = 0;
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
-			this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
-			this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexColor);
+			this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexPickColor, numComponents, type, normalize, stride, offset);
+			this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexPickColor);
 		}
 
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
@@ -478,12 +478,6 @@ export default class RenderLayer {
 		if (buffers != null && buffers.length > 0) {
 			var lastUsedColorHash = null;
 			for (let buffer of buffers) {
-				if (this.settings.useObjectColors) { // TODO: Adapt to picking?
-					if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
-						this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
-						lastUsedColorHash = buffer.colorHash;
-					}
-				}
 				this.pickBuffer(buffer, programInfo);
 			}
 		}
@@ -591,7 +585,6 @@ export default class RenderLayer {
 			
 			if (!this.settings.useObjectColors) {
 				const numComponents = 4;
-				const type = this.gl.FLOAT;
 				const normalize = false;
 				const stride = 0;
 				const offset = 0;
@@ -634,8 +627,8 @@ export default class RenderLayer {
 				const stride = 0;
 				const offset = 0;
 				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
-				this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexColor, numComponents, type, normalize, stride, offset);
-				this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexColor);
+				this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexPickColor, numComponents, type, normalize, stride, offset);
+				this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexPickColor);
 			}
 
 			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
