@@ -29,6 +29,7 @@ export default class ProgramManager {
 		} else {
 			settings.attributes.push("vertexColor");
 		}
+		settings.attributes.push("vertexPickColor");
 		if (inputSettings.quantizeNormals) {
 			// Has no effect on locations
 		}
