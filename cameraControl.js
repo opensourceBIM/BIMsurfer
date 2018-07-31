@@ -70,7 +70,7 @@ export default class CameraControl {
 
                     var viewObject = self.viewer.pick({ canvasPos: mousePos});
                     if (viewObject) {
-                        alert(viewObject.pickId);
+                        console.log("PICKED: " + viewObject.pickId);
                     }
 
 
