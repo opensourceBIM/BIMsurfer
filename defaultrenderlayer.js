@@ -28,6 +28,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		this.gpuBufferManager = new GpuBufferManager(this.viewer);
 	}
 
+	// TODO: Move into base class
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type) {
 		var object = {
 				id: objectId,
@@ -47,6 +48,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		loader.objects.set(oid , object);
 
 		var viewObject = {
+            type: type,
 			objectId: objectId,
 			oid: oid,
 			pickId: this.viewer.viewObjectsByPickId.length
