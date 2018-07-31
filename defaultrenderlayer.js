@@ -29,7 +29,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 	}
 
 	// TODO: Move into base class
-	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type) {
+	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb) {
 		var object = {
 				id: objectId,
 				visible: type != "IfcOpeningElement" && type != "IfcSpace",
@@ -49,9 +49,11 @@ export default class DefaultRenderLayer extends RenderLayer {
 
 		var viewObject = {
             type: type,
+			aabb: aabb,
 			objectId: objectId,
 			oid: oid,
-			pickId: this.viewer.viewObjectsByPickId.length
+			pickId: this.viewer.viewObjectsByPickId.length,
+			center: null // TODO
 		};
 		this.viewer.viewObjectsByPickId.push(viewObject);
 		this.viewer.viewObjects[objectId] = viewObject;

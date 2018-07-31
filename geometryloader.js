@@ -196,7 +196,7 @@ export default class GeometryLoader {
 					}
 				}
 			}
-			this.createObject(roid, oid, oid, geometryDataOids, matrix, hasTransparency, type);
+			this.createObject(roid, oid, oid, geometryDataOids, matrix, hasTransparency, type, objectBounds);
 		} else {
 			console.error("Unsupported geometry type: " + geometryType);
 			return;
@@ -291,7 +291,7 @@ export default class GeometryLoader {
 		return color;
 	}
 
-	createObject(roid, oid, objectId, geometryIds, matrix, hasTransparency, type) {
+	createObject(roid, oid, objectId, geometryIds, matrix, hasTransparency, type, aabb) {
 		if (this.state.mode == 0) {
 			console.log("Mode is still 0, should be 1");
 			return;
@@ -320,6 +320,6 @@ export default class GeometryLoader {
 
 			matrix = totalMatrix;
 		}
-		this.renderLayer.createObject(this.loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type);
+		this.renderLayer.createObject(this.loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb);
 	}
 }
