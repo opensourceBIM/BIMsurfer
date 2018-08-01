@@ -37,7 +37,7 @@ export default class ReuseLoader {
 		return p;
 	}
 
-	createGeometry(loaderId, roid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
+	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
 		this.nrReused++;
 		var bytes = 0;
 		if (this.settings.quantizeVertices) {
@@ -65,6 +65,7 @@ export default class ReuseLoader {
 		var geometry = {
 				id: geometryId,
 				roid: roid,
+				croid: croid,
 				positions: positions,
 				normals: normals,
 				colors: colors,

@@ -17,7 +17,7 @@ export default class RenderLayer {
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
 	}
 
-	createGeometry(loaderId, roid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
+	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
 		var bytes = 0;
 		if (this.settings.quantizeVertices) {
 			bytes += positions.length * 2;
@@ -44,6 +44,7 @@ export default class RenderLayer {
 		var geometry = {
 				id: geometryId,
 				roid: roid,
+				croid: croid,
 				positions: positions,
 				normals: normals,
 				colors: colors,
@@ -69,6 +70,44 @@ export default class RenderLayer {
 		return geometry;
 	}
 
+	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager) {
+		var object = {
+				id: objectId,
+				visible: type != "IfcOpeningElement" && type != "IfcSpace",
+				hasTransparency: hasTransparency,
+				matrix: matrix,
+				scaleMatrix: scaleMatrix,
+				geometry: [],
+				roid: roid,
+//				object: this.viewer.model.objects[oid],
+				add: (geometryId, objectId) => {
+					this.addGeometryToObject(geometryId, objectId, loader, gpuBufferManager);
+				}
+		};
+
+		var loader = this.getLoader(loaderId);
+		loader.objects.set(oid , object);
+
+		var viewObject = {
+            type: type,
+			aabb: aabb,
+			objectId: objectId,
+			oid: oid,
+			pickId: this.viewer.viewObjectsByPickId.length,
+			center: null // TODO
+		};
+		this.viewer.viewObjectsByPickId.push(viewObject);
+		this.viewer.viewObjects[objectId] = viewObject;
+
+		geometryIds.forEach((id) => {
+			this.addGeometryToObject(id, object.id, loader, gpuBufferManager);
+		});
+
+		this.viewer.stats.inc("Models", "Objects");
+
+		return object;
+	}
+	
 	addGeometry(loaderId, geometry, object, buffer, sizes) {
 		var startIndex = buffer.positionsIndex / 3;
 
@@ -88,7 +127,7 @@ export default class RenderLayer {
 				// In that case we won't have to unquantize + quantize again
 				
 				if (this.settings.loaderSettings.quantizeVertices) {
-					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(geometry.roid));
+					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(geometry.croid));
 				}
 				vec3.transformMat4(vertex, vertex, object.matrix);
 				if (this.settings.quantizeVertices) {
@@ -387,6 +426,7 @@ export default class RenderLayer {
 //				geometry: geometry,
 				instancesBuffer: instancesBuffer,
 				roid: geometry.roid,
+				croid: geometry.croid,
 //				instances: matrices,
 				hasTransparency: geometry.hasTransparency,
 				indexType: indices instanceof Uint16Array ? this.gl.UNSIGNED_SHORT : this.gl.UNSIGNED_INT,
@@ -465,7 +505,7 @@ export default class RenderLayer {
 		if (buffer.reuse) {
 			// TODO we only need to bind this again for every new roid, maybe sort by buffer.roid before iterating through the buffers?
 			if (this.viewer.settings.quantizeVertices) {
-				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
+				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.croid));
 			}
 			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 		} else {
