@@ -1,15 +1,15 @@
 import BimServerClient from "http://localhost:8080/apps/bimserverjavascriptapi/bimserverclient.js"
-import BimServerViewer from "./viewer/bimserverviewer.js"
-import Stats from "./viewer/stats.js"
-import Settings from "./viewer/settings.js"
-import ProjectTreeModel from "./viewer/projecttreemodel.js"
-import TreeView from "./viewer/treeview.js"
+import BimServerViewer from "../viewer/bimserverviewer.js"
+import Stats from "../viewer/stats.js"
+import Settings from "../viewer/settings.js"
+import ProjectTreeModel from "../viewer/projecttreemodel.js"
+import TreeView from "../viewer/treeview.js"
 
 /*
  * This class is where the applications starts, it's a mess, needs to go when we change this into an API
  */
 
-export default class App {
+export default class Dev {
 
 	start() {
 		this.animationEnabled = false;
@@ -18,6 +18,7 @@ export default class App {
 		
 		// Deep-clone the settings, so we know we have a non-changing view of the settings
 		this.settings = JSON.parse(JSON.stringify(this.settingsView.settings));
+		this.settings.viewerBasePath = "../";
 		
 		this.canvas = document.getElementById("glcanvas");
 
@@ -66,4 +67,4 @@ export default class App {
 	}
 }
 
-new App().start();
+new Dev().start();

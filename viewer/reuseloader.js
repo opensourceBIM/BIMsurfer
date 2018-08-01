@@ -12,6 +12,7 @@ export default class ReuseLoader {
 		this.reusedGeometryCache = reusedGeometryCache;
 		this.geometryDataToReuse = geometryDataToReuse;
 		this.nrReused = 0;
+		this.bytesReused = 0;
 	}
 	
 	start() {
@@ -32,7 +33,7 @@ export default class ReuseLoader {
 		var p = geometryLoader.start();
 		p.then(() => {
 			var end = performance.now();
-			console.log(this.nrReused, (end - start) + "ms");
+			console.log("Reuse Loader", this.nrReused, (end - start) + "ms", this.bytesReused + "bytes");
 		});
 		return p;
 	}
@@ -62,6 +63,7 @@ export default class ReuseLoader {
 		} else {
 			bytes += normals.length * 4;
 		}
+		this.bytesReused += bytes;
 		var geometry = {
 				id: geometryId,
 				roid: roid,

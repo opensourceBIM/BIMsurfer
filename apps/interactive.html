@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BIMsurfer Interactive Demo</title>
+<link rel="icon" type="image/png" href="img/application_home.png" />
+<link href="../css/interactive.css" type="text/css" rel="stylesheet" />
+</head>
+
+<body>
+	<div id="servers">
+		<h1>Select BIMserver</h1>
+		<div>
+			<form>
+				Address: <input type="text">
+				<button>Connect</button>
+			</form>
+		</div>
+		<h2>List of default servers</h2>
+		<div id="serverList"></div>
+	</div>
+	<div id="login" style="display: none">
+		<input id="username" type="text" placeholder="Username (email)"/>
+		<input id="password" type="password" placeholder="Password"/>
+		<button id="loginButton"></button>
+	</div>
+	<div id="selectproject"></div>
+	<div id="viewer">
+		<canvas id="glcanvas"></canvas>
+		<div id="progressbar">
+			<div id="progress"></div>
+		</div>
+	</div>
+</body>
+
+<script src="../gl-matrix.js"></script>
+<script type="module" src="interactive.js"></script>
+</html>

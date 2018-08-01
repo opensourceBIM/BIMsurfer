@@ -1,0 +1,27 @@
+.serverstatus {
+	width: 100px;
+	padding: 5px;
+}
+
+#serverList {
+	display: flex;
+	flex-direction: row;
+}
+
+.server {
+	width: 300px;
+}
+
+.serverstatus.up {
+	background: green;
+}
+
+.serverstatus.down {
+	background: red;
+}
+
+.server {
+	background-color: #EEEEFF;
+	padding: 10px;
+	margin: 10px;
+}

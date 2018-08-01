@@ -1,12 +1,12 @@
 // At the moment this API is loaded from a BIMserver, you could also include the API files in your viewer
 import BimServerClient from "http://localhost:8080/apps/bimserverjavascriptapi/bimserverclient.js"
-import BimServerViewer from "./viewer/bimserverviewer.js"
+import BimServerViewer from "../viewer/bimserverviewer.js"
 
 /*
  * This class is where the demo1 application starts
  */
 
-export default class Demo1 {
+export default class Minimal {
 
 	constructor() {
 		// You need to change these to something that makes sense
@@ -22,6 +22,7 @@ export default class Demo1 {
 			poid: 196609,
 			// The settings for the viewer
 			viewerSettings: {
+				viewerBasePath: "../"
 				// Not putting anything here will just use the default settings
 			}
 		};
@@ -52,4 +53,4 @@ export default class Demo1 {
 	}
 }
 
-new Demo1().start();
+new Minimal().start();

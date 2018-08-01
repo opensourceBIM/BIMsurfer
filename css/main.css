@@ -102,3 +102,20 @@ a {
 .arrowopen:hover {
 	background-image: url("../img/blue_arrow_down.png");
 }
+
+.wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.serverstatus {
+	width: 100px;
+}
+
+.serverstatus.up {
+	background: green;
+}
+
+.serverstatus.down {
+	background: red;
+}

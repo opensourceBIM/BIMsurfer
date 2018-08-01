@@ -97,6 +97,9 @@ export default class BimServerViewer {
 		if (settings.loaderSettings.reportProgress == null) {
 			settings.loaderSettings.reportProgress = false;
 		}
+		if (settings.viewerBasePath == null) {
+			settings.viewerBasePath = "./";
+		}
 	}
 
 	resizeCanvas() {
@@ -263,7 +266,7 @@ export default class BimServerViewer {
 					var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.geometryDataIdsToReuse, bounds);
 					this.viewer.renderLayers.push(tilingRenderLayer);
 					
-					tilingPromise = this.loadTilingLayer(tilingRenderLayer, projects, bounds, fieldsToInclude);
+					tilingPromise = this.loadTilingLayer(tilingRenderLayer, revision, bounds, fieldsToInclude);
 				}
 				tilingPromise.then(() => {
 					this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
@@ -310,22 +313,7 @@ export default class BimServerViewer {
 			},
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 		};
-		
-//		if (this.viewer.vertexQuantization) {
-//			var map = {}
-//			for (var project of projects) {
-//				map[project.lastRevisionId] = this.viewer.vertexQuantization.getUntransformedVertexQuantizationMatrixForRoid(project.lastRevisionId);
-//			}
-//		}
-		
-		// TODO maybe it will be faster to just use one loader instead of potentially 180 loaders, this will however lead to more memory used because loaders can't be closed when they are done
-		// Later: This seems to make no difference...
-		
-//		var roids = [];
-//		for (var project of projects) {
-//			roids.push(project.lastRevisionId);
-//		}
-		
+
 		var geometryLoader = new GeometryLoader(0, this.bimServerApi, defaultRenderLayer, [revision.oid], this.settings.loaderSettings, null, this.stats, this.settings, query);
 		defaultRenderLayer.registerLoader(geometryLoader.loaderId);
 		executor.add(geometryLoader).then(() => {
@@ -343,18 +331,13 @@ export default class BimServerViewer {
 		return executor.awaitTermination();
 	}
 
-	loadTilingLayer(tilingLayer, projects, totalBounds, fieldsToInclude) {
+	loadTilingLayer(tilingLayer, revision, totalBounds, fieldsToInclude) {
 		var startLayer2 = performance.now();
 		document.getElementById("progress").style.display = "block";
 
 		var layer2Start = performance.now();
 		
-		var roids = [];
-		for (var project of projects) {
-			roids.push(project.lastRevisionId);
-		}
-		
-		var p = tilingLayer.load(this.bimServerApi, this.densityThreshold, roids, fieldsToInclude, (percentage) => {
+		var p = tilingLayer.load(this.bimServerApi, this.densityThreshold, [revision.oid], fieldsToInclude, (percentage) => {
 			document.getElementById("progress").style.width = percentage + "%";
 		});
 		this.viewer.dirty = true;

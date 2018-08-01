@@ -17,12 +17,12 @@ export default class TileLoader {
 		this.excludedTypes = ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"];
 		this.executor = new Executor(64);
 		
-		if (this.viewer.vertexQuantization) {
-			this.quantizationMap = {};
-			for (var roid of this.roids) {
-				this.quantizationMap[roid] = this.viewer.vertexQuantization.getUntransformedVertexQuantizationMatrixForRoid(roid);
-			}
-		}
+//		if (this.viewer.vertexQuantization) {
+//			this.quantizationMap = {};
+//			for (var roid of this.roids) {
+//				this.quantizationMap[roid] = this.viewer.vertexQuantization.getUntransformedVertexQuantizationMatrixForRoid(roid);
+//			}
+//		}
 		
 		this.loaderCounter = 0;
 	}
@@ -33,7 +33,8 @@ export default class TileLoader {
 				roids: this.roids,
 				excludedTypes: this.excludedTypes,
 				geometryIdsToReuse: this.geometryDataToReuse,
-				threshold: this.densityThreshold,
+				minimumThreshold: this.densityThreshold,
+				maximumThreshold: -1,
 				depth: this.settings.maxOctreeDepth
 			}, (list) => {
 				for (var i=0; i<list.length; i+=2) {
