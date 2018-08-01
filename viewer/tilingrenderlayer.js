@@ -265,39 +265,7 @@ export default class TilingRenderLayer extends RenderLayer {
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb) {
 		var loader = this.getLoader(loaderId);
 		var node = this.loaderToNode[loaderId];
-		var object = {
-			id: objectId,
-			visible: type != "IfcOpeningElement" && type != "IfcSpace",
-			hasTransparency: hasTransparency,
-			matrix: matrix,
-			scaleMatrix: scaleMatrix,
-			geometry: [],
-			roid: roid,
-//			object: this.viewer.model.objects[oid],
-			add: (geometryId, objectId) => {
-				this.addGeometryToObject(geometryId, objectId, loader, node.gpuBufferManager);
-			}
-		};
-
-		loader.objects.set(oid, object);
-
-		var viewObject = {
-			type: type,
-			aabb: aabb,
-			objectId: objectId,
-			oid: oid,
-			pickId: this.viewer.viewObjectsByPickId.length
-		};
-		this.viewer.viewObjectsByPickId.push(viewObject);
-		this.viewer.viewObjects[objectId] = viewObject;
-
-		geometryIds.forEach((id) => {
-			this.addGeometryToObject(id, object.id, loader, node.gpuBufferManager);
-		});
-
-		this.viewer.stats.inc("Models", "Objects");
-
-		return object;
+		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb, node.gpuBufferManager);
 	}
 
 	addGeometryReusable(geometry, loader, gpuBufferManager) {

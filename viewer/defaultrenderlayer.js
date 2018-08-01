@@ -28,43 +28,8 @@ export default class DefaultRenderLayer extends RenderLayer {
 		this.gpuBufferManager = new GpuBufferManager(this.viewer);
 	}
 
-	// TODO: Move into base class
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb) {
-		var object = {
-				id: objectId,
-				visible: type != "IfcOpeningElement" && type != "IfcSpace",
-				hasTransparency: hasTransparency,
-				matrix: matrix,
-				scaleMatrix: scaleMatrix,
-				geometry: [],
-				roid: roid,
-//				object: this.viewer.model.objects[oid],
-				add: (geometryId, objectId) => {
-					this.addGeometryToObject(geometryId, objectId, loader, this.gpuBufferManager);
-				}
-		};
-
-		var loader = this.getLoader(loaderId);
-		loader.objects.set(oid , object);
-
-		var viewObject = {
-            type: type,
-			aabb: aabb,
-			objectId: objectId,
-			oid: oid,
-			pickId: this.viewer.viewObjectsByPickId.length,
-			center: null // TODO
-		};
-		this.viewer.viewObjectsByPickId.push(viewObject);
-		this.viewer.viewObjects[objectId] = viewObject;
-
-		geometryIds.forEach((id) => {
-			this.addGeometryToObject(id, object.id, loader, this.gpuBufferManager);
-		});
-
-		this.viewer.stats.inc("Models", "Objects");
-
-		return object;
+		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb, this.gpuBufferManager);
 	}
 	
 	addGeometry(loaderId, geometry, object) {
