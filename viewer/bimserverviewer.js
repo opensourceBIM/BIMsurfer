@@ -8,15 +8,24 @@ import Executor from './executor.js'
 import GeometryLoader from "./geometryloader.js"
 import VirtualFrustum from "./virtualfrustum.js"
 import BufferHelper from "./bufferhelper.js"
+import Stats from "./stats.js"
 
 export default class BimServerViewer {
-	constructor(bimServerApi, settings, width, height, stats) {
-		this.viewer = new Viewer(settings, stats, window.innerWidth, window.innerHeight);
+	constructor(bimServerApi, settings, canvas, width, height, stats) {
+		if (stats == null) {
+			stats = new Stats(false);
+		}
+
+		this.canvas = canvas;
+
+		this.viewer = new Viewer(canvas, settings, stats, window.innerWidth, window.innerHeight);
 		this.settings = settings;
 		this.bimServerApi = bimServerApi;
 		this.stats = stats;
 		this.width = width;
 		this.height = height;
+		
+		this.applyDefaultSettings(settings);
 		
 		stats.setParameter("Renderer settings", "Object colors", this.settings.useObjectColors);
 		stats.setParameter("Renderer settings", "Small indices if possible", this.settings.useSmallIndicesIfPossible);
@@ -26,8 +35,74 @@ export default class BimServerViewer {
 		stats.setParameter("Loader settings", "Object colors", this.settings.loaderSettings.useObjectColors);
 		stats.setParameter("Loader settings", "Quantize normals", this.settings.loaderSettings.quantizeNormals);
 		stats.setParameter("Loader settings", "Quantize vertices", this.settings.loaderSettings.quantizeVertices);
-		
-		this.loaderCounter = 0;
+
+		this.resizeCanvas();
+		window.addEventListener("resize", () => {
+			this.resizeCanvas();
+		}, false);
+	}
+	
+	applyDefaultSettings(settings) {
+		if (settings.useObjectColors == null) {
+			settings.useObjectColors = false;
+		}
+		if (settings.useSmallIndicesIfPossible == null) {
+			settings.useSmallIndicesIfPossible = true;
+		}
+		if (settings.quantizeNormals == null) {
+			settings.quantizeNormals = true;
+		}
+		if (settings.quantizeVertices == null) {
+			settings.quantizeVertices = true;
+		}
+		if (settings.quantizeColors == null) {
+			settings.quantizeColors = true;
+		}
+		if (settings.loaderSettings == null) {
+			settings.loaderSettings = {};
+		}
+		if (settings.loaderSettings.useObjectColors == null) {
+			settings.loaderSettings.useObjectColors = false;
+		}
+		if (settings.loaderSettings.quantizeNormals == null) {
+			settings.loaderSettings.quantizeNormals = true;
+		}
+		if (settings.loaderSettings.quantizeVertices == null) {
+			settings.loaderSettings.quantizeVertices = true;
+		}
+		if (settings.loaderSettings.quantizeColors == null) {
+			settings.loaderSettings.quantizeColors = true;
+		}
+		if (settings.triangleThresholdDefaultLayer == null) {
+			settings.triangleThresholdDefaultLayer = 1000000;
+		}
+		if (settings.assumeGpuMemoryAvailable == null) {
+			settings.assumeGpuMemoryAvailable = 1000000000;
+		}
+		if (settings.defaultLayerEnabled == null) {
+			settings.defaultLayerEnabled = true;
+		}
+		if (settings.fakeLoader == null) {
+			settings.fakeLoading = false;
+		}
+		if (settings.loaderSettings.splitGeometry == null) {
+			settings.loaderSettings.splitGeometry = false;
+		}
+		if (settings.loaderSettings.normalizeUnitsToMM == null) {
+			settings.loaderSettings.normalizeUnitsToMM = true;
+		}
+		if (settings.loaderSettings.useSmallInts == null) {
+			settings.loaderSettings.useSmallInts = false;
+		}
+		if (settings.loaderSettings.reportProgress == null) {
+			settings.loaderSettings.reportProgress = false;
+		}
+	}
+
+	resizeCanvas() {
+		this.canvas.width = window.innerWidth;
+		this.canvas.height = window.innerHeight;
+		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
 	}
 	
 	/*
@@ -238,8 +313,13 @@ export default class BimServerViewer {
 				includeAllSubTypes: true,
 				exclude: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"]
 			},
-			inBoundingBox: {
-			    "densityLowerThreshold": this.densityThreshold
+			tiles: {
+				ids: [0],
+				densityLowerThreshold: this.densityThreshold,
+				densityUpperThreshold: -1,
+				reuseLowerThreshold: -1,
+				geometryDataToReuse: [],
+				maxDepth: 0
 			},
 			include: {
 				type: "IfcProduct",
@@ -271,20 +351,12 @@ export default class BimServerViewer {
 			roids.push(project.lastRevisionId);
 		}
 		
-		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, defaultRenderLayer, roids, this.settings.loaderSettings, map, this.stats, this.settings, query);
+		var geometryLoader = new GeometryLoader(0, this.bimServerApi, defaultRenderLayer, roids, this.settings.loaderSettings, map, this.stats, this.settings, query);
 		defaultRenderLayer.registerLoader(geometryLoader.loaderId);
 		executor.add(geometryLoader).then(() => {
 			defaultRenderLayer.done(geometryLoader.loaderId);
 			this.viewer.stats.inc("Models", "Models loaded", roids.length);
 		});
-//		projects.forEach((project) => {
-//			var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, defaultRenderLayer, [project.lastRevisionId], this.settings.loaderSettings, map, this.stats, this.settings, query);
-//			defaultRenderLayer.registerLoader(geometryLoader.loaderId);
-//			executor.add(geometryLoader).then(() => {
-//				defaultRenderLayer.done(geometryLoader.loaderId);
-//				this.viewer.stats.inc("Models", "Models loaded");
-//			});
-//		});
 		
 		executor.awaitTermination().then(() => {
 			document.getElementById("progress").style.display = "none";

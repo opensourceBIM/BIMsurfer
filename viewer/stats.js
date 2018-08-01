@@ -2,7 +2,8 @@
  * Keeps track of statistics 
  */
 export default class Stats {
-	constructor() {
+	constructor(active = true) {
+		this.active = active;
 		this.parameters = {};
 		this.dirty = true;
 		this.updateRequested = true;
@@ -122,45 +123,47 @@ export default class Stats {
 	}
 	
 	update() {
-		if (!this.updateRequested) {
-			return;
-		}
-		this.inc("Stats", "Updates");
-		this.updates++;
-		for (var groupName in this.groups) {
-			var group = this.groups[groupName];
-			var groupElement = document.getElementById(groupName + "-group");
-			if (groupElement == null) {
-				groupElement = document.createElement("div");
-				groupElement.id = groupName + "-group";
-				document.getElementById("stats").appendChild(groupElement);
-
-				var groupTitle = document.createElement("h3");
-				groupTitle.innerHTML = groupName;
-				groupElement.appendChild(groupTitle);
+		if (this.active) {
+			if (!this.updateRequested) {
+				return;
 			}
-			for (var key of group) {
-				var fullKey = groupName + "_" + key;
-				var value = this.parameters[groupName][key];
-				var element = document.getElementById(fullKey);
-				if (element == null) {
-					element = document.createElement("div");
-					element.id = fullKey;
-					groupElement.appendChild(element);
+			this.inc("Stats", "Updates");
+			this.updates++;
+			for (var groupName in this.groups) {
+				var group = this.groups[groupName];
+				var groupElement = document.getElementById(groupName + "-group");
+				if (groupElement == null) {
+					groupElement = document.createElement("div");
+					groupElement.id = groupName + "-group";
+					document.getElementById("stats").appendChild(groupElement);
+					
+					var groupTitle = document.createElement("h3");
+					groupTitle.innerHTML = groupName;
+					groupElement.appendChild(groupTitle);
 				}
-				if (value == null) {
-					element.innerHTML = key + ": 0";
-				} else {
-					if (typeof value == "number") {
-						element.innerHTML = key + ": " + this.numberWithCommas(value);
+				for (var key of group) {
+					var fullKey = groupName + "_" + key;
+					var value = this.parameters[groupName][key];
+					var element = document.getElementById(fullKey);
+					if (element == null) {
+						element = document.createElement("div");
+						element.id = fullKey;
+						groupElement.appendChild(element);
+					}
+					if (value == null) {
+						element.innerHTML = key + ": 0";
 					} else {
-						element.innerHTML = key + ": " + value;
+						if (typeof value == "number") {
+							element.innerHTML = key + ": " + this.numberWithCommas(value);
+						} else {
+							element.innerHTML = key + ": " + value;
+						}
 					}
 				}
 			}
+			this.updateRequested = false;
+			this.dirty = false;
 		}
-		this.updateRequested = false;
-		this.dirty = false;
 	}
 	
 	cleanup() {

@@ -90,6 +90,7 @@ export default class TileLoader {
 			tiles: {
 				ids: [node.id],
 				densityUpperThreshold: this.densityThreshold,
+				densityLowerThreshold: -1,
 				reuseLowerThreshold: this.reuseLowerThreshold,
 				geometryDataToReuse: Array.from(this.geometryDataToReuse),
 				maxDepth: this.settings.maxOctreeDepth

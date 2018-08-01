@@ -179,6 +179,9 @@ export default class ProgramManager {
 							//console.log("attributes:");
 							for (var attribute of setup.attributes) {
 								programInfo.attribLocations[attribute] = this.gl.getAttribLocation(shaderProgram, attribute);
+								if (programInfo.attribLocations[attribute] == -1) {
+									console.error("Missing attribute location", attribute, vertexShader);
+								}
 								//console.log("attribute  '" + attribute + "' = " + programInfo.attribLocations[attribute]);
 							}
 						}

@@ -149,6 +149,7 @@ export default class GpuBufferManager {
 				}
 				
 				var programInfo = this.viewer.programManager.getProgram({
+					picking: false,
 					instancing: false,
 					useObjectColors: this.settings.useObjectColors,
 					quantizeNormals: this.settings.quantizeNormals,
