@@ -2,6 +2,8 @@ import BimServerClient from "http://localhost:8080/apps/bimserverjavascriptapi/b
 import BimServerViewer from "./viewer/bimserverviewer.js"
 import Stats from "./viewer/stats.js"
 import Settings from "./viewer/settings.js"
+import ProjectTreeModel from "./viewer/projecttreemodel.js"
+import TreeView from "./viewer/treeview.js"
 
 /*
  * This class is where the applications starts, it's a mess, needs to go when we change this into an API
@@ -28,42 +30,18 @@ export default class App {
 	}
 
 	loadProjects() {
-		this.api.call("ServiceInterface", "getAllProjects", {
-			onlyTopLevel: true,
-			onlyActive: true
-		}, (projects) => {
-			projects.forEach((project) => {
-				if (project.lastRevisionId == -1) {
-					return;
-				}
-				var inside = document.getElementById("projects");
-				var projectNode = document.createElement("div");
-				var a = document.createElement("a");
-				projectNode.appendChild(a);
-				a.addEventListener("click", (event) => {
-					event.preventDefault();
-					var inside = document.getElementById("projects");
-					while (inside.firstChild) {
-						inside.removeChild(inside.firstChild);
-					}
-//					var back = document.createElement("a");
-//					back.innerHTML = "back";
-//					back.addEventListener("click", (event) => {
-//						this.viewer.cleanup();
-//						inside.removeChild(back);
-//						event.preventDefault();
-//						this.loadProjects();
-//					});
-//					inside.appendChild(back);
-					this.loadModel(project);
-				})
-				a.innerHTML = project.name;
-				inside.appendChild(projectNode);
-			})
-		})
+		var treeView = new TreeView(document.getElementById("projects"));
+		this.projectTreeModel = new ProjectTreeModel(this.api, treeView);
+		this.projectTreeModel.load((node) => {
+			this.loadModel(node.project);
+		});
 	}
 
 	loadModel(project) {
+		var rootElement = document.getElementById("projects");
+		while (rootElement.firstChild) {
+			rootElement.removeChild(rootElement.firstChild);
+		}
 		var stats = new Stats();
 		
 		stats.setParameter("Models", "Name", project.name);
