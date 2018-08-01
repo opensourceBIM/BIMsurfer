@@ -154,9 +154,10 @@ export default class GeometryLoader {
 			var type = stream.readUTF8();
 			stream.align8();
 			var roid = stream.readLong();
+			var croid = stream.readLong();
 			var hasTransparency = stream.readLong() == 1;
 			var geometryDataId = stream.readLong();
-			this.readGeometry(stream, roid, geometryDataId, geometryDataId, hasTransparency, reused, type, true);
+			this.readGeometry(stream, roid, croid, geometryDataId, geometryDataId, hasTransparency, reused, type, true);
 			if (this.dataToInfo.has(geometryDataId)) {
 				// There are objects that have already been loaded, that are waiting for this GeometryData
 				this.dataToInfo.get(geometryDataId).forEach((oid) => {
@@ -205,7 +206,7 @@ export default class GeometryLoader {
 		this.state.nrObjectsRead++;
 	}
 
-	readGeometry(stream, roid, geometryId, geometryDataOid, hasTransparency, reused, type, useIntForIndices) {
+	readGeometry(stream, roid, croid, geometryId, geometryDataOid, hasTransparency, reused, type, useIntForIndices) {
 		var numIndices = stream.readInt();
 		if (useIntForIndices) {
 			var indices = stream.readIntArray(numIndices);
@@ -267,7 +268,7 @@ export default class GeometryLoader {
 			this.geometryIds.set(geometryDataOid, []);
 		}
 		this.geometryIds.get(geometryDataOid).push(geometryId);
-		this.renderLayer.createGeometry(this.loaderId, roid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused);
+		this.renderLayer.createGeometry(this.loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused);
 	}
 
 	readColors(stream, type) {
