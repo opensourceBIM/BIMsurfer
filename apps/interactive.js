@@ -1,6 +1,8 @@
 // At the moment this API is loaded from a BIMserver, you could also include the API files in your viewer
 import BimServerClient from "http://localhost:8080/apps/bimserverjavascriptapi/bimserverclient.js"
 import BimServerViewer from "../viewer/bimserverviewer.js"
+import TreeView from "../viewer/treeview.js"
+import ProjectTreeModel from "../viewer/projecttreemodel.js"
 
 /*
  * This class is where the demo1 application starts
@@ -16,6 +18,7 @@ export default class Interactive {
 	}
 	
 	start() {
+		document.getElementById("login").hidden = true;
 		var defaultServers = [
 			{
 				title: "Default local development BIMserver",
@@ -38,6 +41,8 @@ export default class Interactive {
 			}
 		];
 		
+		document.getElementById("address").focus();
+		
 		for (const server of defaultServers) {
 			var interactive = document.getElementById("serverList");
 			var serverDiv = document.createElement("div");
@@ -51,8 +56,12 @@ export default class Interactive {
 			status.innerHTML = "Unknown";
 			status.classList.add("serverstatus");
 			var description = document.createElement("p");
+			var url = document.createElement("a");
+			url.setAttribute("href", server.address);
+			url.innerHTML = server.address;
 			description.innerHTML = server.description;
 			serverDiv.appendChild(title);
+			serverDiv.appendChild(url);
 			serverDiv.appendChild(description);
 			serverDiv.appendChild(status);
 			interactive.appendChild(serverDiv);
@@ -64,19 +73,51 @@ export default class Interactive {
 			serverDiv.appendChild(button);
 			this.ping(server, status);
 		}
+		document.getElementById("connectButton").addEventListener("click", (event) => {
+			event.preventDefault();
+			this.connectServer({
+				address: document.getElementById("address").value
+			});
+		});
 	}
 	
 	connectServer(server) {
-		console.log("Connecting...", server.title);
+		console.log("Connecting...", server.address);
 		
 		this.api = new BimServerClient(server.address);
 		this.api.init().then(() => {
-			document.getElementById("servers").hidden = false;
-			document.getElementById("login").hidden = true;
-			document.getElementById("loginButton").addEventHandler("click", () => {
-				this.api.login(document.getElementById("username").value, document.getElementById("password").value);
+			document.getElementById("servers").hidden = true;
+			document.getElementById("login").hidden = false;
+			document.getElementById("username").focus();
+			var loginButton = document.getElementById("loginButton");
+			loginButton.addEventListener("click", () => {
+				document.getElementById("loginStatus").innerHTML = "Logging in...";
+				this.api.login(document.getElementById("username").value, document.getElementById("password").value, () => {
+					document.getElementById("loginStatus").innerHTML = "Logging successfull";
+					document.getElementById("login").hidden = true;
+					document.getElementById("selectproject").hidden = false;
+					this.loadProjects();
+				}, (error) => {
+					document.getElementById("loginStatus").innerHTML = error.message;
+				});
 			});
 		});
+	}
+	
+	loadProjects() {
+		var treeView = new TreeView(document.getElementById("selectproject"));
+		this.projectTreeModel = new ProjectTreeModel(this.api, treeView);
+		this.projectTreeModel.load((node) => {
+			document.getElementById("selectproject").hidden = true;
+			document.getElementById("viewer").hidden = false;
+			this.loadModel(node.project);
+		});
+	}
+	
+	loadModel(project) {
+		var canvas = document.getElementById("glcanvas");
+		this.bimServerViewer = new BimServerViewer(this.api, this.settings, canvas, window.innerWidth, window.innerHeight);
+		this.bimServerViewer.loadModel(project);
 	}
 	
 	ping(server, status) {

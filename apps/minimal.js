@@ -3,7 +3,7 @@ import BimServerClient from "http://localhost:8080/apps/bimserverjavascriptapi/b
 import BimServerViewer from "../viewer/bimserverviewer.js"
 
 /*
- * This class is where the demo1 application starts
+ * This class is where the minimal demo starts. This is intended as an example you can copy-and-paste to start integratie the viewer in your own application.
  */
 
 export default class Minimal {

@@ -1,3 +1,9 @@
+body.interactive {
+	margin: 10px;
+	padding: 10px;
+	height: 100%;
+}
+
 .serverstatus {
 	width: 100px;
 	padding: 5px;
