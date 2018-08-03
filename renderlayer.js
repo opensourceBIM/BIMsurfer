@@ -53,7 +53,8 @@ export default class RenderLayer {
 				reused: reused, // How many times this geometry is reused, this does not necessarily mean the viewer is going to utilize this reuse
 				reuseMaterialized: 0, // How many times this geometry has been reused in the viewer, when this number reaches "reused" we can flush the buffer fo' sho'
 				bytes: bytes,
-				matrices: []
+				matrices: [],
+				objects: []
 		};
 		
 		var loader = this.getLoader(loaderId);
@@ -70,10 +71,14 @@ export default class RenderLayer {
 	}
 
 	addGeometry(loaderId, geometry, object, buffer, sizes) {
+
+		var loaderQuantizeNormals = this.settings.loaderSettings.quantizeNormals;
+		var quantizeNormals = this.settings.quantizeNormals;
+
 		var startIndex = buffer.positionsIndex / 3;
 
 		try {
-			var vertex = Array(3);
+			var vertex = vec3.create();
 			for (var i=0; i<geometry.positions.length; i+=3) {
 				// When quantizeVertices is on and we use the buffers in a combined buffer (which is what this method, addGeometry does),
 				// we need to un-quantize the vertices, transform them, then quantize them again (so the shaders can again unquantize them).
@@ -98,27 +103,38 @@ export default class RenderLayer {
 				buffer.positions.set(vertex, buffer.positionsIndex);
 				buffer.positionsIndex += 3;
 			}
-			var normal = Array(3);
-			for (var i=0; i<geometry.normals.length; i+=3) {
-				normal[0] = geometry.normals[i + 0];
-				normal[1] = geometry.normals[i + 1];
-				normal[2] = geometry.normals[i + 2];
-	
-				// TODO Magnitude does not really matter for normals right(?), so why can't we just keep the normals quantized?? Should test disabling this when the shaders are actually shading...
-//				if (this.settings.loaderSettings.quantizeNormals) {
-//					normal[0] = normal[0] / 127;
-//					normal[1] = normal[1] / 127;
-//					normal[2] = normal[2] / 127;
-//				}
-				vec3.transformMat4(normal, normal, object.matrix);
-				vec3.normalize(normal, normal);
-//				if (this.settings.quantizeNormals) {
-//					normal[0] = normal[0] * 127;
-//					normal[1] = normal[1] * 127;
-//					normal[2] = normal[2] * 127;
-//				}
-	
-				buffer.normals.set(normal, buffer.normalsIndex);
+			var floatNormal = vec3.create();
+			var intNormal = new Int8Array(3);
+			for (var i = 0; i < geometry.normals.length; i += 3) {
+
+				if (loaderQuantizeNormals) {
+
+					floatNormal[0] = geometry.normals[i] / 127;
+					floatNormal[1] = geometry.normals[i + 1] / 127;
+					floatNormal[2] = geometry.normals[i + 2] / 127;
+
+				} else {
+
+					floatNormal[0] = geometry.normals[i];
+					floatNormal[1] = geometry.normals[i + 1];
+					floatNormal[2] = geometry.normals[i + 2];
+				}
+
+				vec3.transformMat4(floatNormal, floatNormal, object.normalMatrix);
+				vec3.normalize(floatNormal, floatNormal);
+
+				if (quantizeNormals) {
+
+					intNormal[0] = floatNormal[0] * 127;
+					intNormal[1] = floatNormal[1] * 127;
+					intNormal[2] = floatNormal[2] * 127;
+
+					buffer.normals.set(intNormal, buffer.normalsIndex);
+
+				} else {
+					buffer.normals.set(floatNormal, buffer.normalsIndex);
+				}
+
 				buffer.normalsIndex += 3;
 			}
 			if (geometry.colors != null) {
@@ -234,6 +250,29 @@ export default class RenderLayer {
 	}
 	
 	addGeometryReusable(geometry, loader, gpuBufferManager) {
+
+		var self = this;
+
+		var programInfo = this.viewer.programManager.getProgram({
+			picking: false,
+			instancing: true,
+			useObjectColors: this.settings.useObjectColors,
+			quantizeNormals: this.settings.quantizeNormals,
+			quantizeVertices: this.settings.quantizeVertices,
+			quantizeColors: this.settings.quantizeColors
+		});
+
+		var pickProgramInfo = this.viewer.programManager.getProgram({
+			picking: true,
+			instancing: true,
+			useObjectColors: this.settings.useObjectColors,
+			quantizeNormals: false,
+			quantizeVertices: this.settings.quantizeVertices,
+			quantizeColors: false
+		});
+
+		const numInstances = geometry.objects.length;
+
 		const positionBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.bufferTransformer.convertVertices(geometry.roid, geometry.positions), this.gl.STATIC_DRAW, 0, 0);
@@ -253,28 +292,47 @@ export default class RenderLayer {
 		var indices = this.bufferTransformer.convertIndices(geometry.indices, geometry.positions.length);
 		this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, indices, this.gl.STATIC_DRAW, 0, 0);
 
-		const instancesBuffer = this.gl.createBuffer();
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancesBuffer);
-		var matrices = new Float32Array(geometry.matrices.length * 16);
-		geometry.matrices.forEach((matrix, index) => {
-			matrices.set(matrix, index * 16);
-		});
-		this.gl.bufferData(this.gl.ARRAY_BUFFER, matrices, this.gl.STATIC_DRAW, 0, 0);
+		// Draw and pick instances matrices
 
+		const instanceMatricesBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceMatricesBuffer);
+		var instanceMatrices = new Float32Array(numInstances * 16);
+		geometry.objects.forEach((object, index) => {
+			instanceMatrices.set(object.matrix, index * 16);
+		});
+		this.gl.bufferData(this.gl.ARRAY_BUFFER, instanceMatrices, this.gl.STATIC_DRAW, 0, 0);
+
+		// Draw instance normal matrices
+		
+		const instanceNormalMatricesBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceNormalMatricesBuffer);
+		var instanceNormalMatrices = new Float32Array(numInstances * 16);
+		geometry.objects.forEach((object, index) => {
+			instanceNormalMatrices.set(object.normalMatrix, index * 16);
+		});
+		this.gl.bufferData(this.gl.ARRAY_BUFFER, instanceNormalMatrices, this.gl.STATIC_DRAW, 0, 0);
+
+		// Pick instances pick colors
+
+		const instancePickColorsBuffer = this.gl.createBuffer();
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancePickColorsBuffer);
+		var instancePickColors = new Float32Array(numInstances * 4);
+		geometry.objects.forEach((object, index) => {
+			var viewObject = self.viewer.viewObjects[object.id];
+			if (viewObject) {
+				instancePickColors.set(self.viewer.getPickColor(viewObject.pickId), index * 4);
+			}
+		});
+		this.gl.bufferData(this.gl.ARRAY_BUFFER, instancePickColors, this.gl.STATIC_DRAW, 0, 0);
+
+		//--------------------------------------------------------------------------------------------------------------
 		// Create VAO for drawing
+		//--------------------------------------------------------------------------------------------------------------
 
 		var vao = this.gl.createVertexArray();
 		this.gl.bindVertexArray(vao);
-		
-		var programInfo = this.viewer.programManager.getProgram({
-			instancing: true,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: this.settings.quantizeNormals,
-			quantizeVertices: this.settings.quantizeVertices,
-			quantizeColors: this.settings.quantizeColors
-		});
 
-		{
+		{ // Positions
 			const numComponents = 3;
 			const normalize = false;
 			const stride = 0;
@@ -288,7 +346,8 @@ export default class RenderLayer {
 			}
 			this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
 		}
-		{
+
+		{ // Normals
 			const numComponents = 3;
 			const normalize = false;
 			const stride = 0;
@@ -303,6 +362,7 @@ export default class RenderLayer {
 			this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
 		}
 
+		// Vertex colors
 		if (!this.settings.useObjectColors) {
 			const numComponents = 4;
 			const normalize = false;
@@ -317,34 +377,52 @@ export default class RenderLayer {
 			this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
 		}
 
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancesBuffer);
+		// Instance matrices for positions
+		
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceMatricesBuffer);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 0, 4, this.gl.FLOAT, false, 64, 0);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices + 1);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 1, 4, this.gl.FLOAT, false, 64, 16);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices + 2);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 2, 4, this.gl.FLOAT, false, 64, 32);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices + 3);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 3, 4, this.gl.FLOAT, false, 64, 48);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceMatrices + 0, 1);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceMatrices + 1, 1);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceMatrices + 2, 1);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceMatrices + 3, 1);
 
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instances);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instances + 0, 4, this.gl.FLOAT, false, 64, 0);
+		// Instance matrices for normals
 
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instances + 1);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instances + 1, 4, this.gl.FLOAT, false, 64, 16);
-
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instances + 2);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instances + 2, 4, this.gl.FLOAT, false, 64, 32);
-
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instances + 3);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instances + 3, 4, this.gl.FLOAT, false, 64, 48);
-
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instances + 0, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instances + 1, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instances + 2, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instances + 3, 1);
-
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceNormalMatricesBuffer);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceNormalMatrices);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 0, 4, this.gl.FLOAT, false, 64, 0);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceNormalMatrices + 1);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 1, 4, this.gl.FLOAT, false, 64, 16);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceNormalMatrices + 2);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 2, 4, this.gl.FLOAT, false, 64, 32);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceNormalMatrices + 3);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 3, 4, this.gl.FLOAT, false, 64, 48);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 0, 1);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 1, 1);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 2, 1);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 3, 1);
+		
+		// Indices
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);		  
 
 		this.gl.bindVertexArray(null);
 
+        //--------------------------------------------------------------------------------------------------------------
 		// Create VAO for picking
+		//--------------------------------------------------------------------------------------------------------------
 
 		var vaoPick = this.gl.createVertexArray();
 
 		this.gl.bindVertexArray(vaoPick);
+
+		// Positions
 		{
 			const numComponents = 3;
 			const normalize = false;
@@ -359,17 +437,30 @@ export default class RenderLayer {
 			this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexPosition);
 		}
 
-		if (buffer.pickColors) {
-			const numComponents = 4;
-			const type = this.gl.FLOAT;
-			const normalize = false;
-			const stride = 0;
-			const offset = 0;
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
-			this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexPickColor, numComponents, type, normalize, stride, offset);
-			this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexPickColor);
-		}
+		// Instance matrices for positions
 
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceMatricesBuffer);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 0, 4, this.gl.FLOAT, false, 64, 0);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices + 1);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 1, 4, this.gl.FLOAT, false, 64, 16);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices + 2);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 2, 4, this.gl.FLOAT, false, 64, 32);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices + 3);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 3, 4, this.gl.FLOAT, false, 64, 48);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceMatrices + 0, 1);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceMatrices + 1, 1);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceMatrices + 2, 1);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceMatrices + 3, 1);
+
+		// Instance pick colors
+
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancePickColorsBuffer);
+		this.gl.enableVertexAttribArray(programInfo.attribLocations.instancePickColors);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instancePickColors, 4, this.gl.FLOAT, false, 0, 0);
+		this.gl.vertexAttribDivisor(programInfo.attribLocations.instancePickColors, 1);
+
+		// Indices
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
 		this.gl.bindVertexArray(null);
@@ -385,9 +476,10 @@ export default class RenderLayer {
 //				dirtyMatrices: false,
 				nrProcessedMatrices: geometry.matrices.length,
 //				geometry: geometry,
-				instancesBuffer: instancesBuffer,
+				instanceMatricesBuffer: instanceMatricesBuffer,
+                instancePickColorsBuffer: instancePickColorsBuffer,
 				roid: geometry.roid,
-//				instances: matrices,
+//				instanceMatrices: matrices,
 				hasTransparency: geometry.hasTransparency,
 				indexType: indices instanceof Uint16Array ? this.gl.UNSIGNED_SHORT : this.gl.UNSIGNED_INT,
 				reuse: true
@@ -484,13 +576,16 @@ export default class RenderLayer {
 	}
 
 	pickBuffer(buffer, programInfo) {
+		this.gl.bindVertexArray(buffer.vaoPick);
 		if (buffer.reuse) {
-			// TODO ?
+			if (this.viewer.settings.quantizeVertices) {
+				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
+			}
+			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 		} else {
-			this.gl.bindVertexArray(buffer.vaoPick);
 			this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
-			this.gl.bindVertexArray(null);
 		}
+		this.gl.bindVertexArray(null);
 	}
 
 	pick() {
@@ -526,33 +621,39 @@ export default class RenderLayer {
 		});
 		
 		if (!this.settings.fakeLoading) {
+
+			// Positions
 			const positionBuffer = this.gl.createBuffer();
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
 			this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.positions, this.gl.STATIC_DRAW, 0, buffer.positionsIndex);
 
+			// Normals
 			const normalBuffer = this.gl.createBuffer();
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
 			this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.normals, this.gl.STATIC_DRAW, 0, buffer.normalsIndex);
 
-			if (buffer.colors != null) {
-				var colorBuffer = this.gl.createBuffer();
+			// Colors
+			var colorBuffer;
+			if (buffer.colors) {
+				colorBuffer = this.gl.createBuffer();
 				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
 				this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.colors, this.gl.STATIC_DRAW, 0, buffer.colorsIndex);
 			}
 
+			// Per-object pick vertex colors
 			var pickColorBuffer;
 			if (buffer.pickColors) {
 				pickColorBuffer = this.gl.createBuffer();
 				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.pickColors, this.gl.STATIC_DRAW, 0, buffer.colorsIndex); // TODO: is colorsIndex correct?
+				this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.pickColors, this.gl.STATIC_DRAW, 0, buffer.pickColorsIndex); // TODO: is colorsIndex correct?
 			}
 
+			// Indices
 			const indexBuffer = this.gl.createBuffer();
 			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 			this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, buffer.indices, this.gl.STATIC_DRAW, 0, buffer.indicesIndex);
 
 			// Normal drawing VAO
-
 			var vao = this.gl.createVertexArray();
 			this.gl.bindVertexArray(vao);
 
@@ -606,6 +707,7 @@ export default class RenderLayer {
 			var vaoPick = this.gl.createVertexArray();
 			this.gl.bindVertexArray(vaoPick);
 
+			// Positions
 			{
 				const numComponents = 3;
 				const normalize = false;
@@ -620,6 +722,7 @@ export default class RenderLayer {
 				this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexPosition);
 			}
 
+			// Per-object pick vertex colors
 			if (buffer.pickColors) {
 				const numComponents = 4;
 				const type = this.gl.FLOAT;
