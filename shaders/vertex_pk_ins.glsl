@@ -4,8 +4,9 @@ precision mediump int;
 precision mediump float;
 
 in vec3 vertexPosition;
-in vec4 vertexPickColor;
-in mat4 instances;
+
+in mat4 instanceMatrices;
+in vec4 instancePickColors;
 
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
@@ -13,6 +14,7 @@ uniform mat4 viewMatrix;
 out mediump vec4 color;
 
 void main(void) {
-  gl_Position = projectionMatrix * viewMatrix * instances * vec4(vertexPosition, 1);
-  color = vertexPickColor;
+
+  gl_Position = projectionMatrix * viewMatrix * instanceMatrices * vec4(vertexPosition, 1);
+  color = instancePickColors;
 }
