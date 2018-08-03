@@ -168,9 +168,6 @@ export default class GeometryLoader {
 			var croid = stream.readLong();
 			var hasTransparency = stream.readLong() == 1;
 			var geometryDataId = stream.readLong();
-//			if (geometryDataId == 92085880682) {
-//				debugger;
-//			}
 			this.readGeometry(stream, roid, croid, geometryDataId, geometryDataId, hasTransparency, reused, type, true);
 			if (this.dataToInfo.has(geometryDataId)) {
 				// There are objects that have already been loaded, that are waiting for this GeometryData

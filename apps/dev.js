@@ -19,6 +19,7 @@ export default class Dev {
 		// Deep-clone the settings, so we know we have a non-changing view of the settings
 		this.settings = JSON.parse(JSON.stringify(this.settingsView.settings));
 		this.settings.viewerBasePath = "../";
+		this.settings.loaderSettings.tilingLayerReuse = false;
 		
 		this.canvas = document.getElementById("glcanvas");
 

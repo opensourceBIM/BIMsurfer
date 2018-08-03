@@ -105,6 +105,9 @@ export default class BimServerViewer {
 				return bbs[0];
 			};
 		}
+		if (settings.loaderSettings.tilingLayerReuse == null) {
+			settings.loaderSettings.tilingLayerReuse = true;
+		}
 	}
 
 	resizeCanvas() {
