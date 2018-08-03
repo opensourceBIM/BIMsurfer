@@ -99,6 +99,8 @@ export default class CameraControl {
                             var aabb = viewObject.aabb;
                             var center = [(aabb[0] + aabb[3]) / 2, (aabb[1] + aabb[4]) / 2, (aabb[0] + aabb[5]) / 2];
                             self.viewer.camera.target = center;
+
+                            console.log("Picked: " + viewObject.type);
                         }
                     }
                     break;
