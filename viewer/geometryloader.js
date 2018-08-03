@@ -193,14 +193,13 @@ export default class GeometryLoader {
 			var objectBounds = stream.readDoubleArray(6);
 			var matrix = stream.readDoubleArray(16);
 			var geometryDataOid = stream.readLong();
-			var geometryDataOids = this.geometryIds.get(geometryDataOid);
-			if (geometryDataOids == null) {
+			var geometryDataOidFound = geometryDataOid;
+			if (!this.geometryIds.has(geometryDataOid)) {
 				if (this.geometryCache != null && this.geometryCache.has(geometryDataOid)) {
 					// We know it's cached
-					geometryDataOids = [geometryDataOid];
 				} else {
+					geometryDataOidFound = null;
 					// We don't have the data yet, it might come in this stream, or maybe in a later stream
-					geometryDataOids = [];
 					var list = this.dataToInfo.get(geometryDataOid);
 					if (list == null) {
 						list = [oid];
@@ -210,7 +209,7 @@ export default class GeometryLoader {
 					}
 				}
 			}
-			this.createObject(roid, oid, oid, geometryDataOids, matrix, hasTransparency, type, objectBounds);
+			this.createObject(roid, oid, oid, geometryDataOidFound == null ? [] : [geometryDataOidFound], matrix, hasTransparency, type, objectBounds);
 		} else {
 			console.error("Unsupported geometry type: " + geometryType);
 			return;
@@ -278,9 +277,8 @@ export default class GeometryLoader {
 			colors = null;
 		}
 		if (!this.geometryIds.has(geometryDataOid)) {
-			this.geometryIds.set(geometryDataOid, []);
+			this.geometryIds.set(geometryDataOid, true);
 		}
-		this.geometryIds.get(geometryDataOid).push(geometryId);
 		this.renderLayer.createGeometry(this.loaderId, roid, croid, geometryDataOid, positions, normals, colors, color, indices, hasTransparency, reused);
 	}
 

@@ -35,7 +35,7 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	load(bimServerApi, densityThreshold, roids, fieldsToInclude, progressListener) {
-		var reuseLowerThreshold = 1000;
+		var reuseLowerThreshold = 1;
 		if (!this.settings.loaderSettings.tilingLayerReuse) {
 			reuseLowerThreshold = -1;
 		}
@@ -261,6 +261,10 @@ export default class TilingRenderLayer extends RenderLayer {
 		buffer.node = node;
 		
 		super.addGeometry(loaderId, geometry, object, buffer, sizes);
+	}
+	
+	dump() {
+		console.log(this.tileLoader.executor);
 	}
 	
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb) {

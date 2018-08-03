@@ -145,8 +145,6 @@ export default class VertexQuantization {
 
 		this.untransformedVertexQuantizationMatrix = this.toArray(matrix);
 		
-		console.log(this.untransformedVertexQuantizationMatrix);
-		console.log(this.vertexQuantizationMatrix);
 //		this.inverseVertexQuantizationMatrix = matrix;
 ////		settings.vertexQuantizationMatrix = matrix;
 //

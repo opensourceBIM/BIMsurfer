@@ -21,7 +21,6 @@ export default class ReuseLoader {
 			return;
 		}
 		var start = performance.now();
-		console.log(geometryDataIds);
 		var query = {
 			type: {
 				name: "GeometryData",
@@ -38,34 +37,10 @@ export default class ReuseLoader {
 		var p = geometryLoader.start();
 		p.then(() => {
 			var end = performance.now();
-			console.log("Reuse Loader", this.nrReused, (end - start) + "ms", this.bytesReused + "bytes");
 		});
 		return p;
 	}
 	
-//	start() {
-//		var start = performance.now();
-//		var query = {
-//			type: {
-//				name: "GeometryData",
-//				includeAllSubTypes: false
-//			},
-//			reuseLowerThreshold: this.reuseLowerThreshold,
-//			include: {
-//				type: "GeometryData",
-//				fieldsDirect: this.fieldsToInclude
-//			},
-//			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
-//		};
-//		var geometryLoader = new GeometryLoader(0, this.bimServerApi, this, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, null);
-//		var p = geometryLoader.start();
-//		p.then(() => {
-//			var end = performance.now();
-//			console.log("Reuse Loader", this.nrReused, (end - start) + "ms", this.bytesReused + "bytes");
-//		});
-//		return p;
-//	}
-
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
 		this.nrReused++;
 		var bytes = 0;
