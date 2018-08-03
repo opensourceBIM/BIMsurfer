@@ -35,7 +35,7 @@ export default class BufferManager {
 			normals: this.MAX_BUFFER_SIZE,
 			indices: this.MAX_BUFFER_SIZE * this.indicesVerticesFactor,
 			colors: this.MAX_BUFFER_SIZE * this.colorBufferFactor,
-			pickColors: this.MAX_BUFFER_SIZE
+			pickColors: this.MAX_BUFFER_SIZE * this.colorBufferFactor
 		};
 	}
 
