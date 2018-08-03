@@ -1,7 +1,7 @@
 import GeometryLoader from './geometryloader.js'
 
 export default class ReuseLoader {
-	constructor(viewer, reuseLowerThreshold, bimServerApi, fieldsToInclude, roids, quantizationMap, reusedGeometryCache, geometryDataToReuse) {
+	constructor(viewer, reuseLowerThreshold, bimServerApi, fieldsToInclude, roids, quantizationMap, geometryCache, geometryDataToReuse) {
 		this.settings = viewer.settings;
 		this.viewer = viewer;
 		this.reuseLowerThreshold = reuseLowerThreshold;
@@ -9,35 +9,39 @@ export default class ReuseLoader {
 		this.fieldsToInclude = fieldsToInclude;
 		this.roids = roids;
 		this.quantizationMap = quantizationMap;
-		this.reusedGeometryCache = reusedGeometryCache;
+		this.geometryCache = geometryCache;
 		this.geometryDataToReuse = geometryDataToReuse;
 		this.nrReused = 0;
+		this.bytesReused = 0;
+		this.loaderCounter = 0;
 	}
 	
-	start() {
+	load(geometryDataIds) {
+		if (geometryDataIds.length == 0) {
+			return;
+		}
 		var start = performance.now();
 		var query = {
 			type: {
 				name: "GeometryData",
 				includeAllSubTypes: false
 			},
-			reuseLowerThreshold: this.reuseLowerThreshold,
+			oids: geometryDataIds,
 			include: {
 				type: "GeometryData",
 				fieldsDirect: this.fieldsToInclude
 			},
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 		};
-		var geometryLoader = new GeometryLoader(0, this.bimServerApi, this, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, null);
+		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, this, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, null);
 		var p = geometryLoader.start();
 		p.then(() => {
 			var end = performance.now();
-			console.log(this.nrReused, (end - start) + "ms");
 		});
 		return p;
 	}
-
-	createGeometry(loaderId, roid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
+	
+	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
 		this.nrReused++;
 		var bytes = 0;
 		if (this.settings.quantizeVertices) {
@@ -62,9 +66,11 @@ export default class ReuseLoader {
 		} else {
 			bytes += normals.length * 4;
 		}
+		this.bytesReused += bytes;
 		var geometry = {
 				id: geometryId,
 				roid: roid,
+				croid: croid,
 				positions: positions,
 				normals: normals,
 				colors: colors,
@@ -78,10 +84,7 @@ export default class ReuseLoader {
 				objects: []
 		};
 		
-		if (this.reusedGeometryCache.has(geometryId)) {
-			console.error("Geometry already in cache b", geometryId);
-		}
-		this.reusedGeometryCache.set(geometryId, geometry);
+		this.geometryCache.set(geometryId, geometry);
 		
 		geometry.isReused = geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id);
 		if (geometry.isReused) {

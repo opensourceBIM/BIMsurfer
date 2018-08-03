@@ -101,14 +101,25 @@ export default class GeometryLoader {
 	readEnd(data) {
 		if (this.dataToInfo.size > 0) {
 			// We need to tell the renderlayer that not all data has been loaded
-			this.renderLayer.storeMissingGeometry(this.dataToInfo);
+			this.renderLayer.storeMissingGeometry(this, this.dataToInfo);
 		}
 //		console.log(this.dataToInfo);
 
 //		this.viewer.loadingDone();
 		this.bimServerApi.callWithWebsocket("ServiceInterface", "cleanupLongAction", {topicId: this.topicId});
 		this.bimServerApi.clearBinaryDataListener(this.topicId);
-		this.resolve();
+		if (this.dataToInfo.size == 0) {
+			// Only resolve (and cleanup this loader) when all has been loaded
+			this.resolve();
+		}
+	}
+	
+	geometryDataIdResolved(geometryDataId) {
+		this.dataToInfo.delete(geometryDataId);
+		if (this.dataToInfo.size == 0) {
+			// Only resolve (and cleanup this loader) when all has been loaded
+			this.resolve();
+		}
 	}
 
 	readStart(data) {
@@ -154,9 +165,10 @@ export default class GeometryLoader {
 			var type = stream.readUTF8();
 			stream.align8();
 			var roid = stream.readLong();
+			var croid = stream.readLong();
 			var hasTransparency = stream.readLong() == 1;
 			var geometryDataId = stream.readLong();
-			this.readGeometry(stream, roid, geometryDataId, geometryDataId, hasTransparency, reused, type, true);
+			this.readGeometry(stream, roid, croid, geometryDataId, geometryDataId, hasTransparency, reused, type, true);
 			if (this.dataToInfo.has(geometryDataId)) {
 				// There are objects that have already been loaded, that are waiting for this GeometryData
 				this.dataToInfo.get(geometryDataId).forEach((oid) => {
@@ -181,12 +193,13 @@ export default class GeometryLoader {
 			var objectBounds = stream.readDoubleArray(6);
 			var matrix = stream.readDoubleArray(16);
 			var geometryDataOid = stream.readLong();
-			var geometryDataOids = this.geometryIds.get(geometryDataOid);
-			if (geometryDataOids == null) {
+			var geometryDataOidFound = geometryDataOid;
+			if (!this.geometryIds.has(geometryDataOid)) {
 				if (this.geometryCache != null && this.geometryCache.has(geometryDataOid)) {
-					geometryDataOids = [geometryDataOid];
+					// We know it's cached
 				} else {
-					geometryDataOids = [];
+					geometryDataOidFound = null;
+					// We don't have the data yet, it might come in this stream, or maybe in a later stream
 					var list = this.dataToInfo.get(geometryDataOid);
 					if (list == null) {
 						list = [oid];
@@ -196,7 +209,7 @@ export default class GeometryLoader {
 					}
 				}
 			}
-			this.createObject(roid, oid, oid, geometryDataOids, matrix, hasTransparency, type, objectBounds);
+			this.createObject(roid, oid, oid, geometryDataOidFound == null ? [] : [geometryDataOidFound], matrix, hasTransparency, type, objectBounds);
 		} else {
 			console.error("Unsupported geometry type: " + geometryType);
 			return;
@@ -205,7 +218,7 @@ export default class GeometryLoader {
 		this.state.nrObjectsRead++;
 	}
 
-	readGeometry(stream, roid, geometryId, geometryDataOid, hasTransparency, reused, type, useIntForIndices) {
+	readGeometry(stream, roid, croid, geometryId, geometryDataOid, hasTransparency, reused, type, useIntForIndices) {
 		var numIndices = stream.readInt();
 		if (useIntForIndices) {
 			var indices = stream.readIntArray(numIndices);
@@ -264,10 +277,9 @@ export default class GeometryLoader {
 			colors = null;
 		}
 		if (!this.geometryIds.has(geometryDataOid)) {
-			this.geometryIds.set(geometryDataOid, []);
+			this.geometryIds.set(geometryDataOid, true);
 		}
-		this.geometryIds.get(geometryDataOid).push(geometryId);
-		this.renderLayer.createGeometry(this.loaderId, roid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused);
+		this.renderLayer.createGeometry(this.loaderId, roid, croid, geometryDataOid, positions, normals, colors, color, indices, hasTransparency, reused);
 	}
 
 	readColors(stream, type) {

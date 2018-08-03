@@ -9,8 +9,9 @@
  */
 
 export default class ProgramManager {
-	constructor(gl) {
+	constructor(gl, viewerBasePath) {
 		this.gl = gl;
+		this.viewerBasePath = viewerBasePath;
 		this.loadedFiles = new Map();
 		this.programs = {};
 		this.promises = [];
@@ -80,7 +81,7 @@ export default class ProgramManager {
 		var settings = {
 			specialType: "line"
 		};
-		this.setupProgram("shaders/vertex_line.glsl", "shaders/fragment_line.glsl", {
+		this.setupProgram(this.viewerBasePath + "shaders/vertex_line.glsl", this.viewerBasePath + "shaders/fragment_line.glsl", {
 			attributes: ["vertexPosition"],
 			uniforms: [
 				"matrix",
@@ -122,7 +123,7 @@ export default class ProgramManager {
 		};
 		var vertexShaderName = this.getVertexShaderName(settings);
 		var fragShaderName = picking ? "shaders/fragment_pk.glsl" : "shaders/fragment.glsl";
-		this.setupProgram(vertexShaderName, fragShaderName, defaultSetup, this.generateSetup(settings), settings);
+		this.setupProgram(this.viewerBasePath + vertexShaderName, this.viewerBasePath + fragShaderName, defaultSetup, this.generateSetup(settings), settings);
 	}
 
 	getVertexShaderName(settings) {
@@ -190,6 +191,9 @@ export default class ProgramManager {
 							//console.log("attributes:");
 							for (var attribute of setup.attributes) {
 								programInfo.attribLocations[attribute] = this.gl.getAttribLocation(shaderProgram, attribute);
+								if (programInfo.attribLocations[attribute] == -1) {
+									console.error("Missing attribute location", attribute, vertexShader);
+								}
 								//console.log("attribute  '" + attribute + "' = " + programInfo.attribLocations[attribute]);
 							}
 						}
@@ -253,7 +257,7 @@ export default class ProgramManager {
 		gl.linkProgram(shaderProgram);
 
 		if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-			alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
+			console.error('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
 			return null;
 		}
 
@@ -265,7 +269,7 @@ export default class ProgramManager {
 		gl.shaderSource(shader, source);
 		gl.compileShader(shader);
 		if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-			alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+			console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
 			gl.deleteShader(shader);
 			return null;
 		}

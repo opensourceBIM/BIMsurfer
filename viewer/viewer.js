@@ -16,9 +16,17 @@ import RenderBuffer from './renderBuffer.js'
 
 export default class Viewer {
 
-    constructor(settings, stats, width, height) {
+    constructor(canvas, settings, stats, width, height) {
         this.stats = stats;
         this.settings = settings;
+        this.canvas = canvas;
+        
+        this.gl = this.canvas.getContext('webgl2');
+
+        if (!this.gl) {
+            alert('Unable to initialize WebGL. Your browser or machine may not support it.');
+            return;
+        }
 
         this.width = width;
         this.height = height;
@@ -47,14 +55,6 @@ export default class Viewer {
             this.fps = 0;
             this.timeLast = 0;
 
-            this.canvas = document.querySelector('#glcanvas');
-            this.gl = this.canvas.getContext('webgl2');
-
-            if (!this.gl) {
-                alert('Unable to initialize WebGL. Your browser or machine may not support it.');
-                return;
-            }
-
             this.canvas.oncontextmenu = function (e) { // Allow right-click for camera panning
                 e.preventDefault();
             };
@@ -62,7 +62,7 @@ export default class Viewer {
             this.camera = new Camera(this);
             this.cameraControl = new CameraControl(this);
             this.lighting = new Lighting(this.gl);
-            this.programManager = new ProgramManager(this.gl);
+            this.programManager = new ProgramManager(this.gl, this.settings.viewerBasePath);
 
             this.programManager.load().then(() => {
                 this.gl.enable(this.gl.CULL_FACE);
@@ -220,12 +220,11 @@ export default class Viewer {
 
         this.renderBuffer.unbind();
 
-        console.log(pickColor);
-
         var pickId = pickColor[0] + (pickColor[1] * 256) + (pickColor[2] * 256 * 256) + (pickColor[3] * 256 * 256 * 256);
         pickId--;
 
         var viewObject = this.viewObjectsByPickId[pickId];
+        console.log(viewObject);
 
         if (viewObject) {
             return viewObject;

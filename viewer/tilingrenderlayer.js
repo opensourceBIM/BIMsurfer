@@ -35,24 +35,25 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	load(bimServerApi, densityThreshold, roids, fieldsToInclude, progressListener) {
-		var reuseLowerThreshold = 1000;
+		var reuseLowerThreshold = 1;
+		if (!this.settings.loaderSettings.tilingLayerReuse) {
+			reuseLowerThreshold = -1;
+		}
 		this.tileLoader = new TileLoader(this, this.viewer, bimServerApi, densityThreshold, reuseLowerThreshold, this.geometryDataToReuse, roids, fieldsToInclude);
+		if (this.settings.loaderSettings.tilingLayerReuse) {
+			this.reuseLoader = new ReuseLoader(this.viewer, reuseLowerThreshold, bimServerApi, fieldsToInclude, roids, this.tileLoader.quantizationMap, this.geometryCache, this.geometryDataToReuse);
+		}
+
 		var promise = new Promise((resolve, reject) => {
 			var init = this.tileLoader.initialize().then(() => {
-				this.loadReusedObjects(bimServerApi, fieldsToInclude, roids, reuseLowerThreshold).then(() => {
-					this.enabled = true;
-					if (this.initialLoad == "all") {
-						return this.tileLoader.loadAll(progressListener);
-					}
-					resolve();
-				});
+				this.enabled = true;
+				if (this.initialLoad == "all") {
+					return this.tileLoader.loadAll(progressListener);
+				}
+				resolve();
 			});
 		});
 		return promise;
-	}
-	
-	loadReusedObjects(bimServerApi, fieldsToInclude, roids, reuseLowerThreshold) {
-		return new ReuseLoader(this.viewer, reuseLowerThreshold, bimServerApi, fieldsToInclude, roids, this.tileLoader.quantizationMap, this.reusedGeometryCache, this.geometryDataToReuse).start();
 	}
 
 	cull(node) {
@@ -263,43 +264,14 @@ export default class TilingRenderLayer extends RenderLayer {
 		super.addGeometry(loaderId, geometry, object, buffer, sizes);
 	}
 	
+	dump() {
+		console.log(this.tileLoader.executor);
+	}
+
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
 		var loader = this.getLoader(loaderId);
 		var node = this.loaderToNode[loaderId];
-		var object = {
-			id: objectId,
-			visible: type != "IfcOpeningElement" && type != "IfcSpace",
-			hasTransparency: hasTransparency,
-			normalMatrix: normalMatrix,
-			matrix: matrix,
-			scaleMatrix: scaleMatrix,
-			geometry: [],
-			roid: roid,
-//			object: this.viewer.model.objects[oid],
-			add: (geometryId, objectId) => {
-				this.addGeometryToObject(geometryId, objectId, loader, node.gpuBufferManager);
-			}
-		};
-
-		loader.objects.set(oid, object);
-
-		var viewObject = {
-			type: type,
-			aabb: aabb,
-			objectId: objectId,
-			oid: oid,
-			pickId: this.viewer.viewObjectsByPickId.length
-		};
-		this.viewer.viewObjectsByPickId.push(viewObject);
-		this.viewer.viewObjects[objectId] = viewObject;
-
-		geometryIds.forEach((id) => {
-			this.addGeometryToObject(id, object.id, loader, node.gpuBufferManager);
-		});
-
-		this.viewer.stats.inc("Models", "Objects");
-
-		return object;
+		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, node.gpuBufferManager);
 	}
 
 	addGeometryReusable(geometry, loader, gpuBufferManager) {

@@ -1,7 +1,7 @@
 import BufferTransformer from './buffertransformer.js'
 import Utils from './utils.js'
 import GpuBufferManager from './gpubuffermanager.js'
-import ReuseLoader from './reuseloader.js'
+import GeometryCache from './geometrycache.js'
 
 export default class RenderLayer {
 	constructor(viewer, geometryDataToReuse) {
@@ -9,15 +9,13 @@ export default class RenderLayer {
 		this.viewer = viewer;
 		this.gl = viewer.gl;
 		this.geometryDataToReuse = geometryDataToReuse;
-
-		// GeometryData ID -> geometry
-		this.reusedGeometryCache = new Map();
+		this.geometryCache = new GeometryCache(this);
 
 		this.loaders = new Map();
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
 	}
 
-	createGeometry(loaderId, roid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
+	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
 		var bytes = 0;
 		if (this.settings.quantizeVertices) {
 			bytes += positions.length * 2;
@@ -44,6 +42,7 @@ export default class RenderLayer {
 		var geometry = {
 				id: geometryId,
 				roid: roid,
+				croid: croid,
 				positions: positions,
 				normals: normals,
 				colors: colors,
@@ -70,6 +69,45 @@ export default class RenderLayer {
 		return geometry;
 	}
 
+	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager) {
+		var object = {
+				id: objectId,
+				visible: type != "IfcOpeningElement" && type != "IfcSpace",
+				hasTransparency: hasTransparency,
+				matrix: matrix,
+                normalMatrix: noemalMatrix,
+				scaleMatrix: scaleMatrix,
+				geometry: [],
+				roid: roid,
+//				object: this.viewer.model.objects[oid],
+				add: (geometryId, objectId) => {
+					this.addGeometryToObject(geometryId, objectId, loader, gpuBufferManager);
+				}
+		};
+
+		var loader = this.getLoader(loaderId);
+		loader.objects.set(oid , object);
+
+		var viewObject = {
+            type: type,
+			aabb: aabb,
+			objectId: objectId,
+			oid: oid,
+			pickId: this.viewer.viewObjectsByPickId.length,
+			center: null // TODO
+		};
+		this.viewer.viewObjectsByPickId.push(viewObject);
+		this.viewer.viewObjects[objectId] = viewObject;
+
+		geometryIds.forEach((id) => {
+			this.addGeometryToObject(id, object.id, loader, gpuBufferManager);
+		});
+
+		this.viewer.stats.inc("Models", "Objects");
+
+		return object;
+	}
+
 	addGeometry(loaderId, geometry, object, buffer, sizes) {
 
 		var loaderQuantizeNormals = this.settings.loaderSettings.quantizeNormals;
@@ -93,7 +131,7 @@ export default class RenderLayer {
 				// In that case we won't have to unquantize + quantize again
 				
 				if (this.settings.loaderSettings.quantizeVertices) {
-					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(geometry.roid));
+					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(geometry.croid));
 				}
 				vec3.transformMat4(vertex, vertex, object.matrix);
 				if (this.settings.quantizeVertices) {
@@ -214,18 +252,31 @@ export default class RenderLayer {
 		}
 	}
 	
-	storeMissingGeometry(map) {
-		console.log(map);
+	storeMissingGeometry(geometryLoader, map) {
+		var node = this.loaderToNode[geometryLoader.loaderId];
+		for (var geometryDataId of map.keys()) {
+			var geometryInfoIds = map.get(geometryDataId);
+			for (var geometryInfoId of geometryInfoIds) {
+				this.geometryCache.integrate(geometryDataId, {
+					loader: this.getLoader(geometryLoader.loaderId),
+					gpuBufferManager: node.gpuBufferManager,
+					geometryInfoId: geometryInfoId,
+					geometryLoader: geometryLoader
+				});
+			}
+		}
 		
 		// We need to start loading some GeometryData at some point, and add the missing pieces
-		
+		if (!this.geometryCache.isEmpty()) {
+			this.reuseLoader.load(this.geometryCache.pullToLoad());
+		}
 	}
 	
 	addGeometryToObject(geometryId, objectId, loader, gpuBufferManager) {
 		var geometry = loader.geometries.get(geometryId);
 		if (geometry == null) {
-			if (this.reusedGeometryCache.has(geometryId)) {
-				geometry = this.reusedGeometryCache.get(geometryId);
+			if (this.geometryCache.has(geometryId)) {
+				geometry = this.geometryCache.get(geometryId);
 			} else {
 				console.error("Missing geometry id");
 				return;
@@ -303,7 +354,7 @@ export default class RenderLayer {
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, instanceMatrices, this.gl.STATIC_DRAW, 0, 0);
 
 		// Draw instance normal matrices
-		
+
 		const instanceNormalMatricesBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceNormalMatricesBuffer);
 		var instanceNormalMatrices = new Float32Array(numInstances * 16);
@@ -378,7 +429,7 @@ export default class RenderLayer {
 		}
 
 		// Instance matrices for positions
-		
+
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceMatricesBuffer);
 		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices);
 		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 0, 4, this.gl.FLOAT, false, 64, 0);
@@ -408,7 +459,7 @@ export default class RenderLayer {
 		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 1, 1);
 		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 2, 1);
 		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 3, 1);
-		
+
 		// Indices
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);		  
 
@@ -479,6 +530,8 @@ export default class RenderLayer {
 				instanceMatricesBuffer: instanceMatricesBuffer,
                 instancePickColorsBuffer: instancePickColorsBuffer,
 				roid: geometry.roid,
+				croid: geometry.croid,
+//				instances: matrices,
 //				instanceMatrices: matrices,
 				hasTransparency: geometry.hasTransparency,
 				indexType: indices instanceof Uint16Array ? this.gl.UNSIGNED_SHORT : this.gl.UNSIGNED_INT,
@@ -557,7 +610,7 @@ export default class RenderLayer {
 		if (buffer.reuse) {
 			// TODO we only need to bind this again for every new roid, maybe sort by buffer.roid before iterating through the buffers?
 			if (this.viewer.settings.quantizeVertices) {
-				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.roid));
+				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(buffer.croid));
 			}
 			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 		} else {

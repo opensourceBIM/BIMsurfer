@@ -77,3 +77,45 @@ a {
 #settings input {
 	width: 100px;
 }
+
+.arrow {
+	width: 16px;
+	height: 16px;
+}
+
+.arrow:hover {
+	cursor: pointer;
+}
+
+.arrowclosed {
+	background-image: url("../img/black_arrow.png");
+}
+
+.arrowclosed:hover {
+	background-image: url("../img/blue_arrow.png");
+}
+
+.arrowopen {
+	background-image: url("../img/black_arrow_down.png");
+}
+
+.arrowopen:hover {
+	background-image: url("../img/blue_arrow_down.png");
+}
+
+.wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.serverstatus {
+	width: 100px;
+}
+
+.serverstatus.up {
+	background: green;
+}
+
+.serverstatus.down {
+	background: red;
+}

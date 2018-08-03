@@ -12,10 +12,10 @@ export default class VertexQuantization {
 		this.untransformedInverseQuantizationMatrices = new Map();
 	}
 
-	getUntransformedInverseVertexQuantizationMatrixForRoid(roid) {
-		var matrix = this.untransformedInverseQuantizationMatrices.get(roid);
+	getUntransformedInverseVertexQuantizationMatrixForRoid(croid) {
+		var matrix = this.untransformedInverseQuantizationMatrices.get(croid);
 		if (matrix == null) {
-			throw "Not found for roid " + roid;
+			throw "Not found for croid " + croid;
 		}
 		return matrix;
 	}
@@ -145,8 +145,6 @@ export default class VertexQuantization {
 
 		this.untransformedVertexQuantizationMatrix = this.toArray(matrix);
 		
-		console.log(this.untransformedVertexQuantizationMatrix);
-		console.log(this.vertexQuantizationMatrix);
 //		this.inverseVertexQuantizationMatrix = matrix;
 ////		settings.vertexQuantizationMatrix = matrix;
 //

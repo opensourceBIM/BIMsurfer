@@ -2,28 +2,47 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>WebGL Demo</title>
+<title>BIMsurfer V2.1</title>
 <link rel="icon" type="image/png" href="img/application_home.png" />
-<link href="css/main.css" type="text/css" rel="stylesheet" />
+<link href="css/index.css" type="text/css" rel="stylesheet" />
 </head>
-
 <body>
-	<div id="overlay">
-		<div id="inside">
-			<div id="projects"></div>
-			<div id="stats"></div>
+	<h1>BIMsurfer V2.1 Index Page</h1>
+	<p>This page serves as an index page to jump to different applications of BIMsurfer V2.1</p>
+	<div class="wrapper">
+		<div class="mode">
+			<a href="apps/dev.html">
+				<b>Developer Mode</b>
+				<p>
+					Includes UI to select project, visual settings and stats
+				</p>
+				<img/>
+			</a>
+		</div>
+		<div class="mode">
+			<a href="apps/minimal.html"> 
+				<b>Minimal Demo</b>
+				<p>
+					A minimal implementation, ready for copy/paste. Make sure to change the default credentials and settings
+				</p>
+				<img/>
+			</a>
+		</div>
+		<div class="mode">
+			<a href="apps/interactive.html">
+				<b>Interactive Demo</b>
+				<p>
+					Allows you to select a BIMserver first, login and then select the project you want you want to visualize
+				</p>
+				<img/>
+			</a>
 		</div>
 	</div>
-	<div id="settings">
-	</div>
-	<div id="viewer">
-		<canvas id="glcanvas"></canvas>
-		<div id="progressbar">
-			<div id="progress"></div>
+	<div>
+		<div>
+		Have you read the <a href="https://github.com/TNOBIM/BIMSurfer/wiki/Requirements">Requirements</a> document?
+		Have you read the <a href="https://github.com/TNOBIM/BIMSurfer/wiki/Design">Design</a> document?
 		</div>
 	</div>
 </body>
-
-<script src="gl-matrix.js"></script>
-<script type="module" src="app.js"></script>
 </html>
