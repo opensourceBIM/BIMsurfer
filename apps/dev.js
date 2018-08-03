@@ -23,7 +23,7 @@ export default class Dev {
 		
 		this.canvas = document.getElementById("glcanvas");
 
-		this.api = new BimServerClient("https://epic.logic-labs.nl");
+		this.api = new BimServerClient("http://localhost:8080");
 		this.api.init(() => {
 			this.api.login("admin@bimserver.org", "admin", () => {
 				this.loadProjects();
