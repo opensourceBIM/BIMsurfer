@@ -35,7 +35,7 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	load(bimServerApi, densityThreshold, roids, fieldsToInclude, progressListener) {
-		var reuseLowerThreshold = 1;
+		var reuseLowerThreshold = this.settings.loaderSettings.reuseThreshold;
 		if (!this.settings.loaderSettings.tilingLayerReuse) {
 			reuseLowerThreshold = -1;
 		}

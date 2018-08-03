@@ -108,6 +108,9 @@ export default class BimServerViewer {
 		if (settings.loaderSettings.tilingLayerReuse == null) {
 			settings.loaderSettings.tilingLayerReuse = true;
 		}
+		if (settings.loaderSettings.reuseThreshold == null) {
+			settings.loaderSettings.reuseThreshold = 1000;
+		}
 	}
 
 	resizeCanvas() {
@@ -154,6 +157,8 @@ export default class BimServerViewer {
 			this.densityThreshold = densityAtThreshold.density;
 			var nrPrimitivesBelow = densityAtThreshold.trianglesBelow;
 			var nrPrimitivesAbove = densityAtThreshold.trianglesAbove;
+			
+			console.log(nrPrimitivesBelow, nrPrimitivesAbove);
 			
 			this.bimServerApi.call("ServiceInterface", "getRevision", {
 				roid: project.lastRevisionId

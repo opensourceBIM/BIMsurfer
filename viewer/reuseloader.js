@@ -22,10 +22,6 @@ export default class ReuseLoader {
 		}
 		var start = performance.now();
 		var query = {
-			type: {
-				name: "GeometryData",
-				includeAllSubTypes: false
-			},
 			oids: geometryDataIds,
 			include: {
 				type: "GeometryData",
