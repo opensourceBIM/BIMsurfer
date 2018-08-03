@@ -1,7 +1,7 @@
 import BufferTransformer from './buffertransformer.js'
 import Utils from './utils.js'
 import GpuBufferManager from './gpubuffermanager.js'
-import ReuseLoader from './reuseloader.js'
+import GeometryCache from './geometrycache.js'
 
 export default class RenderLayer {
 	constructor(viewer, geometryDataToReuse) {
@@ -9,9 +9,7 @@ export default class RenderLayer {
 		this.viewer = viewer;
 		this.gl = viewer.gl;
 		this.geometryDataToReuse = geometryDataToReuse;
-
-		// GeometryData ID -> geometry
-		this.reusedGeometryCache = new Map();
+		this.geometryCache = new GeometryCache(this);
 
 		this.loaders = new Map();
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
@@ -237,18 +235,31 @@ export default class RenderLayer {
 		}
 	}
 	
-	storeMissingGeometry(map) {
-		console.log(map);
+	storeMissingGeometry(geometryLoader, map) {
+		var node = this.loaderToNode[geometryLoader.loaderId];
+		for (var geometryDataId of map.keys()) {
+			var geometryInfoIds = map.get(geometryDataId);
+			for (var geometryInfoId of geometryInfoIds) {
+				this.geometryCache.integrate(geometryDataId, {
+					loader: this.getLoader(geometryLoader.loaderId),
+					gpuBufferManager: node.gpuBufferManager,
+					geometryInfoId: geometryInfoId,
+					geometryLoader: geometryLoader
+				});
+			}
+		}
 		
 		// We need to start loading some GeometryData at some point, and add the missing pieces
-		
+		if (!this.geometryCache.isEmpty()) {
+			this.reuseLoader.load(this.geometryCache.pullToLoad());
+		}		
 	}
 	
 	addGeometryToObject(geometryId, objectId, loader, gpuBufferManager) {
 		var geometry = loader.geometries.get(geometryId);
 		if (geometry == null) {
-			if (this.reusedGeometryCache.has(geometryId)) {
-				geometry = this.reusedGeometryCache.get(geometryId);
+			if (this.geometryCache.has(geometryId)) {
+				geometry = this.geometryCache.get(geometryId);
 			} else {
 				console.error("Missing geometry id");
 				return;

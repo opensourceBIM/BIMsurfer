@@ -132,6 +132,10 @@ export default class TileLoader {
 		});
 	}
 	
+	geometryLoaderDone(geometryLoader) {
+		
+	}
+	
 	loadAll(progressListener) {
 		var executor = new Executor(64);
 		executor.setProgressListener(progressListener);

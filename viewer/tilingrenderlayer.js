@@ -37,22 +37,18 @@ export default class TilingRenderLayer extends RenderLayer {
 	load(bimServerApi, densityThreshold, roids, fieldsToInclude, progressListener) {
 		var reuseLowerThreshold = 1000;
 		this.tileLoader = new TileLoader(this, this.viewer, bimServerApi, densityThreshold, reuseLowerThreshold, this.geometryDataToReuse, roids, fieldsToInclude);
+		this.reuseLoader = new ReuseLoader(this.viewer, reuseLowerThreshold, bimServerApi, fieldsToInclude, roids, this.tileLoader.quantizationMap, this.geometryCache, this.geometryDataToReuse);
+
 		var promise = new Promise((resolve, reject) => {
 			var init = this.tileLoader.initialize().then(() => {
-				this.loadReusedObjects(bimServerApi, fieldsToInclude, roids, reuseLowerThreshold).then(() => {
-					this.enabled = true;
-					if (this.initialLoad == "all") {
-						return this.tileLoader.loadAll(progressListener);
-					}
-					resolve();
-				});
+				this.enabled = true;
+				if (this.initialLoad == "all") {
+					return this.tileLoader.loadAll(progressListener);
+				}
+				resolve();
 			});
 		});
 		return promise;
-	}
-	
-	loadReusedObjects(bimServerApi, fieldsToInclude, roids, reuseLowerThreshold) {
-		return new ReuseLoader(this.viewer, reuseLowerThreshold, bimServerApi, fieldsToInclude, roids, this.tileLoader.quantizationMap, this.reusedGeometryCache, this.geometryDataToReuse).start();
 	}
 
 	cull(node) {

@@ -100,6 +100,11 @@ export default class BimServerViewer {
 		if (settings.viewerBasePath == null) {
 			settings.viewerBasePath = "./";
 		}
+		if (settings.regionSelector == null) {
+			settings.regionSelector = (bbs) => {
+				return bbs[0];
+			};
+		}
 	}
 
 	resizeCanvas() {
@@ -122,21 +127,35 @@ export default class BimServerViewer {
 		this.totalStart = performance.now();
 
 		this.viewer.init().then(() => {
-			this.bimServerApi.call("ServiceInterface", "getDensityThreshold", {
-				roid: project.lastRevisionId,
-				nrTriangles: this.viewer.settings.triangleThresholdDefaultLayer,
-				excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"]
-			}, (densityAtThreshold) => {
-				this.densityAtThreshold = densityAtThreshold;
-				this.densityThreshold = densityAtThreshold.density;
-				var nrPrimitivesBelow = densityAtThreshold.trianglesBelow;
-				var nrPrimitivesAbove = densityAtThreshold.trianglesAbove;
-				
-				this.bimServerApi.call("ServiceInterface", "getRevision", {
-					roid: project.lastRevisionId
-				}, (revision) => {
-					this.loadRevision(revision, nrPrimitivesBelow, nrPrimitivesAbove);
-				});
+			this.bimServerApi.call("ServiceInterface", "listBoundingBoxes", {
+				roids: [project.lastRevisionId]
+			}, (bbs) => {
+				if (bbs.length > 1) {
+					this.settings.regionSelector().then((bb) => {
+						this.genDensityThreshold(project, bb);
+					});
+				} else {
+					this.genDensityThreshold(project, bbs[0]);
+				}
+			});
+		});
+	}
+
+	genDensityThreshold(project, bb) {
+		this.bimServerApi.call("ServiceInterface", "getDensityThreshold", {
+			roid: project.lastRevisionId,
+			nrTriangles: this.viewer.settings.triangleThresholdDefaultLayer,
+			excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"]
+		}, (densityAtThreshold) => {
+			this.densityAtThreshold = densityAtThreshold;
+			this.densityThreshold = densityAtThreshold.density;
+			var nrPrimitivesBelow = densityAtThreshold.trianglesBelow;
+			var nrPrimitivesAbove = densityAtThreshold.trianglesAbove;
+			
+			this.bimServerApi.call("ServiceInterface", "getRevision", {
+				roid: project.lastRevisionId
+			}, (revision) => {
+				this.loadRevision(revision, nrPrimitivesBelow, nrPrimitivesAbove);
 			});
 		});
 	}
