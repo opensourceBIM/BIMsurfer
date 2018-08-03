@@ -223,7 +223,7 @@ export default class Viewer {
         console.log(pickColor);
 
         var pickId = pickColor[0] + (pickColor[1] * 256) + (pickColor[2] * 256 * 256) + (pickColor[3] * 256 * 256 * 256);
-       // pickId--;
+        pickId--;
 
         var viewObject = this.viewObjectsByPickId[pickId];
 
@@ -240,10 +240,10 @@ export default class Viewer {
         var g = objectViewId >> 8 & 0xFF;
         var r = objectViewId & 0xFF;
         var pickColor = vec4.create();
-        pickColor[3] = a / 255;
-        pickColor[2] = b / 255;
-        pickColor[1] = g / 255;
         pickColor[0] = r / 255;
+        pickColor[1] = g / 255;
+        pickColor[2] = b / 255;
+        pickColor[3] = a / 255;
         return pickColor;
     }
 
