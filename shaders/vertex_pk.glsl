@@ -12,7 +12,7 @@ uniform mat4 viewMatrix;
 out mediump vec4 color;
 
 void main(void) {
+
   gl_Position = projectionMatrix * viewMatrix * vec4(vertexPosition, 1);
   color = vertexPickColor;
-
 }

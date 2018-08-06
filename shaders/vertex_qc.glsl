@@ -21,9 +21,9 @@ uniform LightData {
 out mediump vec4 color;
 
 void main(void) {
-  gl_Position = projectionMatrix * viewMatrix * vec4(vertexPosition, 1);
 
-  vec3 niewNormal = vec3( viewNormalMatrix * vec4(vertexNormal, 0.0));
+    vec3 niewNormal = vec3( viewNormalMatrix * vec4(vertexNormal, 0.0));
 
-  color = vec4(float(vertexColor.x) / 255.0, float(vertexColor.y) / 255.0, float(vertexColor.z) / 255.0, float(vertexColor.w) / 255.0);
+    gl_Position = projectionMatrix * viewMatrix * vec4(vertexPosition, 1);
+    color = vec4(float(vertexColor.x) / 255.0, float(vertexColor.y) / 255.0, float(vertexColor.z) / 255.0, float(vertexColor.w) / 255.0);
 }

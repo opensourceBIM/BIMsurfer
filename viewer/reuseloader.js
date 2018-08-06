@@ -76,7 +76,8 @@ export default class ReuseLoader {
 				reused: reused, // How many times this geometry is reused, this does not necessarily mean the viewer is going to utilize this reuse
 				reuseMaterialized: 0, // How many times this geometry has been reused in the viewer, when this number reaches "reused" we can flush the buffer fo' sho'
 				bytes: bytes,
-				matrices: []
+				matrices: [],
+				objects: []
 		};
 		
 		this.geometryCache.set(geometryId, geometry);

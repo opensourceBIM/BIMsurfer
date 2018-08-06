@@ -7,18 +7,18 @@ import GpuBufferManager from './gpubuffermanager.js'
 
 /*
  * This is the default renderer for what we called the base layer. Usually this layer should be small enough to be rendered at good FPS
- * 
+ *
  * This class does:
  * - Populate the CPU side buffers
  * - Allocate buffers on the GPU and flush buffers to it
  * - Render all buffers
- * 
+ *
  */
 
 export default class DefaultRenderLayer extends RenderLayer {
 	constructor(viewer, geometryDataToReuse) {
 		super(viewer, geometryDataToReuse);
-		
+
 		if (this.settings.useObjectColors) {
 			this.bufferManager = new BufferManagerPerColor(this.settings, this, this.viewer.bufferSetPool);
 		} else {
@@ -28,16 +28,17 @@ export default class DefaultRenderLayer extends RenderLayer {
 		this.gpuBufferManager = new GpuBufferManager(this.viewer);
 	}
 
-	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb) {
-		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb, this.gpuBufferManager);
+	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
+		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, this.gpuBufferManager);
 	}
-	
+
 	addGeometry(loaderId, geometry, object) {
 		// TODO some of this is duplicate code, also in tilingrenderlayer.js
 
 		if (geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id)) {
 			geometry.matrices.push(object.matrix);
-			
+			geometry.objects.push(object);
+
 			this.viewer.stats.inc("Drawing", "Triangles to draw (L1)", geometry.indices.length / 3);
 
 			return;
@@ -53,7 +54,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 
 		super.addGeometry(loaderId, geometry, object, buffer, sizes);
 	}
-	
+
 	done(loaderId) {
 		var loader = this.getLoader(loaderId);
 
@@ -69,30 +70,30 @@ export default class DefaultRenderLayer extends RenderLayer {
 
 		this.removeLoader(loaderId);
 	}
-	
+
 	completelyDone() {
 		this.flushAllBuffers();
-		
+
 		if (this.settings.useObjectColors) {
 			// When using object colors, it makes sense to sort the buffers by color, so we can potentially skip a few uniform binds
 			// It might be beneficiary to do this sorting on-the-lfy and not just when everything is loaded
 			this.gpuBufferManager.sortAllBuffers();
 		} else {
 			var savedBuffers = this.gpuBufferManager.combineBuffers();
-			
+
 			this.viewer.stats.dec("Drawing", "Draw calls per frame (L1)", savedBuffers);
 			this.viewer.stats.dec("Buffers", "Buffer groups", savedBuffers);
 		}
-		
+
 		this.bufferManager.clear();
 	}
-	
+
 	flushAllBuffers() {
 		for (var buffer of this.bufferManager.getAllBuffers()) {
 			this.flushBuffer(buffer);
 		}
 	}
-	
+
 	flushBuffer(buffer) {
 		super.flushBuffer(buffer, this.gpuBufferManager);
 
@@ -116,7 +117,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 			this.gl.useProgram(programInfo.program);
 			// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
 			this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, programInfo.uniformBlocks.LightData, this.viewer.lighting.lightingBuffer);
-			
+
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
@@ -125,7 +126,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 				}
 			}
-	
+
 			this.renderFinalBuffers(buffers, programInfo);
 		}
 	}

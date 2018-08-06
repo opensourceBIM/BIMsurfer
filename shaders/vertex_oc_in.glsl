@@ -21,13 +21,11 @@ uniform LightData {
 out mediump vec4 color;
 
 void main(void) {
-  gl_Position = projectionMatrix * viewMatrix * vec4(vertexPosition, 1);
 
-  vec3 normal = vec3( viewNormalMatrix * vec4(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0, 0.0));
+    vec3 viewNormal = vec3( viewNormalMatrix * vec4(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0, 0.0));
+    vec3 lightDir = vec3(0.5, 0.5, 0.5);
+    float lambertian = max(dot(viewNormal, lightDir), 0.0);
 
-//  vec3 lightDir = vec3(0.5, 0.5, 0.5);
-//  float lambertian = max(dot(normal, lightDir), 0.0);
-//  color = lambertian * vec4(1.0, 0.0, 0.0, 1.0);
-//
-  color = objectColor;
+    gl_Position = projectionMatrix * viewMatrix * vec4(vertexPosition, 1);
+    color = vec4(lambertian + objectColor.rgb, objectColor.a);
 }

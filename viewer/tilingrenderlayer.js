@@ -242,6 +242,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		// TODO some of this is duplicate code, also in defaultrenderlayer.js
 		if (geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id)) {
 			geometry.matrices.push(object.matrix);
+			geometry.objects.push(object);
 
 			this.viewer.stats.inc("Drawing", "Triangles to draw", geometry.indices.length / 3);
 
@@ -266,11 +267,11 @@ export default class TilingRenderLayer extends RenderLayer {
 	dump() {
 		console.log(this.tileLoader.executor);
 	}
-	
-	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb) {
+
+	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
 		var loader = this.getLoader(loaderId);
 		var node = this.loaderToNode[loaderId];
-		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb, node.gpuBufferManager);
+		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, node.gpuBufferManager);
 	}
 
 	addGeometryReusable(geometry, loader, gpuBufferManager) {

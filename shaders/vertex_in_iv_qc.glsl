@@ -9,8 +9,8 @@ in uvec4 vertexColor;
 
 uniform mat4 vertexQuantizationMatrix;
 uniform mat4 projectionMatrix;
-uniform mat4 viewNormalMatrix;
 uniform mat4 viewMatrix;
+uniform mat4 viewNormalMatrix;
 
 uniform LightData {
 	vec3 lightPosition;
@@ -22,18 +22,13 @@ uniform LightData {
 out mediump vec4 color;
 
 void main(void) {
-  vec4 floatVertex = vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
-  floatVertex = vertexQuantizationMatrix * floatVertex;
-  
-  gl_Position = projectionMatrix * viewMatrix * floatVertex;
 
-  vec3 viewNormal = vec3( viewNormalMatrix * vec4(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0, 0.0));
+    vec4 floatVertex = vertexQuantizationMatrix * vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
+    vec3 lightDir = vec3(0.5, 0.5, 0.5);
+    vec3 viewNormal = vec3( viewNormalMatrix * vec4(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0, 0.0));
+    vec4 floatColor = vec4(float(vertexColor.x) / 255.0, float(vertexColor.y) / 255.0, float(vertexColor.z) / 255.0, float(vertexColor.w) / 255.0);
+    float lambertian = max(dot(viewNormal, lightDir), 0.0);
 
-  vec4 floatColor = vec4(float(vertexColor.x) / 255.0, float(vertexColor.y) / 255.0, float(vertexColor.z) / 255.0, float(vertexColor.w) / 255.0);
-  
-  //  vec3 lightDir = vec3(0.5, 0.5, 0.5);
-  //  float lambertian = max(dot(viewNormal, lightDir), 0.0);
-  //  color = lambertian * floatColor;
-  
-  color = floatColor;
+    gl_Position = projectionMatrix * viewMatrix * floatVertex;
+    color = lambertian * floatColor;
 }

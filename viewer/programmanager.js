@@ -23,10 +23,12 @@ export default class ProgramManager {
 			uniforms: []
 		};
 		if (inputSettings.instancing) {
-			settings.attributes.push("instances");
+			settings.attributes.push("instanceMatrices");
+			settings.attributes.push("instanceNormalMatrices");
 		}
 		if (inputSettings.useObjectColors) {
 			settings.uniforms.push("objectColor");
+			settings.uniforms.push("objectPickColor");
 		} else {
 			settings.attributes.push("vertexColor");
 		}
@@ -111,27 +113,6 @@ export default class ProgramManager {
 	}
 	
 	generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors) {
-		var vertexShaderName = "shaders/vertex";
-		if (picking) {
-			vertexShaderName += "_pk";
-		}
-		if (instancing) {
-			vertexShaderName += "_ins";
-		}
-		if (useObjectColors) {
-			vertexShaderName += "_oc";
-		}
-		if (quantizeNormals) {
-			vertexShaderName += "_in";
-		}
-		if (quantizeVertices) {
-			vertexShaderName += "_iv";
-		}
-		if (quantizeColors) {
-			vertexShaderName += "_qc";
-		}
-		vertexShaderName += ".glsl";
-
 		var settings = {
 			picking: picking,
 			instancing: instancing,
@@ -140,13 +121,43 @@ export default class ProgramManager {
 			quantizeVertices: quantizeVertices,
 			quantizeColors: quantizeColors
 		};
-
+		var vertexShaderName = this.getVertexShaderName(settings);
 		var fragShaderName = picking ? "shaders/fragment_pk.glsl" : "shaders/fragment.glsl";
 		this.setupProgram(this.viewerBasePath + vertexShaderName, this.viewerBasePath + fragShaderName, defaultSetup, this.generateSetup(settings), settings);
 	}
 
+	getVertexShaderName(settings) {
+		var vertexShaderName = "shaders/vertex";
+		if (settings.picking) {
+			vertexShaderName += "_pk";
+		}
+		if (settings.instancing) {
+			vertexShaderName += "_ins";
+		}
+		if (settings.useObjectColors) {
+			vertexShaderName += "_oc";
+		}
+		if (settings.quantizeNormals) {
+			vertexShaderName += "_in";
+		}
+		if (settings.quantizeVertices) {
+			vertexShaderName += "_iv";
+		}
+		if (settings.quantizeColors) {
+			vertexShaderName += "_qc";
+		}
+		vertexShaderName += ".glsl";
+		return vertexShaderName;
+	}
+
 	getProgram(settings) {
-		//console.log("getProgram('" + JSON.stringify(settings) + "', program");
+		this.programNames = this.programNames || {};
+		var vertexShaderName = this.getVertexShaderName(settings);
+		if (!this.programNames[vertexShaderName]) {
+			console.log("getProgram(..) -> " + vertexShaderName);
+			this.programNames[vertexShaderName] = true;
+		}
+
 		var program = this.programs[JSON.stringify(settings)];
 		if (program == null) {
 			console.error("Program not found", settings);

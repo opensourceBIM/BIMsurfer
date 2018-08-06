@@ -332,6 +332,9 @@ export default class GeometryLoader {
 
 			matrix = totalMatrix;
 		}
-		this.renderLayer.createObject(this.loaderId, roid, oid, objectId, geometryIds, matrix, scaleMatrix, hasTransparency, type, aabb);
+		var normalMatrix = mat4.create();
+		mat4.invert(normalMatrix, matrix);
+		mat4.transpose(normalMatrix, normalMatrix);
+		this.renderLayer.createObject(this.loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb);
 	}
 }
