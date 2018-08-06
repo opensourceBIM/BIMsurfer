@@ -75,7 +75,7 @@ export default class RenderLayer {
 				visible: type != "IfcOpeningElement" && type != "IfcSpace",
 				hasTransparency: hasTransparency,
 				matrix: matrix,
-                normalMatrix: noemalMatrix,
+                normalMatrix: normalMatrix,
 				scaleMatrix: scaleMatrix,
 				geometry: [],
 				roid: roid,
