@@ -289,7 +289,7 @@ export default class TilingRenderLayer extends RenderLayer {
 				this.addGeometryReusable(geometry, loader, node.gpuBufferManager);
 			}
 		}
-
+		
 		var bufferManager = node.bufferManager;
 		if (bufferManager != null) {
 			for (var buffer of bufferManager.getAllBuffers()) {

@@ -119,6 +119,24 @@ export default class BimServerViewer {
 		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
 	}
 	
+	loadRevision(revision) {
+		this.totalStart = performance.now();
+
+		this.viewer.init().then(() => {
+			this.bimServerApi.call("ServiceInterface", "listBoundingBoxes", {
+				roids: [revision.oid]
+			}, (bbs) => {
+				if (bbs.length > 1) {
+					this.settings.regionSelector().then((bb) => {
+						this.genDensityThreshold(revision.oid, bb);
+					});
+				} else {
+					this.genDensityThreshold(revision.oid, bbs[0]);
+				}
+			});
+		});
+	}
+	
 	/*
 	 * This will load a BIMserver project. The given argument must be a Project object that is returned by the BIMserver JavaScript API.
 	 * 
@@ -138,18 +156,18 @@ export default class BimServerViewer {
 			}, (bbs) => {
 				if (bbs.length > 1) {
 					this.settings.regionSelector().then((bb) => {
-						this.genDensityThreshold(project, bb);
+						this.genDensityThreshold(project.lastRevisionId, bb);
 					});
 				} else {
-					this.genDensityThreshold(project, bbs[0]);
+					this.genDensityThreshold(project.lastRevisionId, bbs[0]);
 				}
 			});
 		});
 	}
 
-	genDensityThreshold(project, bb) {
+	genDensityThreshold(roid, bb) {
 		this.bimServerApi.call("ServiceInterface", "getDensityThreshold", {
-			roid: project.lastRevisionId,
+			roid: roid,
 			nrTriangles: this.viewer.settings.triangleThresholdDefaultLayer,
 			excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"]
 		}, (densityAtThreshold) => {
@@ -161,9 +179,9 @@ export default class BimServerViewer {
 			console.log(nrPrimitivesBelow, nrPrimitivesAbove);
 			
 			this.bimServerApi.call("ServiceInterface", "getRevision", {
-				roid: project.lastRevisionId
+				roid: roid
 			}, (revision) => {
-				this.loadRevision(revision, nrPrimitivesBelow, nrPrimitivesAbove);
+				this.internalLoadRevision(revision, nrPrimitivesBelow, nrPrimitivesAbove);
 			});
 		});
 	}
@@ -171,7 +189,7 @@ export default class BimServerViewer {
 	/*
 	 * Private method
 	 */
-	loadRevision(revision, nrPrimitivesBelow, nrPrimitivesAbove) {
+	internalLoadRevision(revision, nrPrimitivesBelow, nrPrimitivesAbove) {
 		this.viewer.stats.setParameter("Models", "Models to load", 1);
 
 		console.log("Total triangles", nrPrimitivesBelow + nrPrimitivesAbove);

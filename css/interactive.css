@@ -31,3 +31,17 @@ body.interactive {
 	padding: 10px;
 	margin: 10px;
 }
+
+#tabs .tab {
+	background-color: #EEEEEE;
+	display: inline;
+	cursor: pointer;
+}
+
+#tabs .tab.active {
+	background-color: #FFFFFF;
+}
+
+.revision {
+	cursor: pointer;
+}

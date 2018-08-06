@@ -5,7 +5,7 @@ import TreeView from "../viewer/treeview.js"
 import ProjectTreeModel from "../viewer/projecttreemodel.js"
 
 /*
- * This class is where the demo1 application starts
+ * This class is where the interactive demo application starts
  */
 
 export default class Interactive {
@@ -16,10 +16,10 @@ export default class Interactive {
 			viewerBasePath: "../"
 		};
 	}
-	
+
 	start() {
 		document.getElementById("login").hidden = true;
-		var defaultServers = [
+		this.defaultServers = [
 			{
 				title: "Default local development BIMserver",
 				description: "Default address when running BIMserver from code",
@@ -43,8 +43,53 @@ export default class Interactive {
 		
 		document.getElementById("address").focus();
 		
-		for (const server of defaultServers) {
-			var interactive = document.getElementById("serverList");
+		document.getElementById("username").addEventListener("keypress", (event) => {
+			if (event.key == "Enter") {
+				this.login();
+			}
+		});
+		document.getElementById("password").addEventListener("keypress", (event) => {
+			if (event.key == "Enter") {
+				this.login();
+			}
+		});
+		
+		this.showServers();
+		
+		for (const tab of document.querySelectorAll("#tabs .tab")) {
+			tab.addEventListener("click", (e) => {
+				if (e.target.id == "serversTab") {
+					this.showServers();
+				} else if (e.target.id == "loginTab") {
+					this.showLogin();
+				} else if (e.target.id == "selectProjectTab") {
+					this.showSelectProject();
+				} else if (e.target.id == "selectRevisionTab") {
+					this.showSelectRevision();
+				} else if (e.target.id == "viewerTab") {
+					this.showViewer();
+				}
+			});
+		}
+	}
+	
+	showTab(tabId) {
+		document.getElementById(tabId + "Tab").classList.add("active");
+		if (this.currentTab != null) {
+			this.currentTab.hidden = true;
+			document.getElementById(this.currentTab.id + "Tab").classList.remove("active");
+		}
+		this.currentTab = document.getElementById(tabId);
+		this.currentTab.hidden = false;
+	}
+	
+	showServers() {
+		this.showTab("servers");
+		var interactive = document.getElementById("serverList");
+		while (interactive.firstChild) {
+			interactive.removeChild(interactive.firstChild);
+		}
+		for (const server of this.defaultServers) {
 			var serverDiv = document.createElement("div");
 			serverDiv.classList.add("server");
 			serverDiv.click(() => {
@@ -81,43 +126,66 @@ export default class Interactive {
 		});
 	}
 	
+	login() {
+		document.getElementById("loginStatus").innerHTML = "Logging in...";
+		this.api.login(document.getElementById("username").value, document.getElementById("password").value, () => {
+			document.getElementById("loginStatus").innerHTML = "Logging successfull";
+			this.showSelectProject();
+		}, (error) => {
+			document.getElementById("loginStatus").innerHTML = error.message;
+		});
+	}
+	
+	showLogin() {
+		this.showTab("login");
+		document.getElementById("username").focus();
+		var loginButton = document.getElementById("loginButton");
+		loginButton.addEventListener("click", () => {
+			this.login();
+		});
+	}
+	
+	showSelectProject() {
+		this.showTab("selectProject");
+		var treeView = new TreeView(document.getElementById("selectProject"));
+		this.projectTreeModel = new ProjectTreeModel(this.api, treeView);
+		this.projectTreeModel.load((node) => {
+			this.showSelectRevision(node.project);
+		});
+	}
+	
+	showSelectRevision(project) {
+		this.showTab("selectRevision");
+		var revisionsParent = document.getElementById("selectRevision");
+		this.api.call("ServiceInterface", "getAllRevisionsOfProject", {
+			poid: project.oid
+		}, (revisions) => {
+			for (const revision of revisions) {
+				var row = document.createElement("div");
+				row.classList.add("revision");
+				row.addEventListener("click", () => {
+					this.showViewer(revision);
+				});
+				row.innerHTML = revision.id;
+				revisionsParent.appendChild(row);
+			}
+		});
+	}
+
+	showViewer(revision) {
+		this.showTab("viewer");
+		var canvas = document.getElementById("glcanvas");
+		this.bimServerViewer = new BimServerViewer(this.api, this.settings, canvas, window.innerWidth, window.innerHeight);
+		this.bimServerViewer.loadRevision(revision);
+	}
+
 	connectServer(server) {
 		console.log("Connecting...", server.address);
 		
 		this.api = new BimServerClient(server.address);
 		this.api.init().then(() => {
-			document.getElementById("servers").hidden = true;
-			document.getElementById("login").hidden = false;
-			document.getElementById("username").focus();
-			var loginButton = document.getElementById("loginButton");
-			loginButton.addEventListener("click", () => {
-				document.getElementById("loginStatus").innerHTML = "Logging in...";
-				this.api.login(document.getElementById("username").value, document.getElementById("password").value, () => {
-					document.getElementById("loginStatus").innerHTML = "Logging successfull";
-					document.getElementById("login").hidden = true;
-					document.getElementById("selectproject").hidden = false;
-					this.loadProjects();
-				}, (error) => {
-					document.getElementById("loginStatus").innerHTML = error.message;
-				});
-			});
+			this.showLogin();
 		});
-	}
-	
-	loadProjects() {
-		var treeView = new TreeView(document.getElementById("selectproject"));
-		this.projectTreeModel = new ProjectTreeModel(this.api, treeView);
-		this.projectTreeModel.load((node) => {
-			document.getElementById("selectproject").hidden = true;
-			document.getElementById("viewer").hidden = false;
-			this.loadModel(node.project);
-		});
-	}
-	
-	loadModel(project) {
-		var canvas = document.getElementById("glcanvas");
-		this.bimServerViewer = new BimServerViewer(this.api, this.settings, canvas, window.innerWidth, window.innerHeight);
-		this.bimServerViewer.loadModel(project);
 	}
 	
 	ping(server, status) {

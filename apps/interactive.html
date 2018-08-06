@@ -9,7 +9,14 @@
 </head>
 
 <body class="interactive">
-	<div id="servers">
+	<div id="tabs">
+		<div id="serversTab" class="tab">Server</div>
+		<div id="loginTab" class="tab">Login</div>
+		<div id="selectProjectTab" class="tab">Project</div>
+		<div id="selectRevisionTab" class="tab">Revision</div>
+		<div id="viewerTab" class="tab">Viewer</div>
+	</div>
+	<div id="servers" class="tabcontent">
 		<h1>Select BIMserver</h1>
 		<div>
 			<form>
@@ -20,14 +27,15 @@
 		<h2>OR connect to one of the following common addresses</h2>
 		<div id="serverList"></div>
 	</div>
-	<div id="login">
+	<div id="login" class="tabcontent">
 		<div id="loginStatus"></div>
 		<input id="username" type="text" placeholder="Username (email)"/>
 		<input id="password" type="password" placeholder="Password"/>
 		<button id="loginButton">Login</button>
 	</div>
-	<div id="selectproject"></div>
-	<div id="viewer">
+	<div id="selectProject" class="tabcontent"></div>
+	<div id="selectRevision" class="tabcontent"></div>
+	<div id="viewer" class="tabcontent">
 		<canvas id="glcanvas"></canvas>
 		<div id="progressbar">
 			<div id="progress"></div>
