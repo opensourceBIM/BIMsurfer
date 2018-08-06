@@ -7,12 +7,12 @@ export default class VertexQuantization {
 	constructor(settings) {
 		this.settings = settings;
 		
-		// roid -> untransformed quantization matrices (per model)
+		// croid -> untransformed quantization matrices (per model)
 		this.untransformedQuantizationMatrices = new Map();
 		this.untransformedInverseQuantizationMatrices = new Map();
 	}
 
-	getUntransformedInverseVertexQuantizationMatrixForRoid(croid) {
+	getUntransformedInverseVertexQuantizationMatrixForCroid(croid) {
 		var matrix = this.untransformedInverseQuantizationMatrices.get(croid);
 		if (matrix == null) {
 			throw "Not found for croid " + croid;
@@ -20,8 +20,8 @@ export default class VertexQuantization {
 		return matrix;
 	}
 	
-	getUntransformedVertexQuantizationMatrixForRoid(roid) {
-		var matrix = this.untransformedQuantizationMatrices.get(roid);
+	getUntransformedVertexQuantizationMatrixForCroid(croid) {
+		var matrix = this.untransformedQuantizationMatrices.get(croid);
 		if (matrix == null) {
 			throw "Not found: " + roid;
 		}
@@ -49,7 +49,7 @@ export default class VertexQuantization {
 		return this.inverseVertexQuantizationMatrix;
 	}
 	
-	generateUntransformedMatrices(roid, boundsUntransformed) {
+	generateUntransformedMatrices(croid, boundsUntransformed) {
 		var matrix = mat4.create();
 		var scale = 32768;
 		
@@ -67,12 +67,12 @@ export default class VertexQuantization {
 				-(boundsUntransformed.max.z + boundsUntransformed.min.z) / 2
 		));
 		
-		this.untransformedQuantizationMatrices.set(roid, this.toArray(matrix));
+		this.untransformedQuantizationMatrices.set(croid, this.toArray(matrix));
 		
 		var inverse = mat4.create();
 		mat4.invert(inverse, matrix);
 		
-		this.untransformedInverseQuantizationMatrices.set(roid, this.toArray(inverse));
+		this.untransformedInverseQuantizationMatrices.set(croid, this.toArray(inverse));
 	}
 	
 	generateMatrices(totalBounds, totalBoundsUntransformed) {

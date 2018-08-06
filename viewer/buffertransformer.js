@@ -9,7 +9,7 @@ export default class BufferTransformer {
 		this.vertexQuantization = vertexQuantization;
 	}
 
-	convertVertices(roid, vertices) {
+	convertVertices(croid, vertices) {
 		if (!this.settings.quantizeVertices && !this.settings.loaderSettings.quantizeVertices) {
 			return vertices;
 		}
@@ -31,7 +31,7 @@ export default class BufferTransformer {
 			vertex[2] = vertices[i + 2];
 			
 //			if (this.settings.loaderSettings.quantizeVertices) {
-//				vec3.transformMat4(vertex, vertex, this.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForRoid(roid));
+//				vec3.transformMat4(vertex, vertex, this.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(croid));
 //			}
 			// TODO something is wrong here
 //			if (this.settings.quantizeVertices) {
