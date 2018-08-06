@@ -43,6 +43,13 @@ export default class Interactive {
 		
 		document.getElementById("address").focus();
 		
+		document.getElementById("address").addEventListener("keypress", (event) => {
+			if (event.key == "Enter") {
+				this.connectServer({
+					address: document.getElementById("address").value
+				});
+			}
+		});
 		document.getElementById("username").addEventListener("keypress", (event) => {
 			if (event.key == "Enter") {
 				this.login();
@@ -74,11 +81,11 @@ export default class Interactive {
 	}
 	
 	showTab(tabId) {
-		document.getElementById(tabId + "Tab").classList.add("active");
 		if (this.currentTab != null) {
 			this.currentTab.hidden = true;
 			document.getElementById(this.currentTab.id + "Tab").classList.remove("active");
 		}
+		document.getElementById(tabId + "Tab").classList.add("active");
 		this.currentTab = document.getElementById(tabId);
 		this.currentTab.hidden = false;
 	}
@@ -147,7 +154,11 @@ export default class Interactive {
 	
 	showSelectProject() {
 		this.showTab("selectProject");
-		var treeView = new TreeView(document.getElementById("selectProject"));
+		var selectProject = document.getElementById("selectProject");
+		while (selectProject.firstChild) {
+			selectProject.removeChild(selectProject.firstChild);
+		}
+		var treeView = new TreeView(selectProject);
 		this.projectTreeModel = new ProjectTreeModel(this.api, treeView);
 		this.projectTreeModel.load((node) => {
 			this.showSelectRevision(node.project);
@@ -166,8 +177,8 @@ export default class Interactive {
 				row.addEventListener("click", () => {
 					this.showViewer(revision);
 				});
-				row.innerHTML = revision.id;
-				revisionsParent.appendChild(row);
+				row.innerHTML = revision.id + " " + revision.comment;
+				revisionsParent.insertBefore(row, revisionsParent.children[0]);
 			}
 		});
 	}

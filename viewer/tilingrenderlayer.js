@@ -17,7 +17,7 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		this.loaderToNode = {};
 
-		this.drawTileBorders = true;
+		this.drawTileBorders = this.viewer.settings.drawTileBorders;
 
 		this._frustum = new Frustum();
 		

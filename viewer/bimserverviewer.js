@@ -82,6 +82,15 @@ export default class BimServerViewer {
 		if (settings.defaultLayerEnabled == null) {
 			settings.defaultLayerEnabled = true;
 		}
+		if (settings.tilingLayerEnabled == null) {
+			settings.tilingLayerEnabled = true;
+		}
+		if (settings.maxOctreeDepth == null) {
+			settings.maxOctreeDepth = 5;
+		}
+		if (settings.drawTileBorders == null) {
+			settings.drawTileBorders = false;
+		}
 		if (settings.fakeLoader == null) {
 			settings.fakeLoading = false;
 		}

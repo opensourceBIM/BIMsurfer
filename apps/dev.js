@@ -20,6 +20,7 @@ export default class Dev {
 		this.settings = JSON.parse(JSON.stringify(this.settingsView.settings));
 		this.settings.viewerBasePath = "../";
 		this.settings.loaderSettings.tilingLayerReuse = true;
+		this.settings.drawTileBorders = true;
 		
 		this.canvas = document.getElementById("glcanvas");
 
