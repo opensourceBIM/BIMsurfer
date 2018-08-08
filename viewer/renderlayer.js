@@ -301,9 +301,6 @@ export default class RenderLayer {
 	}
 	
 	addGeometryReusable(geometry, loader, gpuBufferManager) {
-
-		var self = this;
-
 		var programInfo = this.viewer.programManager.getProgram({
 			picking: false,
 			instancing: true,
@@ -369,9 +366,9 @@ export default class RenderLayer {
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancePickColorsBuffer);
 		var instancePickColors = new Float32Array(numInstances * 4);
 		geometry.objects.forEach((object, index) => {
-			var viewObject = self.viewer.viewObjects[object.id];
+			var viewObject = this.viewer.viewObjects[object.id];
 			if (viewObject) {
-				instancePickColors.set(self.viewer.getPickColor(viewObject.pickId), index * 4);
+				instancePickColors.set(this.viewer.getPickColor(viewObject.pickId), index * 4);
 			}
 		});
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, instancePickColors, this.gl.STATIC_DRAW, 0, 0);
