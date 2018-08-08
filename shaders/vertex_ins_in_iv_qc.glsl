@@ -33,5 +33,6 @@ void main(void) {
     float lambertian = max(dot(viewNormal, lightDir), 0.0);
 
     gl_Position = projectionMatrix * viewMatrix * instanceMatrices * floatVertex;
+    lambertian = 1.0;
     color = lambertian * floatColor;
 }
