@@ -643,8 +643,10 @@ export default class RenderLayer {
 
 	pick() {
 		var transparency = false;
-		this.pickBuffers(transparency,  false);
-		this.pickBuffers(transparency, true);
+		this.pickBuffers(false, false);
+		this.pickBuffers(false, true);
+		this.pickBuffers(true, false);
+		this.pickBuffers(true, true);
 	}
 
 	flushBuffer(buffer, gpuBufferManager) {
