@@ -32,7 +32,6 @@ export default class ProgramManager {
 		} else {
 			settings.attributes.push("vertexColor");
 		}
-		settings.attributes.push("vertexPickColor");
 		if (inputSettings.quantizeNormals) {
 			// Has no effect on locations
 		}
@@ -54,7 +53,19 @@ export default class ProgramManager {
 				"viewMatrix"
 			],
 			uniformBlocks: [
-			//	"LightData"
+				"LightData"
+			]
+		};
+		var defaultSetupForPicking = {
+			attributes: [
+				"vertexPosition",
+				"vertexPickColor"
+				],
+			uniforms: [
+				"projectionMatrix",
+				"viewMatrix"
+				],
+			uniformBlocks: [
 			]
 		};
 
@@ -100,9 +111,9 @@ export default class ProgramManager {
 				for (var useObjectColors of [true, false]) {
 					for (var quantizeVertices of [true, false]) {
 						if (useObjectColors) {
-							this.generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
+							this.generateShaders(defaultSetupForPicking, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
 						} else {
-							this.generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
+							this.generateShaders(defaultSetupForPicking, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
 						}
 					}
 				}
@@ -201,16 +212,21 @@ export default class ProgramManager {
 							//console.log("uniforms:");
 							for (var uniform of setup.uniforms) {
 								programInfo.uniformLocations[uniform] = this.gl.getUniformLocation(shaderProgram, uniform);
+								if (programInfo.uniformLocations[uniform] == -1) {
+									console.error("Missing uniform location", uniform, vertexShader);
+								}
 								//console.log("uniform '" + uniform + "' = " + programInfo.uniformLocations[uniform]);
 							}
 						}
 						if (setup.uniformBlocks != null) {
-							//console.log("uniformBlocks:");
 							if (setup.uniformBlocks != null) {
 								for (var uniformBlock of setup.uniformBlocks) {
 									programInfo.uniformBlocks[uniformBlock] = this.gl.getUniformBlockIndex(shaderProgram, uniformBlock);
-									this.gl.uniformBlockBinding(shaderProgram, programInfo.uniformBlocks[uniformBlock], 0);
-									//console.log("uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock]);
+									if (programInfo.uniformBlocks[uniformBlock] == -1) {
+										console.log("Missing uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock]);
+									} else {
+										this.gl.uniformBlockBinding(shaderProgram, programInfo.uniformBlocks[uniformBlock], 0);
+									}
 								}
 							}
 						}
