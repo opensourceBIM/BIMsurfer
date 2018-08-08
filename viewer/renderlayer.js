@@ -357,12 +357,7 @@ export default class RenderLayer {
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancePickColorsBuffer);
 		var instancePickColors = new Uint32Array(numInstances * 2);
 		geometry.objects.forEach((object, index) => {
-			var viewObject = this.viewer.viewObjects.get(object.id);
-			if (viewObject) {
-				instancePickColors.set(this.viewer.getPickColor(viewObject.pickId), index * 2);
-			} else {
-				console.error("Object not found", object.id);
-			}
+			instancePickColors.set(this.viewer.getPickColor(object.id), index * 2);
 		});
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, instancePickColors, this.gl.STATIC_DRAW, 0, 0);
 
@@ -630,12 +625,9 @@ export default class RenderLayer {
 		this.gl.bindVertexArray(null);
 	}
 
-	pick() {
-		var transparency = false;
-		this.pickBuffers(false, false);
-		this.pickBuffers(false, true);
-		this.pickBuffers(true, false);
-		this.pickBuffers(true, true);
+	pick(transparency) {
+		this.pickBuffers(transparency, false);
+		this.pickBuffers(transparency, true);
 	}
 
 	flushBuffer(buffer, gpuBufferManager) {
