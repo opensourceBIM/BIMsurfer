@@ -32,23 +32,23 @@ export default class RenderBuffer {
             }
         }
 
-        var texture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        this.colorBuffer = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.colorBuffer);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32UI, width, height, 0, gl.RG_INTEGER, gl.UNSIGNED_INT, null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-        var renderbuf = gl.createRenderbuffer();
-        gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuf);
+        this.depthBuffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthBuffer);
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
 
         var framebuf = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuf);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuf);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.colorBuffer, 0);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthBuffer);
 
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.bindRenderbuffer(gl.RENDERBUFFER, null);
@@ -75,7 +75,7 @@ export default class RenderBuffer {
             default:
                 throw "Incomplete framebuffer: " + status;
         }
-        this.buffer = {framebuf: framebuf, renderbuf: renderbuf, texture: texture, width: width, height: height};
+        this.buffer = {framebuf: framebuf, depthBuffer: this.depthBuffer, colorBuffer: this.colorBuffer, width: width, height: height};
         this.bound = false;
     }
 
@@ -90,9 +90,9 @@ export default class RenderBuffer {
     read(pickX, pickY) {
         var x = pickX;
         var y = this.canvas.height - pickY;
-        var pix = new Uint8Array(4);
+        var pix = new Uint32Array(2);
         var gl = this.gl;
-        gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pix);
+        gl.readPixels(x, y, 1, 1, gl.RG_INTEGER, gl.UNSIGNED_INT, pix);
         return pix;
     }
 
