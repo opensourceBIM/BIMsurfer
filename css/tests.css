@@ -1,0 +1,9 @@
+#tests {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.viewer {
+	border: 1px solid black;
+	margin: 5px;
+}
