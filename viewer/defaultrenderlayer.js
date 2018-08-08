@@ -116,7 +116,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 			});
 			this.gl.useProgram(programInfo.program);
 			// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
-			this.gl.bindBufferBase(this.gl.UNIFORM_BUFFER, programInfo.uniformBlocks.LightData, this.viewer.lighting.lightingBuffer);
+			this.viewer.lighting.render(programInfo.uniformBlocks.LightData);
 
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
