@@ -194,9 +194,9 @@ export default class TilingRenderLayer extends RenderLayer {
 		var programInfo = this.viewer.programManager.getProgram({
 			picking: true,
 			instancing: reuse,
-			useObjectColors: !!this.settings.useObjectColors,
+			useObjectColors: !!this.settings.useObjectColors, // WTF is this for?
 			quantizeNormals: false,
-			quantizeVertices: !!this.settings.quantizeVertices,
+			quantizeVertices: !!this.settings.quantizeVertices, // WTF is this for?
 			quantizeColors: false
 		});
 		this.gl.useProgram(programInfo.program);

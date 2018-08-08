@@ -1,13 +1,9 @@
-.wrapper {
+#tests {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 }
 
-.mode {
-	margin: 20px;
-}
-
 .viewer {
-	width: 320px;
-	height: 240px;
+	border: 1px solid black;
+	margin: 5px;
 }

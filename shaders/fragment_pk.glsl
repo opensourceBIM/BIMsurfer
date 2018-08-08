@@ -3,9 +3,9 @@
 precision mediump int;
 precision mediump float;
 
-in mediump vec4 color;
+flat in mediump uvec2 color;
 
-out vec4 myOutputColor;
+out mediump uvec2 myOutputColor;
 
 void main(void) {
    myOutputColor = color;

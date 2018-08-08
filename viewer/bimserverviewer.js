@@ -9,6 +9,7 @@ import GeometryLoader from "./geometryloader.js"
 import VirtualFrustum from "./virtualfrustum.js"
 import BufferHelper from "./bufferhelper.js"
 import Stats from "./stats.js"
+import DefaultSettings from "./defaultsettings.js"
 
 export default class BimServerViewer {
 	constructor(bimServerApi, settings, canvas, width, height, stats) {
@@ -25,7 +26,7 @@ export default class BimServerViewer {
 		this.width = width;
 		this.height = height;
 		
-		this.applyDefaultSettings(settings);
+		this.settings = DefaultSettings.create(settings);
 		
 		stats.setParameter("Renderer settings", "Object colors", this.settings.useObjectColors);
 		stats.setParameter("Renderer settings", "Small indices if possible", this.settings.useSmallIndicesIfPossible);
@@ -36,89 +37,13 @@ export default class BimServerViewer {
 		stats.setParameter("Loader settings", "Quantize normals", this.settings.loaderSettings.quantizeNormals);
 		stats.setParameter("Loader settings", "Quantize vertices", this.settings.loaderSettings.quantizeVertices);
 
-		this.resizeCanvas();
-		window.addEventListener("resize", () => {
+		if (this.settings.autoResize) {
 			this.resizeCanvas();
-		}, false);
-	}
-	
-	applyDefaultSettings(settings) {
-		if (settings.useObjectColors == null) {
-			settings.useObjectColors = false;
-		}
-		if (settings.useSmallIndicesIfPossible == null) {
-			settings.useSmallIndicesIfPossible = true;
-		}
-		if (settings.quantizeNormals == null) {
-			settings.quantizeNormals = true;
-		}
-		if (settings.quantizeVertices == null) {
-			settings.quantizeVertices = true;
-		}
-		if (settings.quantizeColors == null) {
-			settings.quantizeColors = true;
-		}
-		if (settings.loaderSettings == null) {
-			settings.loaderSettings = {};
-		}
-		if (settings.loaderSettings.useObjectColors == null) {
-			settings.loaderSettings.useObjectColors = false;
-		}
-		if (settings.loaderSettings.quantizeNormals == null) {
-			settings.loaderSettings.quantizeNormals = true;
-		}
-		if (settings.loaderSettings.quantizeVertices == null) {
-			settings.loaderSettings.quantizeVertices = true;
-		}
-		if (settings.loaderSettings.quantizeColors == null) {
-			settings.loaderSettings.quantizeColors = true;
-		}
-		if (settings.triangleThresholdDefaultLayer == null) {
-			settings.triangleThresholdDefaultLayer = 1000000;
-		}
-		if (settings.assumeGpuMemoryAvailable == null) {
-			settings.assumeGpuMemoryAvailable = 1000000000;
-		}
-		if (settings.defaultLayerEnabled == null) {
-			settings.defaultLayerEnabled = true;
-		}
-		if (settings.tilingLayerEnabled == null) {
-			settings.tilingLayerEnabled = true;
-		}
-		if (settings.maxOctreeDepth == null) {
-			settings.maxOctreeDepth = 5;
-		}
-		if (settings.drawTileBorders == null) {
-			settings.drawTileBorders = false;
-		}
-		if (settings.fakeLoader == null) {
-			settings.fakeLoading = false;
-		}
-		if (settings.loaderSettings.splitGeometry == null) {
-			settings.loaderSettings.splitGeometry = false;
-		}
-		if (settings.loaderSettings.normalizeUnitsToMM == null) {
-			settings.loaderSettings.normalizeUnitsToMM = true;
-		}
-		if (settings.loaderSettings.useSmallInts == null) {
-			settings.loaderSettings.useSmallInts = false;
-		}
-		if (settings.loaderSettings.reportProgress == null) {
-			settings.loaderSettings.reportProgress = false;
-		}
-		if (settings.viewerBasePath == null) {
-			settings.viewerBasePath = "./";
-		}
-		if (settings.regionSelector == null) {
-			settings.regionSelector = (bbs) => {
-				return bbs[0];
-			};
-		}
-		if (settings.loaderSettings.tilingLayerReuse == null) {
-			settings.loaderSettings.tilingLayerReuse = true;
-		}
-		if (settings.loaderSettings.reuseThreshold == null) {
-			settings.loaderSettings.reuseThreshold = 1000;
+			window.addEventListener("resize", () => {
+				this.resizeCanvas();
+			}, false);
+		} else {
+			this.viewer.setDimensions(width, height);
 		}
 	}
 
@@ -127,23 +52,31 @@ export default class BimServerViewer {
 		this.canvas.height = window.innerHeight;
 		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
 	}
-	
-	loadRevision(revision) {
-		this.totalStart = performance.now();
 
-		this.viewer.init().then(() => {
-			this.bimServerApi.call("ServiceInterface", "listBoundingBoxes", {
-				roids: [revision.oid]
-			}, (bbs) => {
-				if (bbs.length > 1) {
-					this.settings.regionSelector().then((bb) => {
-						this.genDensityThreshold(revision.oid, bb);
-					});
-				} else {
-					this.genDensityThreshold(revision.oid, bbs[0]);
-				}
+	loadRevisionByRoid(roid) {
+		var promise = new Promise((resolve, reject) => {
+			this.loadingResolve = resolve;
+			this.totalStart = performance.now();
+			
+			this.viewer.init().then(() => {
+				this.bimServerApi.call("ServiceInterface", "listBoundingBoxes", {
+					roids: [roid]
+				}, (bbs) => {
+					if (bbs.length > 1) {
+						this.settings.regionSelector().then((bb) => {
+							this.genDensityThreshold(roid, bb);
+						});
+					} else {
+						this.genDensityThreshold(roid, bbs[0]);
+					}
+				});
 			});
 		});
+		return promise;
+	}
+	
+	loadRevision(revision) {
+		this.loadRevisionByRoid(revision.oid);
 	}
 	
 	/*
@@ -305,10 +238,10 @@ export default class BimServerViewer {
 				var defaultRenderLayer = new DefaultRenderLayer(this.viewer, this.geometryDataIdsToReuse);
 				this.viewer.renderLayers.push(defaultRenderLayer);
 
-				defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
-					var percentage = 100 * nrPrimitivesLoaded / nrPrimitivesBelow;
-					document.getElementById("progress").style.width = percentage + "%";
-				});
+//				defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
+//					var percentage = 100 * nrPrimitivesLoaded / nrPrimitivesBelow;
+//					document.getElementById("progress").style.width = percentage + "%";
+//				});
 
 				promise = this.loadDefaultLayer(defaultRenderLayer, revision, bounds, fieldsToInclude);
 			}
@@ -325,6 +258,9 @@ export default class BimServerViewer {
 				tilingPromise.then(() => {
 					this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
 					this.viewer.bufferSetPool.cleanup();
+					if (this.loadingResolve != null) {
+						this.loadingResolve();
+					}
 					this.viewer.dirty = true;
 				});
 			});
@@ -332,7 +268,7 @@ export default class BimServerViewer {
 	}
 	
 	loadDefaultLayer(defaultRenderLayer, revision, totalBounds, fieldsToInclude) {
-		document.getElementById("progress").style.display = "block";
+//		document.getElementById("progress").style.display = "block";
 
 		var startLayer1 = performance.now();
 
@@ -376,7 +312,7 @@ export default class BimServerViewer {
 		});
 		
 		executor.awaitTermination().then(() => {
-			document.getElementById("progress").style.display = "none";
+//			document.getElementById("progress").style.display = "none";
 			this.viewer.stats.setParameter("Loading time", "Layer 1", performance.now() - start);
 			defaultRenderLayer.completelyDone();
 			console.log("layer 1 done", (performance.now() - startLayer1) + "ms");
@@ -387,23 +323,23 @@ export default class BimServerViewer {
 
 	loadTilingLayer(tilingLayer, revision, totalBounds, fieldsToInclude) {
 		var startLayer2 = performance.now();
-		document.getElementById("progress").style.display = "block";
+//		document.getElementById("progress").style.display = "block";
 
 		var layer2Start = performance.now();
 		
 		var p = tilingLayer.load(this.bimServerApi, this.densityThreshold, [revision.oid], fieldsToInclude, (percentage) => {
-			document.getElementById("progress").style.width = percentage + "%";
+//			document.getElementById("progress").style.width = percentage + "%";
 		});
 		this.viewer.dirty = true;
 		p.then(() => {
 			this.viewer.stats.setParameter("Loading time", "Layer 2", performance.now() - layer2Start);
 			this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
-			document.getElementById("progress").style.display = "none";
+//			document.getElementById("progress").style.display = "none";
 			
 			this.viewer.bufferSetPool.cleanup();
 
 			console.log("layer 2 done", (performance.now() - startLayer2) + "ms");
-
+			
 //			tilingLayer.octree.traverse((node) => {
 //				if (node.liveBuffers.length > 0) {
 //					console.log(node.getBounds(), node.liveBuffers.length);

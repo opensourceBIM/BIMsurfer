@@ -4,13 +4,13 @@ precision mediump int;
 precision mediump float;
 
 in vec3 vertexPosition;
-in vec4 vertexPickColor;
+in uvec2 vertexPickColor;
 
-uniform vec4 objectPickColor;
+uniform uvec2 objectPickColor;
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
 
-out mediump vec4 color;
+flat out mediump uvec2 color;
 
 void main(void) {
 

@@ -100,7 +100,7 @@ export default class BufferManager {
 			positionsIndex: 0,
 			normals: this.settings.quantizeNormals ? new Int8Array(sizes.normals) : new Float32Array(sizes.normals),
 			normalsIndex: 0,
-			pickColors: new Float32Array(sizes.pickColors),
+			pickColors: new Uint32Array(sizes.pickColors),
 			pickColorsIndex: 0,
 			indices: new Uint32Array(sizes.indices), // The optimal buffer size is most definitely above the Uint16 threshold, so always use Uint32Array
 			indicesIndex: 0,

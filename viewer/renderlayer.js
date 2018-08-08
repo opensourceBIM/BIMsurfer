@@ -93,11 +93,9 @@ export default class RenderLayer {
 			aabb: aabb,
 			objectId: objectId,
 			oid: oid,
-			pickId: this.viewer.viewObjectsByPickId.length,
 			center: null // TODO
 		};
-		this.viewer.viewObjectsByPickId.push(viewObject);
-		this.viewer.viewObjects[objectId] = viewObject;
+		this.viewer.viewObjects.set(objectId, viewObject);
 
 		geometryIds.forEach((id) => {
 			this.addGeometryToObject(id, object.id, loader, gpuBufferManager);
@@ -208,19 +206,12 @@ export default class RenderLayer {
 				}
 			}
 
-			var viewObject = this.viewer.viewObjects[object.id];
-			if (viewObject) {
-				var pickColor = this.viewer.getPickColor(viewObject.pickId);
-				var lenObjectPickColors = (geometry.positions.length / 3) * 4;
-				for (var j = buffer.pickColorsIndex, lenj = buffer.pickColorsIndex + lenObjectPickColors; j < lenj; j+=4) {
-					buffer.pickColors[j + 0] = pickColor[0];
-					buffer.pickColors[j + 1] = pickColor[1];
-					buffer.pickColors[j + 2] = pickColor[2];
-					buffer.pickColors[j + 3] = pickColor[3];
-					buffer.pickColorsIndex += 4;
-				}
-			} else {
-				console.log("viewObject not found: " + object.id);
+			var pickColor = this.viewer.getPickColor(object.id);
+			var lenObjectPickColors = (geometry.positions.length / 3) * 2;
+			for (var j = buffer.pickColorsIndex, lenj = buffer.pickColorsIndex + lenObjectPickColors; j < lenj; j+=2) {
+				buffer.pickColors[j + 0] = pickColor[0];
+				buffer.pickColors[j + 1] = pickColor[1];
+				buffer.pickColorsIndex += 2;
 			}
 
 			if (startIndex == 0) {
@@ -301,9 +292,6 @@ export default class RenderLayer {
 	}
 	
 	addGeometryReusable(geometry, loader, gpuBufferManager) {
-
-		var self = this;
-
 		var programInfo = this.viewer.programManager.getProgram({
 			picking: false,
 			instancing: true,
@@ -367,11 +355,13 @@ export default class RenderLayer {
 
 		const instancePickColorsBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancePickColorsBuffer);
-		var instancePickColors = new Float32Array(numInstances * 4);
+		var instancePickColors = new Uint32Array(numInstances * 2);
 		geometry.objects.forEach((object, index) => {
-			var viewObject = self.viewer.viewObjects[object.id];
+			var viewObject = this.viewer.viewObjects.get(object.id);
 			if (viewObject) {
-				instancePickColors.set(self.viewer.getPickColor(viewObject.pickId), index * 4);
+				instancePickColors.set(this.viewer.getPickColor(viewObject.pickId), index * 2);
+			} else {
+				console.error("Object not found", object.id);
 			}
 		});
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, instancePickColors, this.gl.STATIC_DRAW, 0, 0);
@@ -508,7 +498,7 @@ export default class RenderLayer {
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancePickColorsBuffer);
 		this.gl.enableVertexAttribArray(programInfo.attribLocations.instancePickColors);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instancePickColors, 4, this.gl.FLOAT, false, 0, 0);
+		this.gl.vertexAttribIPointer(programInfo.attribLocations.instancePickColors, 2, this.gl.UNSIGNED_INT, false, 0, 0);
 		this.gl.vertexAttribDivisor(programInfo.attribLocations.instancePickColors, 1);
 
 		// Indices
@@ -621,7 +611,6 @@ export default class RenderLayer {
 
 	pickFinalBuffers(buffers, programInfo) {
 		if (buffers != null && buffers.length > 0) {
-			var lastUsedColorHash = null;
 			for (let buffer of buffers) {
 				this.pickBuffer(buffer, programInfo);
 			}
@@ -700,7 +689,7 @@ export default class RenderLayer {
 			if (buffer.pickColors) {
 				pickColorBuffer = this.gl.createBuffer();
 				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.pickColors, this.gl.STATIC_DRAW, 0, buffer.pickColorsIndex); // TODO: is colorsIndex correct?
+				this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.pickColors, this.gl.STATIC_DRAW, 0, buffer.pickColorsIndex);
 			}
 
 			// Indices
@@ -779,13 +768,13 @@ export default class RenderLayer {
 
 			// Per-object pick vertex colors
 			if (buffer.pickColors) {
-				const numComponents = 4;
-				const type = this.gl.FLOAT;
+				const numComponents = 2;
+				const type = this.gl.UNSIGNED_INT;
 				const normalize = false;
 				const stride = 0;
 				const offset = 0;
 				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
-				this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexPickColor, numComponents, type, normalize, stride, offset);
+				this.gl.vertexAttribIPointer(pickProgramInfo.attribLocations.vertexPickColor, numComponents, type, normalize, stride, offset);
 				this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexPickColor);
 			}
 

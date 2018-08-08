@@ -36,8 +36,7 @@ export default class Viewer {
         this.renderLayers = [];
         this.animationListeners = [];
 
-        this.viewObjectsByPickId = [];
-        this.viewObjects = {};
+        this.viewObjects = new Map();
 
         var self = this;
         window.testPick = function() {
@@ -203,14 +202,11 @@ export default class Viewer {
         this.renderBuffer.bind();
 
         this.gl.depthMask(true);
-        this.gl.clearColor(1, 1, 1, 1.0);
-        this.gl.clearDepth(1);
+        this.gl.clearBufferuiv(this.gl.COLOR, this.renderBuffer.colorBuffer, new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]));
+        this.gl.clearBufferfv(this.gl.DEPTH, this.renderBuffer.depthBuffer, new Uint8Array([1, 0])); // TODO should be a Float16Array, which does not exists, need to find the 16bits that define the number 1 here
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.depthFunc(this.gl.LEQUAL);
         this.gl.disable(this.gl.BLEND);
-        this.gl.depthMask(true);
-
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
         for (var renderLayer of this.renderLayers) {
             renderLayer.pick();
@@ -220,12 +216,9 @@ export default class Viewer {
 
         this.renderBuffer.unbind();
 
-        var pickId = pickColor[0] + (pickColor[1] * 256) + (pickColor[2] * 256 * 256) + (pickColor[3] * 256 * 256 * 256);
-        console.log(pickId);
+        var objectId = pickColor[0] + (pickColor[1] * 4294967296);
 
-        var viewObject = this.viewObjectsByPickId[pickId];
-        console.log(viewObject);
-
+        var viewObject = this.viewObjects.get(objectId);
         if (viewObject) {
             return viewObject;
         }
@@ -233,17 +226,9 @@ export default class Viewer {
         return null;
     }
 
-    getPickColor(objectViewId) { // Converts an integer to a pick color
-        var a = (objectViewId >> 24) & 0xFF;
-        var b = (objectViewId >> 16) & 0xFF;
-        var g = (objectViewId >> 8) & 0xFF;
-        var r = objectViewId & 0xFF;
-        var pickColor = vec4.create();
-        pickColor[0] = r / 255;
-        pickColor[1] = g / 255;
-        pickColor[2] = b / 255;
-        pickColor[3] = a / 255;
-        return pickColor;
+    getPickColor(objectId) { // Converts an integer to a pick color
+    	// TODO Need to fill in the second space with the remaining 32 bits 
+        return [objectId & 0xFFFFFFFF, 0];
     }
 
     setModelBounds(modelBounds) {
