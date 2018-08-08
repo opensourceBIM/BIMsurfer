@@ -6,12 +6,12 @@ precision mediump float;
 in vec3 vertexPosition;
 
 in mat4 instanceMatrices;
-in vec4 instancePickColors;
+in uvec2 instancePickColors;
 
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
 
-out mediump vec4 color;
+flat out mediump uvec2 color;
 
 void main(void) {
 
