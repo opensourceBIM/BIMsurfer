@@ -139,7 +139,7 @@ export default class RenderLayer {
 				buffer.positions.set(vertex, buffer.positionsIndex);
 				buffer.positionsIndex += 3;
 			}
-			var floatNormal = vec3.create();
+			var floatNormal = vec4.create();
 			var intNormal = new Int8Array(3);
 			for (var i = 0; i < geometry.normals.length; i += 3) {
 
@@ -156,8 +156,8 @@ export default class RenderLayer {
 					floatNormal[2] = geometry.normals[i + 2];
 				}
 
-				vec3.transformMat4(floatNormal, floatNormal, object.normalMatrix);
-				vec3.normalize(floatNormal, floatNormal);
+				vec4.transformMat4(floatNormal, floatNormal, object.normalMatrix);
+				vec4.normalize(floatNormal, floatNormal);
 
 				if (quantizeNormals) {
 
