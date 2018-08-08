@@ -270,6 +270,7 @@ export default class ProgramManager {
 		gl.compileShader(shader);
 		if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
 			console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
+			console.log(source);
 			gl.deleteShader(shader);
 			return null;
 		}

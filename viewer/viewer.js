@@ -61,7 +61,7 @@ export default class Viewer {
 
             this.camera = new Camera(this);
             this.cameraControl = new CameraControl(this);
-            this.lighting = new Lighting(this.gl);
+            this.lighting = new Lighting(this);
             this.programManager = new ProgramManager(this.gl, this.settings.viewerBasePath);
 
             this.programManager.load().then(() => {

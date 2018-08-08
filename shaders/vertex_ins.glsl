@@ -15,19 +15,18 @@ uniform mat4 viewNormalMatrix;
 uniform mat4 viewMatrix;
 
 uniform LightData {
-	vec3 lightPosition;
-	vec3 lightColor;
+	vec3 dir;
+	vec3 color;
 	vec3 ambientColor;
-	float shininess;
+	float intensity;
 } lightData;
 
 out mediump vec4 color;
 
 void main(void) {
 
-    vec3 viewNormal = normalize(( viewNormalMatrix * instanceNormalMatrices * vec4(vertexNormal, 0.0)).xyz);
-    vec3 lightDir = normalize(vec3(0.5, 0.5, 0.5));
-    float lambertian = max(dot(lightDir, viewNormal), 0.0);
+    vec3 viewNormal = normalize(vec3( viewNormalMatrix * instanceNormalMatrices * vec4(vertexNormal, 0.0)));
+    float lambertian = max(dot(normalize(lightData.dir), viewNormal), 0.0);
 
     gl_Position = projectionMatrix * viewMatrix * instanceMatrices * vec4(vertexPosition, 1);
     color = vec4(lambertian * vertexColor.rgb, vertexColor.a);
