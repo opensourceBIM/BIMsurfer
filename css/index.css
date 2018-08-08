@@ -6,3 +6,8 @@
 .mode {
 	margin: 20px;
 }
+
+.viewer {
+	width: 320px;
+	height: 240px;
+}
