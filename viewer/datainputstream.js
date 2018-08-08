@@ -66,6 +66,12 @@ export default class DataInputStream {
 	}
 
 	readLong() {
+		var value = this.dataView.getUint32(this.pos, true) + 0x100000000 * this.dataView.getUint32(this.pos + 4, true);
+		this.pos += 8;
+		return value;
+	}
+
+	readLongAsBigInt() {
 		var value = this.dataView.getBigInt64(this.pos, true);
 //		var value = this.dataView.getUint32(this.pos, true) + 0x100000000 * this.dataView.getUint32(this.pos + 4, true);
 		this.pos += 8;
