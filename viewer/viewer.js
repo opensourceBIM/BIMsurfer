@@ -221,7 +221,7 @@ export default class Viewer {
         this.renderBuffer.unbind();
 
         var pickId = pickColor[0] + (pickColor[1] * 256) + (pickColor[2] * 256 * 256) + (pickColor[3] * 256 * 256 * 256);
-        pickId--;
+        console.log(pickId);
 
         var viewObject = this.viewObjectsByPickId[pickId];
         console.log(viewObject);
@@ -234,9 +234,9 @@ export default class Viewer {
     }
 
     getPickColor(objectViewId) { // Converts an integer to a pick color
-        var a = objectViewId >> 24 & 0xFF;
-        var b = objectViewId >> 16 & 0xFF;
-        var g = objectViewId >> 8 & 0xFF;
+        var a = (objectViewId >> 24) & 0xFF;
+        var b = (objectViewId >> 16) & 0xFF;
+        var g = (objectViewId >> 8) & 0xFF;
         var r = objectViewId & 0xFF;
         var pickColor = vec4.create();
         pickColor[0] = r / 255;
