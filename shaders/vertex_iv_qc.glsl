@@ -29,5 +29,5 @@ void main(void) {
     float lambertian    = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
 
     gl_Position         = projectionMatrix * viewMatrix * floatVertex;
-    color               = lambertian * floatColor;
+    color = vec4(lambertian * floatColor.rgb, floatColor.a);
 }
