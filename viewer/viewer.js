@@ -39,9 +39,7 @@ export default class Viewer {
         this.viewObjects = new Map();
 
         var self = this;
-        window.testPick = function() {
-            self.pick({ canvasPos: [100,100]});
-        }
+        window._debugViewer = this;  // HACK for console debugging
     }
 
     init() {
