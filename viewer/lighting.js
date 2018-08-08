@@ -7,16 +7,21 @@ export default class Lighting {
     constructor(viewer) {
 
         this.viewer = viewer;
-        this._dir = [-0.5, -0.5, -1.0];
-        this._color = [1.0, 1.0, 1.0];
-        this._ambientColor = [0.3, 0.3, 0.3];
+        this._dir = new Float32Array([-0.5, -0.5, -1.0]);
+        this._color = new Float32Array([1.0, 1.0, 1.0]);
+        this._ambientColor = new Float32Array([0.3, 0.3, 0.3]);
         this._intensity = 0.5;
         this._bufferData = new Float32Array(52);
         this._buffer = null;
 
-        this._dirty = true;
+        this._setDirty();
     }
 
+    _setDirty() {
+        this._dirty = true;
+        this.viewer.dirty = true;
+    }
+    
     _update() {
         if (!this._dirty) {
             return;
@@ -48,23 +53,23 @@ export default class Lighting {
     }
 
     setDir(dir) {
-        this.dir.set(dir);
-        this._dirty = true;
+        this._dir.set(dir);
+        this._setDirty();
     }
 
     setColor(color) {
         this._color.set(color);
-        this._dirty = true;
+        this._setDirty();
     }
 
     setAmbientColor(ambientColor) {
         this._ambientColor.set(ambientColor);
-        this._dirty = true;
+        this._setDirty();
     }
 
     setIntensity(intensity) {
         this.intensity = intensity;
-        this._dirty = true;
+        this._setDirty();
     }
 
     render(uniformBlockLocation) {
