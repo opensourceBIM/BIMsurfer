@@ -7,7 +7,7 @@ export default class Lighting {
 	constructor(viewer) {
 
 		this.viewer = viewer;
-		this.dir = [0.5, 0.5, -1.0];
+		this.dir = [0.5, 0.5, 1.0];
 		this.color = [1.0, 1.0, 1.0];
 		this.ambientColor = [0.3, 0.3, 0.3];
 		this.intensity = 0.5;
