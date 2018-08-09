@@ -435,11 +435,11 @@ export default class RenderLayer {
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceNormalMatricesBuffer);
 		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceNormalMatrices);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 0, 3, this.gl.FLOAT, false, 27, 0);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 0, 3, this.gl.FLOAT, false, 36, 0);
 		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceNormalMatrices + 1);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 1, 3, this.gl.FLOAT, false, 27, 9);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 1, 3, this.gl.FLOAT, false, 36, 12);
 		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceNormalMatrices + 2);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 2, 3, this.gl.FLOAT, false, 27, 18);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 2, 3, this.gl.FLOAT, false, 36, 24);
 		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 0, 1);
 		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 1, 1);
 		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 2, 1);
