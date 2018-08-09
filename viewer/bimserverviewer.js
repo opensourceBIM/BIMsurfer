@@ -315,7 +315,6 @@ export default class BimServerViewer {
 //			document.getElementById("progress").style.display = "none";
 			this.viewer.stats.setParameter("Loading time", "Layer 1", performance.now() - start);
 			defaultRenderLayer.completelyDone();
-			console.log("layer 1 done", (performance.now() - startLayer1) + "ms");
 			this.viewer.stats.requestUpdate();
 		});
 		return executor.awaitTermination();
@@ -338,8 +337,6 @@ export default class BimServerViewer {
 			
 			this.viewer.bufferSetPool.cleanup();
 
-			console.log("layer 2 done", (performance.now() - startLayer2) + "ms");
-			
 //			tilingLayer.octree.traverse((node) => {
 //				if (node.liveBuffers.length > 0) {
 //					console.log(node.getBounds(), node.liveBuffers.length);
