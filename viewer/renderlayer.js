@@ -159,7 +159,7 @@ export default class RenderLayer {
 				vec4.transformMat4(floatNormal, floatNormal, object.normalMatrix);
 				vec4.normalize(floatNormal, floatNormal);
 				// TODO this results in vectors with a negative magnitude... (at least on the unquantized data) We should probably do something with that information
-				// Also the number become really small, resulting in all zeros when quantizing again				
+				// Also the number becomes really small, resulting in all zeros when quantizing again, that can't be right				
 
 				if (quantizeNormals) {
 
