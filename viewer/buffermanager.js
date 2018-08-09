@@ -106,7 +106,8 @@ export default class BufferManager {
 			indicesIndex: 0,
 			nrIndices: 0,
 			hasTransparency: hasTransparency,
-			color: color
+			color: color,
+			bytes: 0
 		};
 		return bufferSet;
 	}
@@ -131,6 +132,7 @@ export default class BufferManager {
 		bufferSet.pickColorsIndex = 0;
 		bufferSet.indicesIndex = 0;
 		bufferSet.nrIndices = 0;
+		bufferSet.bytes = 0;
 	}
 	
 	getAllBuffers() {

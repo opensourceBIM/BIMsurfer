@@ -29,6 +29,8 @@ export default class RenderLayer {
 				bytes += colors.length * 4;
 			}
 		}
+		// Pick buffers
+		bytes += positions.length * 8;
 		if (indices.length < 65536 && this.settings.useSmallIndicesIfPossible) {
 			bytes += indices.length * 2;
 		} else {
@@ -237,6 +239,7 @@ export default class RenderLayer {
 		}
 
 		buffer.nrIndices += geometry.indices.length;
+		buffer.bytes += geometry.bytes;
 		
 		if (buffer.needsToFlush) {
 			this.flushBuffer(buffer);
@@ -803,18 +806,12 @@ export default class RenderLayer {
 			this.viewer.dirty = true;
 		}
 		
-		var toadd = 
-			buffer.positionsIndex * (this.settings.quantizeVertices ? 2 : 4) + 
-			buffer.normalsIndex * (this.settings.quantizeNormals ? 1 : 4) + 
-			(buffer.colorsIndex != null ? buffer.colorsIndex * (this.settings.quantizeColors ? 1 : 4) : 0) + 
-			buffer.indicesIndex * 4;
-
 		this.viewer.stats.inc("Primitives", "Nr primitives loaded", buffer.nrIndices / 3);
 		if (this.progressListener != null) {
 			this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
 		}
-		this.viewer.stats.inc("Data", "GPU bytes", toadd);
-		this.viewer.stats.inc("Data", "GPU bytes total", toadd);
+		this.viewer.stats.inc("Data", "GPU bytes", buffer.bytes);
+		this.viewer.stats.inc("Data", "GPU bytes total", buffer.bytes);
 		this.viewer.stats.inc("Buffers", "Buffer groups");
 	}
 }
