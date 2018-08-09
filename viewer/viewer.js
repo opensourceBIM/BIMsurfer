@@ -227,7 +227,7 @@ export default class Viewer {
     }
 
     getPickColor(objectId) { // Converts an integer to a pick color
-        return [new Number(objectId & 0xFFFFFFFFn), new Number((objectId >> 32n) & 0xFFFFFFFFn)];
+        return new Uint32Array([new Number(objectId & 0xFFFFFFFFn), new Number((objectId >> 32n) & 0xFFFFFFFFn)]);
     }
 
     setModelBounds(modelBounds) {
