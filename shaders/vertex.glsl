@@ -9,7 +9,7 @@ in vec4 vertexColor;
 
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
-uniform mat4 viewNormalMatrix;
+uniform mat3 viewNormalMatrix;
 
 uniform LightData {
 	vec3 dir;
@@ -22,7 +22,7 @@ out mediump vec4 color;
 
 void main(void) {
 
-    vec3 viewNormal = vec3(normalize(viewNormalMatrix * vec4(vertexNormal, 0.0)));
+    vec3 viewNormal = normalize(viewNormalMatrix * vertexNormal);
     float lambertian = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
 
     gl_Position = projectionMatrix * viewMatrix * vec4(vertexPosition, 1);

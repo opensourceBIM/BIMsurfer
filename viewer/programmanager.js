@@ -185,7 +185,7 @@ export default class ProgramManager {
 		var p = new Promise((resolve, reject) => {
 			this.loadShaderFile(vertexShader).then((vsSource) => {
 				this.loadShaderFile(fragmentShader).then((fsSource) => {
-					var shaderProgram = this.initShaderProgram(this.gl, vsSource, fsSource);
+					var shaderProgram = this.initShaderProgram(this.gl, vertexShader, vsSource, fragmentShader, fsSource);
 
 					var programInfo = {
 						program: shaderProgram,
@@ -263,9 +263,9 @@ export default class ProgramManager {
 		return promise;
 	}
 
-	initShaderProgram(gl, vsSource, fsSource) {
-		const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vsSource);
-		const fragmentShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+	initShaderProgram(gl, vsName, vsSource, fsName, fsSource) {
+		const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vsName, vsSource);
+		const fragmentShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fsName, fsSource);
 
 		const shaderProgram = gl.createProgram();
 		gl.attachShader(shaderProgram, vertexShader);
@@ -280,13 +280,13 @@ export default class ProgramManager {
 		return shaderProgram;
 	}
 
-	loadShader(gl, type, source) {
+	loadShader(gl, type, name, source) {
 		const shader = gl.createShader(type);
 		gl.shaderSource(shader, source);
 		gl.compileShader(shader);
 		if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+			console.error(name);
 			console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
-			console.log(source);
 			gl.deleteShader(shader);
 			return null;
 		}

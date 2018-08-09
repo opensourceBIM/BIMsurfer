@@ -8,7 +8,7 @@ in ivec3 vertexNormal;
 
 uniform vec4 objectColor;
 uniform mat4 projectionMatrix;
-uniform mat4 viewNormalMatrix;
+uniform mat3 viewNormalMatrix;
 uniform mat4 viewMatrix;
 
 uniform LightData {
@@ -22,7 +22,7 @@ out mediump vec4 color;
 
 void main(void) {
 
-    vec3 viewNormal = normalize(vec3( viewNormalMatrix * vec4(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0, 0.0)));
+    vec3 viewNormal = normalize(viewNormalMatrix * vec3(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0));
     float lambertian = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
 
     gl_Position = projectionMatrix * viewMatrix * vec4(vertexPosition, 1);
