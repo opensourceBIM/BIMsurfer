@@ -8,7 +8,7 @@ export default class Lighting {
 
         this.viewer = viewer;
         this._dir = new Float32Array([-0.5, -0.5, -1.0]);
-        this._color = new Float32Array([1.0, 1.0, 1.0]);
+        this._color = new Float32Array([0.4, 0.4, 0.4]);
         this._ambientColor = new Float32Array([0.3, 0.3, 0.3]);
         this._intensity = 0.5;
         this._bufferData = new Float32Array(52);
@@ -68,7 +68,7 @@ export default class Lighting {
     }
 
     setIntensity(intensity) {
-        this.intensity = intensity;
+        this._intensity = intensity;
         this._setDirty();
     }
 
