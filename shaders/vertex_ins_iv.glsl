@@ -31,5 +31,5 @@ void main(void) {
   float lambertian = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
 
   gl_Position = projectionMatrix * viewMatrix * instanceMatrices * floatVertex;
-  color = vec4(lambertian * vertexColor.rgb, vertexColor.a);
+  color = vec4(lightData.ambientColor +  (lambertian * (lightData.color + vertexColor.rgb)), vertexColor.a);
 }
