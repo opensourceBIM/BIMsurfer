@@ -139,7 +139,7 @@ export default class RenderLayer {
 				buffer.positions.set(vertex, buffer.positionsIndex);
 				buffer.positionsIndex += 3;
 			}
-			var floatNormal = vec4.create();
+			var floatNormal = vec3.create();
 			var intNormal = new Int8Array(3);
 			for (var i = 0; i < geometry.normals.length; i += 3) {
 
@@ -156,8 +156,8 @@ export default class RenderLayer {
 					floatNormal[2] = geometry.normals[i + 2];
 				}
 
-				vec4.transformMat4(floatNormal, floatNormal, object.normalMatrix);
-				vec4.normalize(floatNormal, floatNormal);
+				vec3.transformMat3(floatNormal, floatNormal, object.normalMatrix);
+				vec3.normalize(floatNormal, floatNormal);
 				// TODO this results in vectors with a negative magnitude... (at least on the unquantized data) We should probably do something with that information
 				// Also the number becomes really small, resulting in all zeros when quantizing again, that can't be right				
 
@@ -347,9 +347,9 @@ export default class RenderLayer {
 
 		const instanceNormalMatricesBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceNormalMatricesBuffer);
-		var instanceNormalMatrices = new Float32Array(numInstances * 16);
+		var instanceNormalMatrices = new Float32Array(numInstances * 9);
 		geometry.objects.forEach((object, index) => {
-			instanceNormalMatrices.set(object.normalMatrix, index * 16);
+			instanceNormalMatrices.set(object.normalMatrix, index * 9);
 		});
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, instanceNormalMatrices, this.gl.STATIC_DRAW, 0, 0);
 
@@ -435,17 +435,14 @@ export default class RenderLayer {
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceNormalMatricesBuffer);
 		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceNormalMatrices);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 0, 4, this.gl.FLOAT, false, 64, 0);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 0, 3, this.gl.FLOAT, false, 27, 0);
 		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceNormalMatrices + 1);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 1, 4, this.gl.FLOAT, false, 64, 16);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 1, 3, this.gl.FLOAT, false, 27, 9);
 		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceNormalMatrices + 2);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 2, 4, this.gl.FLOAT, false, 64, 32);
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceNormalMatrices + 3);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 3, 4, this.gl.FLOAT, false, 64, 48);
+		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceNormalMatrices + 2, 3, this.gl.FLOAT, false, 27, 18);
 		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 0, 1);
 		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 1, 1);
 		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 2, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceNormalMatrices + 3, 1);
 
 		// Indices
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);		  

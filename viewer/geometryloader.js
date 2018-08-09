@@ -332,9 +332,10 @@ export default class GeometryLoader {
 
 			matrix = totalMatrix;
 		}
-		var normalMatrix = mat4.create();
-		mat4.invert(normalMatrix, matrix);
-		mat4.transpose(normalMatrix, normalMatrix);
+		var normalMatrix = mat3.create();
+		mat3.fromMat4(normalMatrix, matrix);
+		mat3.invert(normalMatrix, normalMatrix);
+		mat3.transpose(normalMatrix, normalMatrix);
 		this.renderLayer.createObject(this.loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb);
 	}
 }

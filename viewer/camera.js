@@ -21,7 +21,7 @@ export default class Camera {
 
         this._projection = this.perspective; // Currently active projection
         this._viewMatrix = mat4.create();
-        this._viewNormalMatrix = mat4.create();
+        this._viewNormalMatrix = mat3.create();
 
         this._worldScale = 1.0;
 
@@ -55,8 +55,9 @@ export default class Camera {
             mat4.identity(tempMat4);
             mat4.scale(tempMat4, tempMat4, scale);
             mat4.multiply(this._viewMatrix, tempMat4, this._viewMatrix);
-            mat4.invert(tempMat4b, this._viewMatrix);
-            mat4.transpose(this._viewNormalMatrix, tempMat4b);
+            mat3.fromMat4(tempMat4b, this._viewMatrix)
+            mat3.invert(tempMat4b, tempMat4b);
+            mat3.transpose(this._viewNormalMatrix, tempMat4b);
             this._dirty = false;
         }
     }
