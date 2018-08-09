@@ -64,6 +64,10 @@ export default class CameraControl {
             };
         })();
 
+        canvas.oncontextmenu = function (e) {
+            e.preventDefault();
+        };
+
         canvas.addEventListener("mousedown", function (e) {
             getCanvasPosFromEvent(e, mousePos);
             switch (e.which) {
@@ -86,6 +90,7 @@ export default class CameraControl {
             }
             over = true;
             down = true;
+            e.preventDefault();
         });
 
         canvas.addEventListener("mouseup", function (e) {
@@ -99,7 +104,6 @@ export default class CameraControl {
                             var aabb = viewObject.aabb;
                             var center = [(aabb[0] + aabb[3]) / 2, (aabb[1] + aabb[4]) / 2, (aabb[0] + aabb[5]) / 2];
                             self.viewer.camera.target = center;
-
                             console.log("Picked: " + viewObject.type);
                         }
                     }
@@ -114,6 +118,7 @@ export default class CameraControl {
                     break;
             }
             down = false;
+            e.preventDefault();
         });
 
         document.addEventListener("mouseup", function (e) {
@@ -133,12 +138,14 @@ export default class CameraControl {
             down = false;
         });
 
-        canvas.addEventListener("mouseenter", function () {
+        canvas.addEventListener("mouseenter", function (e) {
             over = true;
+            e.preventDefault();
         });
 
-        canvas.addEventListener("mouseleave", function () {
+        canvas.addEventListener("mouseleave", function (e) {
             over = false;
+            e.preventDefault();
         });
 
         canvas.addEventListener("mousemove", function (e) {
@@ -166,6 +173,7 @@ export default class CameraControl {
                     camera.pan([xDelta * f, yDelta * self.mousePanSensitivity * f, 0.0]);
                 }
             }
+            e.preventDefault();
         });
 
         canvas.addEventListener("wheel", function (e) { // Zooming
