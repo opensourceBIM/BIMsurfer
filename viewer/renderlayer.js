@@ -478,25 +478,25 @@ export default class RenderLayer {
 		// Instance matrices for positions
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceMatricesBuffer);
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 0, 4, this.gl.FLOAT, false, 64, 0);
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices + 1);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 1, 4, this.gl.FLOAT, false, 64, 16);
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices + 2);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 2, 4, this.gl.FLOAT, false, 64, 32);
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices + 3);
-		this.gl.vertexAttribPointer(programInfo.attribLocations.instanceMatrices + 3, 4, this.gl.FLOAT, false, 64, 48);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceMatrices + 0, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceMatrices + 1, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceMatrices + 2, 1);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instanceMatrices + 3, 1);
+		this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.instanceMatrices);
+		this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.instanceMatrices + 0, 4, this.gl.FLOAT, false, 64, 0);
+		this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.instanceMatrices + 1);
+		this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.instanceMatrices + 1, 4, this.gl.FLOAT, false, 64, 16);
+		this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.instanceMatrices + 2);
+		this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.instanceMatrices + 2, 4, this.gl.FLOAT, false, 64, 32);
+		this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.instanceMatrices + 3);
+		this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.instanceMatrices + 3, 4, this.gl.FLOAT, false, 64, 48);
+		this.gl.vertexAttribDivisor(pickProgramInfo.attribLocations.instanceMatrices + 0, 1);
+		this.gl.vertexAttribDivisor(pickProgramInfo.attribLocations.instanceMatrices + 1, 1);
+		this.gl.vertexAttribDivisor(pickProgramInfo.attribLocations.instanceMatrices + 2, 1);
+		this.gl.vertexAttribDivisor(pickProgramInfo.attribLocations.instanceMatrices + 3, 1);
 
 		// Instance pick colors
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancePickColorsBuffer);
-		this.gl.enableVertexAttribArray(programInfo.attribLocations.instancePickColors);
-		this.gl.vertexAttribIPointer(programInfo.attribLocations.instancePickColors, 2, this.gl.UNSIGNED_INT, false, 0, 0);
-		this.gl.vertexAttribDivisor(programInfo.attribLocations.instancePickColors, 1);
+		this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.instancePickColors);
+		this.gl.vertexAttribIPointer(pickProgramInfo.attribLocations.instancePickColors, 2, this.gl.UNSIGNED_INT, false, 0, 0);
+		this.gl.vertexAttribDivisor(pickProgramInfo.attribLocations.instancePickColors, 1);
 
 		// Indices
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
