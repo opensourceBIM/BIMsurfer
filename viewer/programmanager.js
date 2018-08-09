@@ -25,6 +25,9 @@ export default class ProgramManager {
 		if (inputSettings.instancing) {
 			settings.attributes.push("instanceMatrices");
 			settings.attributes.push("instanceNormalMatrices");
+			if (inputSettings.picking) {
+				settings.attributes.push("instancePickColors");
+			}
 		}
 		if (inputSettings.useObjectColors) {
 			settings.uniforms.push("objectColor");
@@ -231,7 +234,7 @@ export default class ProgramManager {
 							}
 						}
 					}
-
+					
 					programInfo.vertexShaderFile = vertexShader;
 					programInfo.fragmentShaderFile = fragmentShader;
 

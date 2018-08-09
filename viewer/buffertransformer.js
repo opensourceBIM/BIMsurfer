@@ -10,7 +10,7 @@ export default class BufferTransformer {
 	}
 
 	convertVertices(croid, vertices) {
-		if (!this.settings.quantizeVertices && !this.settings.loaderSettings.quantizeVertices) {
+		if (this.settings.quantizeVertices == this.settings.loaderSettings.quantizeVertices) {
 			return vertices;
 		}
 

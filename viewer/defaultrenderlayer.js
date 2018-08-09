@@ -123,6 +123,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 			if (this.settings.quantizeVertices) {
 				if (!reuse) {
+					// This is odd, it seems as though the reused shaders also need the vertexQuantizationMatrix, but it seems to work anyways... (same code in pickBuffers)
 					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 				}
 			}
@@ -137,9 +138,9 @@ export default class DefaultRenderLayer extends RenderLayer {
 			var programInfo = this.viewer.programManager.getProgram({
 				picking: true,
 				instancing: reuse,
-				useObjectColors: !!this.settings.useObjectColors,
+				useObjectColors: this.settings.useObjectColors,
 				quantizeNormals: false,
-				quantizeVertices: !!this.settings.quantizeVertices,
+				quantizeVertices: this.settings.quantizeVertices,
 				quantizeColors: false
 			});
 			this.gl.useProgram(programInfo.program);
