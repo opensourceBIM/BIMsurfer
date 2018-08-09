@@ -207,12 +207,10 @@ export default class RenderLayer {
 					}
 				}
 			}
-
 			var pickColor = this.viewer.getPickColor(object.id);
-			var lenObjectPickColors = (geometry.positions.length / 3) * 2;
-			for (var j = buffer.pickColorsIndex, lenj = buffer.pickColorsIndex + lenObjectPickColors; j < lenj; j+=2) {
-				buffer.pickColors[j + 0] = pickColor[0];
-				buffer.pickColors[j + 1] = pickColor[1];
+			var lenObjectPickColors = (geometry.positions.length / 3);
+			for (var i=0; i<lenObjectPickColors; i++) {
+				buffer.pickColors.set(pickColor, buffer.pickColorsIndex);
 				buffer.pickColorsIndex += 2;
 			}
 
@@ -536,7 +534,10 @@ export default class RenderLayer {
 			this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
 		}
 
-		var toadd = geometry.bytes + geometry.matrices.length * 16 * 4;
+		var toadd = 
+			geometry.bytes + 
+			geometry.matrices.length * 16 * 4 + // vertex matrices
+			geometry.matrices.length * 9 * 4; // normal matrices
 		this.viewer.stats.inc("Drawing", "Draw calls per frame (L1)");
 		this.viewer.stats.inc("Data", "GPU bytes reuse", toadd);
 		this.viewer.stats.inc("Data", "GPU bytes total", toadd);
@@ -802,7 +803,11 @@ export default class RenderLayer {
 			this.viewer.dirty = true;
 		}
 		
-		var toadd = buffer.positionsIndex * (this.settings.quantizeVertices ? 2 : 4) + buffer.normalsIndex * (this.settings.quantizeNormals ? 1 : 4) + (buffer.colorsIndex != null ? buffer.colorsIndex * (this.settings.quantizeColors ? 1 : 4) : 0) + buffer.indicesIndex * 4;
+		var toadd = 
+			buffer.positionsIndex * (this.settings.quantizeVertices ? 2 : 4) + 
+			buffer.normalsIndex * (this.settings.quantizeNormals ? 1 : 4) + 
+			(buffer.colorsIndex != null ? buffer.colorsIndex * (this.settings.quantizeColors ? 1 : 4) : 0) + 
+			buffer.indicesIndex * 4;
 
 		this.viewer.stats.inc("Primitives", "Nr primitives loaded", buffer.nrIndices / 3);
 		if (this.progressListener != null) {
