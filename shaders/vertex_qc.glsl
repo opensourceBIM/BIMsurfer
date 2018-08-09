@@ -24,7 +24,7 @@ void main(void) {
 
     vec3 viewNormal = normalize(vec3( viewNormalMatrix * vec4(vertexNormal, 0.0)));
     vec4 floatColor = vec4(float(vertexColor.x) / 255.0, float(vertexColor.y) / 255.0, float(vertexColor.z) / 255.0, float(vertexColor.w) / 255.0);
-    float lambertian = max(dot(viewNormal, normalize(lightData.dir)), 0.0);
+    float lambertian = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
 
     gl_Position = projectionMatrix * viewMatrix * vec4(vertexPosition, 1);
     color = vec4(lambertian * floatColor.rgb, floatColor.a);
