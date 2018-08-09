@@ -97,10 +97,10 @@ export default class CameraControl {
                         var viewObject = self.viewer.pick({canvasPos: mousePos});
                         if (viewObject) {
                             var aabb = viewObject.aabb;
-                            var center = [(aabb[0] + aabb[3]) / 2, (aabb[1] + aabb[4]) / 2, (aabb[0] + aabb[5]) / 2];
+                            var center = [(aabb[0] + aabb[3]) / 2, (aabb[1] + aabb[4]) / 2, (aabb[2] + aabb[5]) / 2];
                             self.viewer.camera.target = center;
 
-                            console.log("Picked: " + viewObject.type);
+                            console.log("Picked", viewObject);
                         }
                     }
                     break;
