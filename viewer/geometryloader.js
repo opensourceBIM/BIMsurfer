@@ -132,7 +132,7 @@ export default class GeometryLoader {
 
 		this.protocolVersion = data.readByte();
 
-		if (this.protocolVersion != 15) {
+		if (this.protocolVersion != 16) {
 			console.error("Unimplemented version");
 			return false;
 		}
@@ -184,7 +184,7 @@ export default class GeometryLoader {
 			}
 		} else if (geometryType == 5) {
 			// Object
-			var oid = stream.readLong();
+			var oid = stream.readLongAsBigInt();
 			var type = stream.readUTF8();
 			stream.align8();
 			var roid = stream.readLong();

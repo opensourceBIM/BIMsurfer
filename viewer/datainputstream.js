@@ -71,6 +71,13 @@ export default class DataInputStream {
 		return value;
 	}
 
+	readLongAsBigInt() {
+		var value = this.dataView.getBigInt64(this.pos, true);
+//		var value = this.dataView.getUint32(this.pos, true) + 0x100000000 * this.dataView.getUint32(this.pos + 4, true);
+		this.pos += 8;
+		return value;
+	}
+
 	readFloatArray2(length) {
 		var results = [];
 		for (var i=0; i<length; i++) {

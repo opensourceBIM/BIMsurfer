@@ -6,30 +6,41 @@ export default class GpuBufferManager {
 		
 		this.liveBuffersTransparent = [];
 		this.liveBuffersOpaque = [];
-		this.liveReusedBuffers = [];
+		this.liveReusedBuffersOpaque = [];
+		this.liveReusedBuffersTransparent = [];
 	}
 	
 	isEmpty() {
 		return 
 			(this.liveBuffersOpaque == null || this.liveBuffersOpaque.length == 0) && 
 			(this.liveBuffersTransparent == null || this.liveBuffersTransparent.length == 0) &&
-			(this.liveBuffersReuse == null || this.liveBuffersReuse.length == 0);
+			(this.liveReusedBuffersOpaque == null || this.liveReusedBuffersOpaque.length == 0) &&
+			(this.liveReusedBuffersTransparent == null || this.liveReusedBuffersTransparent.length == 0);
 	}
 	
 	getBuffers(transparency, reuse) {
 		if (reuse) {
-			return this.liveReusedBuffers;
-		}
-		if (transparency) {
-			return this.liveBuffersTransparent;
+			if (transparency) {
+				return this.liveReusedBuffersTransparent;
+			} else {
+				return this.liveReusedBuffersOpaque;
+			}
 		} else {
-			return this.liveBuffersOpaque;
+			if (transparency) {
+				return this.liveBuffersTransparent;
+			} else {
+				return this.liveBuffersOpaque;
+			}
 		}
 	}
 	
 	pushBuffer(buffer) {
 		if (buffer.reuse) {
-			this.liveReusedBuffers.push(buffer);
+			if (buffer.hasTransparency) {
+				this.liveReusedBuffersTransparent.push(buffer);
+			} else {
+				this.liveReusedBuffersOpaque.push(buffer);
+			}
 		} else {
 			if (buffer.hasTransparency) {
 				this.liveBuffersTransparent.push(buffer);
@@ -42,7 +53,8 @@ export default class GpuBufferManager {
 	sortAllBuffers() {
 		this.sortBuffers(this.liveBuffersOpaque);
 		this.sortBuffers(this.liveBuffersTransparent);
-		this.sortBuffers(this.liveReusedBuffers);
+		this.sortBuffers(this.liveReusedBuffersOpaque);
+		this.sortBuffers(this.liveReusedBuffersTransparent);
 	}
 	
 	sortBuffers(buffers) {

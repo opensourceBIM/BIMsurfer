@@ -206,15 +206,17 @@ export default class Viewer {
         this.gl.depthFunc(this.gl.LEQUAL);
         this.gl.disable(this.gl.BLEND);
 
-        for (var renderLayer of this.renderLayers) {
-            renderLayer.pick();
+        for (var transparency of [false, true]) {
+        	for (var renderLayer of this.renderLayers) {
+        		renderLayer.pick(transparency);
+        	}
         }
 
         var pickColor = this.renderBuffer.read(Math.round(canvasPos[0]), Math.round(canvasPos[1]));
 
         this.renderBuffer.unbind();
 
-        var objectId = pickColor[0] + (pickColor[1] * 4294967296);
+        var objectId = BigInt(pickColor[0]) + (BigInt(pickColor[1]) * 4294967296n);
 
         var viewObject = this.viewObjects.get(objectId);
         if (viewObject) {
@@ -225,8 +227,7 @@ export default class Viewer {
     }
 
     getPickColor(objectId) { // Converts an integer to a pick color
-    	// TODO Need to fill in the second space with the remaining 32 bits 
-        return [objectId & 0xFFFFFFFF, 0];
+        return [new Number(objectId & 0xFFFFFFFFn), new Number((objectId >> 32n) & 0xFFFFFFFFn)];
     }
 
     setModelBounds(modelBounds) {

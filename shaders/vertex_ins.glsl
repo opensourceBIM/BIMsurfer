@@ -25,7 +25,7 @@ out mediump vec4 color;
 
 void main(void) {
 
-    vec3 viewNormal = normalize(vec3( viewNormalMatrix * instanceNormalMatrices * vec4(vertexNormal, 0.0)));
+    vec3 viewNormal = vec3(normalize(viewNormalMatrix * instanceNormalMatrices * vec4(vertexNormal, 0.0)));
     float lambertian = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
 
     gl_Position = projectionMatrix * viewMatrix * instanceMatrices * vec4(vertexPosition, 1);
