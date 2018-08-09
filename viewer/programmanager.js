@@ -22,6 +22,9 @@ export default class ProgramManager {
 			attributes: [],
 			uniforms: []
 		};
+		if (inputSettings.specialType == "line") {
+			return settings;
+		}
 		if (inputSettings.instancing) {
 			settings.attributes.push("instanceMatrices");
 			settings.attributes.push("instanceNormalMatrices");
@@ -29,11 +32,13 @@ export default class ProgramManager {
 				settings.attributes.push("instancePickColors");
 			}
 		}
-		if (inputSettings.useObjectColors) {
-			settings.uniforms.push("objectColor");
-			settings.uniforms.push("objectPickColor");
-		} else {
-			settings.attributes.push("vertexColor");
+		if (!inputSettings.picking) {
+			if (inputSettings.useObjectColors) {
+				settings.uniforms.push("objectColor");
+				settings.uniforms.push("objectPickColor");
+			} else {
+				settings.attributes.push("vertexColor");
+			}			
 		}
 		if (inputSettings.quantizeNormals) {
 			// Has no effect on locations
