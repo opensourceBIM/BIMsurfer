@@ -39,9 +39,10 @@ export default class BimServerViewer {
 
 		if (this.settings.autoResize) {
 			this.resizeCanvas();
-			window.addEventListener("resize", () => {
+			this.resizeHandler = () => {
 				this.resizeCanvas();
-			}, false);
+			};
+			window.addEventListener("resize", this.resizeHandler, false);
 		} else {
 			this.viewer.setDimensions(width, height);
 		}
@@ -344,5 +345,10 @@ export default class BimServerViewer {
 //			}, true);
 		});
 		return p;
+	}
+	
+	cleanup() {
+		window.removeEventListener("resize", this.resizeHandler, false);
+		this.viewer.cleanup();
 	}
 }
