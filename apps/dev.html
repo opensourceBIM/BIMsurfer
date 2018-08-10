@@ -4,20 +4,23 @@
 <meta charset="utf-8">
 <title>BIMsurfer Developer Mode</title>
 <link rel="icon" type="image/png" href="../img/application_home.png" />
+<link href="../css/dev.css" type="text/css" rel="stylesheet" />
 <link href="../css/viewer.css" type="text/css" rel="stylesheet" />
 </head>
 
 <body>
-	<div id="overlay">
-		<div id="inside">
-			<div id="projects"></div>
-			<div id="stats"></div>
+	<div id="projects"></div>
+	<div id="viewer" style="display: none">
+		<div id="overlay">
+			<div id="inside">
+				<a id="backButton">Back</a>
+				<div id="stats"></div>
+			</div>
 		</div>
-	</div>
-	<div id="settings">
-	</div>
-	<div id="viewer">
-		<canvas id="glcanvas"></canvas>
+		<div id="settings">
+		</div>
+		<div id="canvasWrapper">
+		</div>
 		<div id="progressbar">
 			<div id="progress"></div>
 		</div>

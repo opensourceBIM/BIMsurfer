@@ -1,0 +1,8 @@
+#projects {
+	border-radius: 5px;
+	padding: 5px;
+	margin: 10px;
+	background: rgba(200, 200, 255, 0.2);
+	width: 20%;
+	height: 100%;
+}
