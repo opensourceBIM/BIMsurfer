@@ -245,7 +245,8 @@ export default class Viewer {
 
     cleanup() {
         this.running = false;
-        this.gl.getExtension('WEBGL_lose_context').loseContext();
+        this.cameraControl.cleanup();
+//        this.gl.getExtension('WEBGL_lose_context').loseContext();
         this.stats.cleanup();
     }
 
