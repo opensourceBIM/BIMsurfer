@@ -48,7 +48,8 @@ export default class DefaultRenderLayer extends RenderLayer {
 			vertices: geometry.positions.length,
 			normals: geometry.normals.length,
 			indices: geometry.indices.length,
-			colors: (geometry.colors != null ? geometry.colors.length : 0)
+			colors: (geometry.colors != null ? geometry.colors.length : 0),
+			pickColors: geometry.positions.length
 		};
 		var buffer = this.bufferManager.getBufferSet(geometry.hasTransparency, geometry.color, sizes);
 

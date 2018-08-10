@@ -235,7 +235,8 @@ export default class TilingRenderLayer extends RenderLayer {
 			vertices: geometry.positions.length,
 			normals: geometry.normals.length,
 			indices: geometry.indices.length,
-			colors: (geometry.colors != null ? geometry.colors.length : 0)
+			colors: (geometry.colors != null ? geometry.colors.length : 0),
+			pickColors: geometry.positions.length
 		};
 
 		// TODO some of this is duplicate code, also in defaultrenderlayer.js

@@ -45,8 +45,10 @@ export default class BufferManager {
 	 * - The given sizes do not fit in a default buffer, in this case an exclusive buffer is given
 	 */
 	shouldFlush(sizes, buffer) {
-		var result = (sizes.vertices + (buffer != null ? buffer.positionsIndex : 0) > this.MAX_BUFFER_SIZE) || 
-		(sizes.indices + (buffer != null ? buffer.indicesIndex : 0) > this.MAX_BUFFER_SIZE * this.indicesVerticesFactor);
+		var result = 
+			(sizes.vertices + (buffer != null ? buffer.positionsIndex : 0) > this.MAX_BUFFER_SIZE) || 
+			(sizes.indices + (buffer != null ? buffer.indicesIndex : 0) > this.MAX_BUFFER_SIZE * this.indicesVerticesFactor) ||
+			(sizes.pickColors + (buffer != null ? buffer.pickColorsIndex : 0) > this.MAX_BUFFER_SIZE * this.colorBufferFactor);
 		
 		// Not storing the results in a variable resulted in this always returning something that evaluates to false...
 		
