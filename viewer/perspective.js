@@ -12,9 +12,11 @@ export default class Perspective {
         this._far = 100;
         this._dirty = true;
 
-        window.addEventListener("resize", function () {
-            self._dirty = true;
-        });
+        // TODO Disabled by Ruben, this is extremely ugly and causes memory leaks, there should be one handler (and it should be cleaned up) in total, which should call this._dirty
+        // TODO _dirty makes no sense at all, we have a certral place where we keep track of that: viewer
+//        window.addEventListener("resize", function () {
+//            self._dirty = true;
+//        });
     }
 
     _setDirty() {
