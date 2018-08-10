@@ -4,6 +4,9 @@ export default class ProjectTreeModel extends TreeModel{
 	constructor(bimServerApi, view) {
 		super(view);
 		this.subDiv = view.rootElement;
+		while (this.subDiv.firstChild) {
+			this.subDiv.removeChild(this.subDiv.firstChild);
+		}
 		this.bimServerApi = bimServerApi;
 		this.poidToProject = new Map();
 	}
