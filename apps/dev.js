@@ -15,15 +15,24 @@ export default class Dev {
 		this.animationEnabled = false;
 
 		this.settingsView = new Settings(document.getElementById("settings"));
+		document.getElementById("backButton").addEventListener("click", () => {
+			if (this.bimServerViewer != null) {
+				document.removeEventListener("keypress", this.keyPressHandler);
+				window._debugViewer = null;
+				window.tilingRenderLayer = null;
+				this.canvas.remove();
+				this.canvas = null;
+				this.bimServerViewer.cleanup();
+				this.bimServerViewer = null;
+			}
+			this.loadProjects();
+		});
 		
 		// Deep-clone the settings, so we know we have a non-changing view of the settings
 		this.settings = JSON.parse(JSON.stringify(this.settingsView.settings));
 		this.settings.viewerBasePath = "../";
-		this.settings.loaderSettings.tilingLayerReuse = true;
 		this.settings.drawTileBorders = true;
 		
-		this.canvas = document.getElementById("glcanvas");
-
 		this.api = new BimServerClient("http://localhost:8080");
 		this.api.init(() => {
 			this.api.login("admin@bimserver.org", "admin", () => {
@@ -33,18 +42,34 @@ export default class Dev {
 	}
 
 	loadProjects() {
+		document.getElementById("viewer").style.display = "none";
+		document.getElementById("projects").style.display = "block";
+
 		var treeView = new TreeView(document.getElementById("projects"));
 		this.projectTreeModel = new ProjectTreeModel(this.api, treeView);
 		this.projectTreeModel.load((node) => {
 			this.loadModel(node.project);
 		});
 	}
+	
+	keyPressListener(event) {
+		if (event.key == ' ') {
+			event.preventDefault();
+			this.animationEnabled = !this.animationEnabled;
+			this.bimServerViewer.viewer.navigationActive = this.animationEnabled;
+		}
+	}
 
 	loadModel(project) {
-		var rootElement = document.getElementById("projects");
-		while (rootElement.firstChild) {
-			rootElement.removeChild(rootElement.firstChild);
-		}
+		document.getElementById("projects").style.display = "none";
+		document.getElementById("viewer").style.display = "block";
+
+		this.animationEnabled = false;
+		
+		var canvasWrapper = document.getElementById("canvasWrapper");
+		this.canvas = document.createElement("canvas");
+		canvasWrapper.appendChild(this.canvas);
+
 		var stats = new Stats();
 		
 		stats.setParameter("Models", "Name", project.name);
@@ -57,13 +82,10 @@ export default class Dev {
 			}
 		});
 
-		document.addEventListener("keypress", (event) => {
-			if (event.key == ' ') {
-				event.preventDefault();
-				this.animationEnabled = !this.animationEnabled;
-				this.bimServerViewer.viewer.navigationActive = this.animationEnabled;
-			}
-		});
+		this.keyPressHandler = (event) => {
+			this.keyPressListener(event);
+		};
+		document.addEventListener("keypress", this.keyPressHandler);
 		
 		this.bimServerViewer.loadModel(project);
 	}
