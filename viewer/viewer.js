@@ -20,6 +20,7 @@ export default class Viewer {
         this.stats = stats;
         this.settings = settings;
         this.canvas = canvas;
+        this.camera = new Camera(this);
         
         this.gl = this.canvas.getContext('webgl2');
 
@@ -56,7 +57,6 @@ export default class Viewer {
                 e.preventDefault();
             };
 
-            this.camera = new Camera(this);
             this.cameraControl = new CameraControl(this);
             this.lighting = new Lighting(this);
             this.programManager = new ProgramManager(this.gl, this.settings.viewerBasePath);
@@ -85,20 +85,6 @@ export default class Viewer {
             });
 
             this.renderBuffer = new RenderBuffer(this.canvas, this.gl);
-
-            var self = this;
-            {
-                var height = self.canvas.height;
-                var width = self.canvas.width;
-                setInterval(function () {
-                    if (self.canvas.height !== height || self.canvas.width !== width) {
-                        height = self.canvas.height;
-                        width = self.canvas.width;
-                        self.camera._dirty = true;
-                        self.camera._projection._dirty = true;
-                    }
-                }, 300);
-            }
         });
         return promise;
     }
@@ -107,6 +93,7 @@ export default class Viewer {
         this.width = width;
         this.height = height;
         this.gl.viewport(0, 0, width, height);
+        this.camera.perspective._dirty = true;
         this.updateViewport();
     }
 
