@@ -210,9 +210,9 @@ export default class ProgramManager {
 							//console.log("attributes:");
 							for (var attribute of setup.attributes) {
 								programInfo.attribLocations[attribute] = this.gl.getAttribLocation(shaderProgram, attribute);
-								if (programInfo.attribLocations[attribute] == -1) {
-									console.error("Missing attribute location", attribute, vertexShader);
-								}
+								// if (programInfo.attribLocations[attribute] == -1) {
+								// 	console.error("Missing attribute location", attribute, vertexShader);
+								// }
 								//console.log("attribute  '" + attribute + "' = " + programInfo.attribLocations[attribute]);
 							}
 						}
@@ -221,7 +221,7 @@ export default class ProgramManager {
 							for (var uniform of setup.uniforms) {
 								programInfo.uniformLocations[uniform] = this.gl.getUniformLocation(shaderProgram, uniform);
 								if (programInfo.uniformLocations[uniform] == -1) {
-									console.error("Missing uniform location", uniform, vertexShader);
+									//console.error("Missing uniform location", uniform, vertexShader);
 								}
 								//console.log("uniform '" + uniform + "' = " + programInfo.uniformLocations[uniform]);
 							}
@@ -231,7 +231,7 @@ export default class ProgramManager {
 								for (var uniformBlock of setup.uniformBlocks) {
 									programInfo.uniformBlocks[uniformBlock] = this.gl.getUniformBlockIndex(shaderProgram, uniformBlock);
 									if (programInfo.uniformBlocks[uniformBlock] == -1) {
-										console.log("Missing uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock]);
+										//console.log("Missing uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock]);
 									} else {
 										this.gl.uniformBlockBinding(shaderProgram, programInfo.uniformBlocks[uniformBlock], 0);
 									}
