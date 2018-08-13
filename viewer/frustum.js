@@ -1,4 +1,4 @@
-import FrustumPlane from './frustumPlane.js'
+import FrustumPlane from './frustumplane.js'
 
 var tempMat4 = mat4.create();
 var tempVec3 = vec3.create();

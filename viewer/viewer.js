@@ -2,8 +2,8 @@ import ProgramManager from './programmanager.js'
 import Lighting from './lighting.js'
 import BufferSetPool from './buffersetpool.js'
 import Camera from './camera.js'
-import CameraControl from './cameraControl.js'
-import RenderBuffer from './renderBuffer.js'
+import CameraControl from './cameracontrol.js'
+import RenderBuffer from './renderbuffer.js'
 
 /*
  * Main viewer class, too many responsibilities:
