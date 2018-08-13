@@ -15,21 +15,21 @@ export default class CameraControl {
         this.mouseDownPos = vec2.create();
         this.over = false; // True when mouse over canvas
         this.down = false; // True when any mouse button is down
-        this.lastX; // Last canvas pos while dragging
-        this.lastY;
-        this.mouseDownLeft; // Mouse button states
-        this.mouseDownMiddle;
-        this.mouseDownRight;
+        this.lastX = 0; // Last canvas pos while dragging
+        this.lastY = 0;
+        this.mouseDownLeft = false; // Mouse button states
+        this.mouseDownMiddle = false;
+        this.mouseDownRight = false;
 
         this.canvas.oncontextmenu = (e) => {
             e.preventDefault();
         };
 
-        this.canvas.addEventListener("mousedown", (e) => {
+        this.canvas.addEventListener("mousedown", this.canvasMouseDownHandler = (e) => {
         	this.canvasMouseDown(e);
         });
 
-        this.canvas.addEventListener("mouseup", (e) => {
+        this.canvas.addEventListener("mouseup", this.canvasMouseUpHandler = (e) => {
         	this.canvasMouseUp(e);
         });
 
@@ -38,27 +38,23 @@ export default class CameraControl {
         };
         document.addEventListener("mouseup", this.documentMouseUpHandler);
 
-        this.canvas.addEventListener("mouseenter", (e) => {
+        this.canvas.addEventListener("mouseenter", this.canvasMouseEnterHandler = (e) => {
             this.over = true;
             e.preventDefault();
         });
 
-        this.canvas.addEventListener("mouseleave", (e) => {
+        this.canvas.addEventListener("mouseleave", this.canvasMouseLeaveHandler = (e) => {
             this.over = false;
             e.preventDefault();
         });
 
-        this.canvas.addEventListener("mousemove", (e) => {
+        this.canvas.addEventListener("mousemove", this.canvasMouseMoveHandler = (e) => {
         	this.canvasMouseMove(e);
         });
 
-        this.canvas.addEventListener("wheel", (e) => {
+        this.canvas.addEventListener("wheel", this.canvasMouseWheelHandler = (e) => {
         	this.canvasWheel(e);
         });
-
-        // Returns true if the two Canvas-space points are
-        // close enough to be considered the same point
-
     }
     
     getCanvasPosFromEvent(event, canvasPos) {
@@ -218,7 +214,14 @@ export default class CameraControl {
     }
 
     cleanup() {
-    	// TODO remove all event listeners, if we don't, a reference to the viewer and basically everything will stay in memory
+        var canvas = this.canvas;
     	document.removeEventListener("mouseup", this.documentMouseUpHandler);
+        canvas.removeEventListener("mousedown", this.canvasMouseDownHandler);
+        canvas.removeEventListener("mouseup", this.canvasMouseUpHandler);
+        document.removeEventListener("mouseup", this.documentMouseUpHandler);
+        canvas.removeEventListener("mouseenter", this.canvasMouseEnterHandler);
+        canvas.removeEventListener("mouseleave", this.canvasMouseLeaveHandler);
+        canvas.removeEventListener("mousemove", this.canvasMouseMoveHandler);
+        canvas.removeEventListener("wheel", this.canvasMouseWheelHandler);
     }
 }
