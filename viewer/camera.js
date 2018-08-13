@@ -55,7 +55,7 @@ export default class Camera {
             mat4.identity(tempMat4);
             mat4.scale(tempMat4, tempMat4, scale);
             mat4.multiply(this._viewMatrix, tempMat4, this._viewMatrix);
-            mat3.fromMat4(tempMat4b, this._viewMatrix)
+            mat3.fromMat4(tempMat4b, this._viewMatrix);
             mat3.invert(tempMat4b, tempMat4b);
             mat3.transpose(this._viewNormalMatrix, tempMat4b);
             this._dirty = false;
@@ -292,7 +292,7 @@ export default class Camera {
 
     viewFit(aabb, fitFOV) {
         aabb = aabb || this.viewer.modelBounds;
-        fitFOV = fitFOV || 35;
+        fitFOV = fitFOV || 45;
         var eyeToTarget = vec3.normalize(tempVec3b, vec3.subtract(tempVec3, this._eye, this._target));
         var diagonal = Math.sqrt(
             Math.pow(aabb[3] - aabb[0], 2) +
