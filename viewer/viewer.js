@@ -85,6 +85,20 @@ export default class Viewer {
             });
 
             this.renderBuffer = new RenderBuffer(this.canvas, this.gl);
+
+            var self = this;
+            {
+                var height = self.canvas.height;
+                var width = self.canvas.width;
+                setInterval(function () {
+                    if (self.canvas.height !== height || self.canvas.width !== width) {
+                        height = self.canvas.height;
+                        width = self.canvas.width;
+                        self.camera._dirty = true;
+                        self.camera._projection._dirty = true;
+                    }
+                }, 300);
+            }
         });
         return promise;
     }
