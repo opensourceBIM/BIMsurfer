@@ -51,7 +51,7 @@ export default class ReuseLoader {
 	 */
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
 		this.nrReused++;
-		this.bytesReused += RenderLayer.calculateBytesUsed(positions, colors, indices, normals);
+		this.bytesReused += RenderLayer.calculateBytesUsed(this.settings, positions, colors, indices, normals);
 		var geometry = {
 				id: geometryId,
 				roid: roid,

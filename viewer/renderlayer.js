@@ -16,7 +16,7 @@ export default class RenderLayer {
 	}
 
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
-		var bytesUsed = this.calculateBytesUsed(positions, colors, indices, normals);
+		var bytesUsed = RenderLayer.calculateBytesUsed(this.settings, positions, colors, indices, normals);
 		var geometry = {
 				id: geometryId,
 				roid: roid,
@@ -29,7 +29,7 @@ export default class RenderLayer {
 				hasTransparency: hasTransparency,
 				reused: reused, // How many times this geometry is reused, this does not necessarily mean the viewer is going to utilize this reuse
 				reuseMaterialized: 0, // How many times this geometry has been reused in the viewer, when this number reaches "reused" we can flush the buffer fo' sho'
-				bytes: bytes,
+				bytes: bytesUsed,
 				matrices: [],
 				objects: []
 		};
@@ -47,15 +47,15 @@ export default class RenderLayer {
 		return geometry;
 	}
 	
-	static calculateBytesUsed(positions, colors, indices, normals) {
+	static calculateBytesUsed(settings, positions, colors, indices, normals) {
 		var bytes = 0;
-		if (this.settings.quantizeVertices) {
+		if (settings.quantizeVertices) {
 			bytes += positions.length * 2;
 		} else {
 			bytes += positions.length * 4;
 		}
 		if (colors != null) {
-			if (this.settings.quantizeColors) {
+			if (settings.quantizeColors) {
 				bytes += colors.length;
 			} else {
 				bytes += colors.length * 4;
@@ -63,12 +63,12 @@ export default class RenderLayer {
 		}
 		// Pick buffers
 		bytes += positions.length * 8;
-		if (indices.length < 65536 && this.settings.useSmallIndicesIfPossible) {
+		if (indices.length < 65536 && settings.useSmallIndicesIfPossible) {
 			bytes += indices.length * 2;
 		} else {
 			bytes += indices.length * 4;
 		}
-		if (this.settings.quantizeNormals) {
+		if (settings.quantizeNormals) {
 			bytes += normals.length;
 		} else {
 			bytes += normals.length * 4;

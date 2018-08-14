@@ -17,7 +17,7 @@ export default class Utils {
 	/*
 	 * Converts the given 4x4 mat4 to an array
 	 */
-	toArray(matrix) {
+	static toArray(matrix) {
 		var result = new Array(16);
 		for (var i=0; i<16; i++) {
 			result[i] = matrix[i];
