@@ -1,4 +1,5 @@
 import GeometryLoader from './geometryloader.js'
+import RenderLayer from './renderlayer.js'
 
 /*
  * When loading Tiles, there is sometimes geometry (GeometryData) that is reused in other Tiles as well, in that case it is omitted in the stream, to be loaded later.
@@ -51,7 +52,8 @@ export default class ReuseLoader {
 	 */
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
 		this.nrReused++;
-		this.bytesReused += RenderLayer.calculateBytesUsed(this.settings, positions, colors, indices, normals);
+		var bytes = RenderLayer.calculateBytesUsed(this.settings, positions, colors, indices, normals);
+		this.bytesReused += bytes;
 		var geometry = {
 				id: geometryId,
 				roid: roid,
