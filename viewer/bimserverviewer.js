@@ -1,5 +1,4 @@
 import Viewer from './viewer.js'
-import DebugRenderLayer from './debugrenderlayer.js'
 import DefaultRenderLayer from './defaultrenderlayer.js'
 import TilingRenderLayer from './tilingrenderlayer.js'
 import VertexQuantization from './vertexquantization.js'
@@ -171,9 +170,6 @@ export default class BimServerViewer {
 			}]);
 		}
 
-		this.debugRenderLayer = new DebugRenderLayer(this.viewer);
-		this.viewer.renderLayers.push(this.debugRenderLayer);
-		
 		const fieldOfView = 45 * Math.PI / 180;
 		const aspect = this.width / this.height;
 		const zNear = 1;
@@ -181,7 +177,6 @@ export default class BimServerViewer {
 
 //		var virtualProjectionMatrix = mat4.create();
 //		mat4.perspective(virtualProjectionMatrix, fieldOfView, aspect, zNear, zFar);
-//		this.debugRenderLayer.addVirtualFrustum(new VirtualFrustum(this.viewer, virtualProjectionMatrix, zNear, zFar));
 		
 		this.bimServerApi.multiCall(requests, (responses) => {
 			var totalBounds = responses[0].result;
