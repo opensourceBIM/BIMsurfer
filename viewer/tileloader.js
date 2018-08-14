@@ -2,6 +2,10 @@ import Executor from './executor.js'
 import GpuBufferManager from './gpubuffermanager.js'
 import GeometryLoader from "./geometryloader.js"
 
+/*
+ * Loads tiles. Needs to be initialized first (initialize method).
+ */
+
 export default class TileLoader {
 	constructor(tilingRenderLayer, viewer, bimServerApi, densityThreshold, reuseLowerThreshold, geometryDataToReuse, roids, fieldsToInclude) {
 		this.tilingRenderLayer = tilingRenderLayer;
@@ -27,6 +31,9 @@ export default class TileLoader {
 		this.loaderCounter = 0;
 	}
 	
+	/*
+	 * Initialize the tile loader. This needs to be called only once, and it's async, so make sure to use the returned Promise
+	 */
 	initialize() {
 		var promise = new Promise((resolve, reject) => {
 			this.bimServerApi.call("ServiceInterface", "getTileCounts", {
@@ -62,6 +69,9 @@ export default class TileLoader {
 		return promise;
 	}
 	
+	/*
+	 * Starts loading a specific tile
+	 */
 	loadTile(node, executor) {
 		if (!this.tilingRenderLayer.enabled) {
 			return;
@@ -136,6 +146,10 @@ export default class TileLoader {
 		
 	}
 	
+	/*
+	 * Can for example be called from the Console for debugging purposes
+	 * In real life you'd never call this, since it kind of defeats the purpose of tiling
+	 */
 	loadAll(progressListener) {
 		var executor = new Executor(64);
 		executor.setProgressListener(progressListener);

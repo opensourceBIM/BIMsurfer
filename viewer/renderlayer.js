@@ -16,31 +16,7 @@ export default class RenderLayer {
 	}
 
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
-		var bytes = 0;
-		if (this.settings.quantizeVertices) {
-			bytes += positions.length * 2;
-		} else {
-			bytes += positions.length * 4;
-		}
-		if (colors != null) {
-			if (this.settings.quantizeColors) {
-				bytes += colors.length;
-			} else {
-				bytes += colors.length * 4;
-			}
-		}
-		// Pick buffers
-		bytes += positions.length * 8;
-		if (indices.length < 65536 && this.settings.useSmallIndicesIfPossible) {
-			bytes += indices.length * 2;
-		} else {
-			bytes += indices.length * 4;
-		}
-		if (this.settings.quantizeNormals) {
-			bytes += normals.length;
-		} else {
-			bytes += normals.length * 4;
-		}
+		var bytesUsed = this.calculateBytesUsed(positions, colors, indices, normals);
 		var geometry = {
 				id: geometryId,
 				roid: roid,
@@ -69,6 +45,35 @@ export default class RenderLayer {
 		}
 
 		return geometry;
+	}
+	
+	static calculateBytesUsed(positions, colors, indices, normals) {
+		var bytes = 0;
+		if (this.settings.quantizeVertices) {
+			bytes += positions.length * 2;
+		} else {
+			bytes += positions.length * 4;
+		}
+		if (colors != null) {
+			if (this.settings.quantizeColors) {
+				bytes += colors.length;
+			} else {
+				bytes += colors.length * 4;
+			}
+		}
+		// Pick buffers
+		bytes += positions.length * 8;
+		if (indices.length < 65536 && this.settings.useSmallIndicesIfPossible) {
+			bytes += indices.length * 2;
+		} else {
+			bytes += indices.length * 4;
+		}
+		if (this.settings.quantizeNormals) {
+			bytes += normals.length;
+		} else {
+			bytes += normals.length * 4;
+		}
+		return bytes;
 	}
 
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager) {

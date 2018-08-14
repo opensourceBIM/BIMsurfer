@@ -1,3 +1,7 @@
+/*
+ * Octree implementation targeted towards being used in the TilingLayer, could possibly be retrofitted to be a generic Octree to be used in other contexts
+ */
+
 class OctreeNode {
 	constructor(parent, id, x, y, z, width, height, depth, level) {
 		this.parent = parent;
@@ -106,28 +110,6 @@ class OctreeNode {
 		return this.radius;
 	}
 	
-//	split(level) {
-//		if (level > 0) {
-//			this.leaf = false;
-//			this.quadrants = [];
-//			var newLevel = this.level + 1;
-//			this.quadrants[0] = new OctreeNode(this.x, this.y, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel);
-//			this.quadrants[1] = new OctreeNode(this.x, this.y, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel);
-//			this.quadrants[2] = new OctreeNode(this.x, this.y + this.height / 2, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel);
-//			this.quadrants[3] = new OctreeNode(this.x, this.y + this.height / 2, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel);
-//			this.quadrants[4] = new OctreeNode(this.x + this.width / 2, this.y, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel);
-//			this.quadrants[5] = new OctreeNode(this.x + this.width / 2, this.y, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel);
-//			this.quadrants[6] = new OctreeNode(this.x + this.width / 2, this.y + this.height / 2, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel);
-//			this.quadrants[7] = new OctreeNode(this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel);
-//
-//			for (var node of this.quadrants) {
-//				node.split(level - 1);
-//			}
-//		} else {
-//			this.leaf = true;
-//		}
-//	}
-
 	getQuadrant(localId) {
 		if (localId < 0 || localId > 7) {
 			throw "Invalid local id: " + localId;
@@ -215,7 +197,6 @@ export default class Octree extends OctreeNode {
 		this.maxDepth = maxDepth;
 		this.level = 0;
 		this.breathFirstList = [];
-//		this.split(maxDepth);
 	}
 	
 	extractBreathFirstList(fn) {
@@ -236,19 +217,4 @@ export default class Octree extends OctreeNode {
 			fn(node);
 		}
 	}
-	
-//	prepareFullList() {
-//		this.fullList = [];
-//		for (var i=0; i<=this.maxDepth; i++) {
-//			this.prepareFullListInternal(this.fullList, i);
-//		}
-//	}
-//	
-//	prepareBreathFirst(fn) {
-//		this.breathFirstList = [];
-//		this.deepestLevel = 0;
-//		for (var i=0; i<=this.maxDepth; i++) {
-//			this.prepareBreathFirstInternal(this.breathFirstList, fn, i);
-//		}
-//	}
 }

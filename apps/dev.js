@@ -4,6 +4,7 @@ import Stats from "../viewer/stats.js"
 import Settings from "../viewer/settings.js"
 import ProjectTreeModel from "../viewer/projecttreemodel.js"
 import TreeView from "../viewer/treeview.js"
+import Test from "./test.js"
 
 /*
  * This class is where the applications starts, it's a mess, needs to go when we change this into an API
@@ -12,6 +13,14 @@ import TreeView from "../viewer/treeview.js"
 export default class Dev {
 
 	start() {
+		var test = new Test();
+		console.time("test");
+		for (var i=0; i<1000000000; i++) {
+			test.test();
+		}
+		console.timeEnd("test");
+	
+		
 		this.animationEnabled = false;
 
 		this.settingsView = new Settings(document.getElementById("settings"));

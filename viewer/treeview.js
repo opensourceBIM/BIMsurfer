@@ -1,3 +1,7 @@
+/*
+ * A basic tree view. Used for the ProjectTree at the moment.
+ */
+
 export default class TreeView {
 	constructor(rootElement) {
 		this.rootElement = rootElement;

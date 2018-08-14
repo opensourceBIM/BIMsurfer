@@ -1,3 +1,7 @@
+/*
+ * Basic tree model, used for the ProjectTree at the moment
+ */
+
 class TreeNode {
 	constructor(view) {
 		this.children = [];

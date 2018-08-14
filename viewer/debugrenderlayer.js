@@ -1,7 +1,9 @@
 import RenderLayer from './renderlayer.js'
 
 /*
- * This class intended for debugging by rendering additional stuff on screen
+ * This class is intended for debugging by rendering additional stuff on screen
+ * 
+ * Not used at the moment
  */
 
 export default class DebugRenderLayer extends RenderLayer{

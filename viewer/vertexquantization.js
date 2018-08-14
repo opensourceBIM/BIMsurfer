@@ -1,14 +1,18 @@
+import Utils from './utils.js'
+
 /*
  * This class is responsible for keeping track of the various matrices used for quantization/unquantization
  * 
- * TODO: Document more
+ * croid stands for: ConcreteRevision Object Identifier, it's a BIMserver object, you can see it as a unique identifier that identifies a revision.
  */
 export default class VertexQuantization {
 	constructor(settings) {
 		this.settings = settings;
 		
-		// croid -> untransformed quantization matrices (per model)
+		// croid -> untransformed quantization matrices (1 per model)
 		this.untransformedQuantizationMatrices = new Map();
+
+		// croid -> untransformed inverse quantization matrices (1 per model)
 		this.untransformedInverseQuantizationMatrices = new Map();
 	}
 
@@ -67,29 +71,17 @@ export default class VertexQuantization {
 				-(boundsUntransformed.max.z + boundsUntransformed.min.z) / 2
 		));
 		
-		this.untransformedQuantizationMatrices.set(croid, this.toArray(matrix));
+		// Store the untransformed quantization matrix
+		this.untransformedQuantizationMatrices.set(croid, Utils.toArray(matrix));
 		
 		var inverse = mat4.create();
 		mat4.invert(inverse, matrix);
 		
-		this.untransformedInverseQuantizationMatrices.set(croid, this.toArray(inverse));
+		// Store the untransformed inverse quantization matrix
+		this.untransformedInverseQuantizationMatrices.set(croid, Utils.toArray(inverse));
 	}
 	
 	generateMatrices(totalBounds, totalBoundsUntransformed) {
-		// We calculate the total bounds for both transformed and non-transformed geometry. We need those bounds because when using quantization we cannot let the values
-		// go beyond any of those
-//		var combinedBounds = {
-//				min: {
-//					x: Math.min(totalBounds.min.x, totalBoundsUntransformed.min.x),
-//					y: Math.min(totalBounds.min.y, totalBoundsUntransformed.min.y),
-//					z: Math.min(totalBounds.min.z, totalBoundsUntransformed.min.z)
-//				}, max: {
-//					x: Math.max(totalBounds.max.x, totalBoundsUntransformed.max.x),
-//					y: Math.max(totalBounds.max.y, totalBoundsUntransformed.max.y),
-//					z: Math.max(totalBounds.max.z, totalBoundsUntransformed.max.z)
-//				}
-//		};
-		// vertexQuantizationMatrix is what we want the server to apply
 		var matrix = mat4.create();
 		var scale = 32768;
 
@@ -99,7 +91,6 @@ export default class VertexQuantization {
 		 * Since we are using both the transformed and the non-transformed bounding boxes to determine the totalBounds, this messes things up
 		 * 
 		 */
-		
 		
 		// Scale the model to make sure all values fit within a 2-byte signed short
 		mat4.scale(matrix, matrix, vec3.fromValues(
@@ -115,15 +106,12 @@ export default class VertexQuantization {
 				-(totalBounds.max.z + totalBounds.min.z) / 2
 		));
 
-		this.vertexQuantizationMatrix = this.toArray(matrix);
-//		loaderSettings.vertexQuantizationMatrix = this.toArray(matrix);
+		this.vertexQuantizationMatrix = Utils.toArray(matrix);
 
 		var inverse = mat4.create();
 		mat4.invert(inverse, matrix);
 		
-		this.inverseVertexQuantizationMatrix = this.toArray(inverse);
-		
-//		loaderSettings.inverseQuantizationMatrix = inverse;
+		this.inverseVertexQuantizationMatrix = Utils.toArray(inverse);
 		
 		// Again
 		
@@ -143,30 +131,6 @@ export default class VertexQuantization {
 				-(totalBoundsUntransformed.max.z + totalBoundsUntransformed.min.z) / 2
 		));
 
-		this.untransformedVertexQuantizationMatrix = this.toArray(matrix);
-		
-//		this.inverseVertexQuantizationMatrix = matrix;
-////		settings.vertexQuantizationMatrix = matrix;
-//
-//		var inverse = mat4.create();
-//		mat4.invert(inverse, matrix);
-		
-//		settings.inverseQuantizationMatrix = inverse;
-		
-//		settings.combinedInverseQuantizationMatrix = mat4.create();
-
-//		this.transformedVertexQuantizationMatrix = mat4.create();
-		
-//		mat4.multiply(settings.transformedVertexQuantizationMatrix, this.vertexQuantizationMatrix, loaderSettings.vertexQuantizationMatrix);
-//		mat4.invert(settings.combinedInverseQuantizationMatrix, settings.combinedVertexQuantizationMatrix);
-	}
-
-	// TODO move to utils
-	toArray(matrix) {
-		var result = new Array(16);
-		for (var i=0; i<16; i++) {
-			result[i] = matrix[i];
-		}
-		return result;
+		this.untransformedVertexQuantizationMatrix = Utils.toArray(matrix);
 	}
 }

@@ -1,3 +1,13 @@
+/*
+ * Responsible for managing GPU buffers. There are 4 types of buffers:
+ * - Transparent batched
+ * - Opaque batched
+ * - Transparent reused
+ * - Opaque reused
+ * 
+ *  
+ */
+
 export default class GpuBufferManager {
 	constructor(viewer) {
 		this.viewer = viewer;
@@ -18,6 +28,9 @@ export default class GpuBufferManager {
 			(this.liveReusedBuffersTransparent == null || this.liveReusedBuffersTransparent.length == 0);
 	}
 	
+	/* 
+	 * Get a buffer based on two booleans: transparency and reuse
+	 */
 	getBuffers(transparency, reuse) {
 		if (reuse) {
 			if (transparency) {
@@ -70,6 +83,9 @@ export default class GpuBufferManager {
 		});
 	}
 	
+	/*
+	 * This method will combine buffers on the GPU. It's disabled for now, not that it doesn't work, but it seems to generate quite a bit of "stuttering". Maybe we need to use a different type of buffer.
+	 */
 	combineBuffers() {
 		// Disabled for now
 		return 0;

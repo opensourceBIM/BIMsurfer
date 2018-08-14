@@ -1,5 +1,5 @@
 /*
- * Keeps track of statistics 
+ * Keeps track of statistics. Initially only a UI, but can also be used "headless" by given a false value for the `active` constructor argument
  */
 export default class Stats {
 	constructor(active = true) {

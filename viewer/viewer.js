@@ -9,9 +9,7 @@ import RenderBuffer from './renderbuffer.js'
  * Main viewer class, too many responsibilities:
  * - Keep track of width/height of viewport
  * - Keeps track of dirty scene
- * - (To camera/scene) Contains light source(s)
  * - Contains the basic render loop (and delegates to the render layers)
- * - (To camera) Does the rotation/zoom
  */
 
 export default class Viewer {

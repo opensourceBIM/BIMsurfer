@@ -1,7 +1,6 @@
 /*
  * Executor allows to submit jobs for execution. Jobs are queued when the maxJobCount is exceeded.
  *
- * Quality of this code has not been tested well!
  */
 
 export default class Executor {

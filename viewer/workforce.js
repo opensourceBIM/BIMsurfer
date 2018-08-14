@@ -1,5 +1,5 @@
 /*
- * To be completed
+ * To be completed, not used
  */
 export default class WorkForce {
 	

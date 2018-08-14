@@ -1,3 +1,10 @@
+/*
+ * Keeps track of GeometryData that is potentially reused. There are three fases:
+ * - toload (this data has yet to start loading)
+ * - loading (data has been requested from the server but not yet returned)
+ * - loaded (data has arrived and is processed)
+ */
+
 export default class GeometryCache {
 	constructor(renderLayer) {
 		this.renderLayer = renderLayer;
@@ -12,6 +19,12 @@ export default class GeometryCache {
 		this.loading = new Map();
 	}
 
+	/*
+	 * Calling this method will either:
+	 * - Store the geometryDataId as toload if it's not already loaded and also not loading
+	 * - If the geometryDataId is already loading, it will add the given `info` to the list to be triggered when it is loaded
+	 * - If it's already loaded, the addGeometryToObject will be triggered right away
+	 */
 	integrate(geometryDataId, info) {
 		if (this.loaded.has(geometryDataId)) {
 			this.renderLayer.addGeometryToObject(geometryDataId, info.geometryInfoId, info.loader, info.gpuBufferManager);
@@ -31,6 +44,9 @@ export default class GeometryCache {
 		set.add(info);
 	}
 	
+	/*
+	 * Whenever this method is called, all objects in the toload state are moved to the loading state. The IDs of the objecst are returned as an array
+	 */
 	pullToLoad() {
 		var ids = Array.from(this.toload.keys());
 		for (var id of ids) {
@@ -47,7 +63,10 @@ export default class GeometryCache {
 	get(geometryDataId) {
 		return this.loaded.get(geometryDataId);
 	}
-	
+
+	/*
+	 * Stores a piece of geometry
+	 */
 	set(geometryDataId, geometry) {
 		if (this.loaded.has(geometryDataId)) {
 			console.error("Already loaded", geometryDataId);

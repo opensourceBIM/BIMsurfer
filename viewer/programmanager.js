@@ -4,8 +4,6 @@
  * In the future, an obvious next step would be to auto-generate at least the vertex shaders 
  * based on some templates, at the moment the shaders are all written manually, using a naming scheme file the file names
  * 
- * TODO:
- * 	- There is only one fragment shaders ATM, but it's loaded 16 times
  */
 
 export default class ProgramManager {

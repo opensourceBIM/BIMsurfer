@@ -1,5 +1,10 @@
 import GeometryLoader from './geometryloader.js'
 
+/*
+ * When loading Tiles, there is sometimes geometry (GeometryData) that is reused in other Tiles as well, in that case it is omitted in the stream, to be loaded later.
+ * This class is called whenever there is a batch of GeometryData that needs to be loaded.
+ */
+
 export default class ReuseLoader {
 	constructor(viewer, reuseLowerThreshold, bimServerApi, fieldsToInclude, roids, quantizationMap, geometryCache, geometryDataToReuse) {
 		this.settings = viewer.settings;
@@ -16,6 +21,9 @@ export default class ReuseLoader {
 		this.loaderCounter = 0;
 	}
 	
+	/*
+	 * Load an array of geometry data ids
+	 */
 	load(geometryDataIds) {
 		if (geometryDataIds.length == 0) {
 			return;
@@ -37,32 +45,13 @@ export default class ReuseLoader {
 		return p;
 	}
 	
+	/*
+	 * This class acts as if it's a RenderLayer, the createGeometry is called from the GeometryLoader
+	 * We just store the incoming geometry in the (global) GeometryCache
+	 */
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
 		this.nrReused++;
-		var bytes = 0;
-		if (this.settings.quantizeVertices) {
-			bytes += positions.length * 2;
-		} else {
-			bytes += positions.length * 4;
-		}
-		if (colors != null) {
-			if (this.settings.quantizeColors) {
-				bytes += colors.length;
-			} else {
-				bytes += colors.length * 4;
-			}
-		}
-		if (indices.length < 65536 && this.settings.useSmallIndicesIfPossible) {
-			bytes += indices.length * 2;
-		} else {
-			bytes += indices.length * 4;
-		}
-		if (this.settings.quantizeNormals) {
-			bytes += normals.length;
-		} else {
-			bytes += normals.length * 4;
-		}
-		this.bytesReused += bytes;
+		this.bytesReused += RenderLayer.calculateBytesUsed(positions, colors, indices, normals);
 		var geometry = {
 				id: geometryId,
 				roid: roid,

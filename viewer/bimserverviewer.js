@@ -11,6 +11,11 @@ import BufferHelper from "./bufferhelper.js"
 import Stats from "./stats.js"
 import DefaultSettings from "./defaultsettings.js"
 
+/*
+ * The main class you instantiate when creating a viewer that will be loading data from a BIMserver.
+ * This will eventually become a public API
+ */
+
 export default class BimServerViewer {
 	constructor(bimServerApi, settings, canvas, width, height, stats) {
 		if (stats == null) {

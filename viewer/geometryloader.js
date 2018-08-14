@@ -32,6 +32,7 @@ export default class GeometryLoader {
 		});
 	}
 	
+	// This promise is fired as soon as the GeometryLoader is done
 	getPromise() {
 		return promise;
 	}
