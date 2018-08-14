@@ -2,10 +2,8 @@ import Viewer from './viewer.js'
 import DefaultRenderLayer from './defaultrenderlayer.js'
 import TilingRenderLayer from './tilingrenderlayer.js'
 import VertexQuantization from './vertexquantization.js'
-import WorkForce from './workforce.js'
 import Executor from './executor.js'
 import GeometryLoader from "./geometryloader.js"
-import VirtualFrustum from "./virtualfrustum.js"
 import BufferHelper from "./bufferhelper.js"
 import Stats from "./stats.js"
 import DefaultSettings from "./defaultsettings.js"
@@ -209,8 +207,6 @@ export default class BimServerViewer {
 				totalBounds.max.y,
 				totalBounds.max.z,
 				];
-			
-//			this.workforce = new WorkForce();
 
 			this.viewer.stats.inc("Primitives", "Primitives to load (L1)", nrPrimitivesBelow);
 			this.viewer.stats.inc("Primitives", "Primitives to load (L2)", nrPrimitivesAbove);
