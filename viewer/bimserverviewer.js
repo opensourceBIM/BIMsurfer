@@ -235,10 +235,10 @@ export default class BimServerViewer {
 				var defaultRenderLayer = new DefaultRenderLayer(this.viewer, this.geometryDataIdsToReuse);
 				this.viewer.renderLayers.push(defaultRenderLayer);
 
-//				defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
-//					var percentage = 100 * nrPrimitivesLoaded / nrPrimitivesBelow;
-//					document.getElementById("progress").style.width = percentage + "%";
-//				});
+				defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
+					var percentage = 100 * nrPrimitivesLoaded / nrPrimitivesBelow;
+					this.updateProgress(percentage);
+				});
 
 				promise = this.loadDefaultLayer(defaultRenderLayer, revision, bounds, fieldsToInclude);
 			}
@@ -309,7 +309,6 @@ export default class BimServerViewer {
 		});
 		
 		executor.awaitTermination().then(() => {
-//			document.getElementById("progress").style.display = "none";
 			this.viewer.stats.setParameter("Loading time", "Layer 1", performance.now() - start);
 			defaultRenderLayer.completelyDone();
 			this.viewer.stats.requestUpdate();
@@ -319,7 +318,6 @@ export default class BimServerViewer {
 
 	loadTilingLayer(tilingLayer, revision, totalBounds, fieldsToInclude) {
 		var startLayer2 = performance.now();
-//		document.getElementById("progress").style.display = "block";
 
 		var layer2Start = performance.now();
 		
@@ -346,5 +344,15 @@ export default class BimServerViewer {
 	cleanup() {
 		window.removeEventListener("resize", this.resizeHandler, false);
 		this.viewer.cleanup();
+	}
+	
+	updateProgress(percentage) {
+		if (this.progressListener) {
+			this.progressListener(percentage);
+		}
+	}
+	
+	setProgressListener(progressListener) {
+		this.progressListener = progressListener;
 	}
 }

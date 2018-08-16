@@ -43,7 +43,7 @@ export default class Dev {
 
 	loadProjects() {
 		document.getElementById("viewer").style.display = "none";
-		document.getElementById("projects").style.display = "block";
+		document.getElementById("projectsWrapper").style.display = "block";
 
 		var treeView = new TreeView(document.getElementById("projects"));
 		this.projectTreeModel = new ProjectTreeModel(this.api, treeView);
@@ -61,7 +61,7 @@ export default class Dev {
 	}
 
 	loadModel(project) {
-		document.getElementById("projects").style.display = "none";
+		document.getElementById("projectsWrapper").style.display = "none";
 		document.getElementById("viewer").style.display = "block";
 
 		this.animationEnabled = false;
@@ -75,6 +75,14 @@ export default class Dev {
 		stats.setParameter("Models", "Name", project.name);
 		
 		this.bimServerViewer = new BimServerViewer(this.api, this.settings, this.canvas, window.innerWidth, window.innerHeight, stats);
+		
+		this.bimServerViewer.setProgressListener((percentage) => {
+			document.getElementById("progress").style.display = "block";
+			document.getElementById("progress").style.width = percentage + "%";
+			if (percentage == 100) {
+				document.getElementById("progress").style.display = "none";
+			}
+		});
 
 		this.bimServerViewer.viewer.addAnimationListener((deltaTime) => {
 			if (this.animationEnabled) {
