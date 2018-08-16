@@ -1,0 +1,7 @@
+{
+  "source": "./viewer",
+  "destination": "./docs",
+  "plugins": [
+    {"name": "esdoc-standard-plugin"}
+  ]
+}

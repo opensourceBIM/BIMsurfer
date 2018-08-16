@@ -19,7 +19,7 @@ export default class Viewer {
         this.settings = settings;
         this.canvas = canvas;
         this.camera = new Camera(this);
-        
+
         this.gl = this.canvas.getContext('webgl2');
 
         if (!this.gl) {
@@ -189,10 +189,17 @@ export default class Viewer {
 //		);
     }
 
+    /**
+     Attempts to pick an object at the given canvas coordinates.
+
+     @param {*} params
+     @param {Array} params.canvasPos Canvas coordinates
+     @returns {*} Information about the object that was picked, if any.
+     */
     pick(params) { // Returns info on the object at the given canvas coordinates
 
         var canvasPos = params.canvasPos;
-        if (!canvasPos) { 
+        if (!canvasPos) {
             throw "param expected: canvasPos";
         }
 
