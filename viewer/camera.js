@@ -9,6 +9,10 @@ var tempVec3c = vec3.create();
 var tempVec3d = vec3.create();
 var tempVec3e = vec3.create();
 
+/**
+ A **Camera** defines viewing and projection transforms for its Viewer.
+
+ */
 export default class Camera {
 
     constructor(viewer) {
@@ -62,15 +66,30 @@ export default class Camera {
         }
     }
 
+    /**
+     Gets the scaling factor that's applied to models to fit them within World-space.
+
+     @returns {Number} Scale factor for X, Y and Z as a float.
+     */
     get worldScale() {
         return this._worldScale;
     }
 
+    /**
+     Sets the scaling factor that's applied to models to fit them within World-space.
+
+     @param {Number} worldScale Scale factor for X, Y and Z as a float.
+     */
     set worldScale(worldScale) {
         this._worldScale = worldScale || 1.0;
         this._setDirty();
     }
 
+    /**
+     Gets the current viewing transform matrix.
+
+     @returns {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
+     */
     get viewMatrix() {
         if (this._dirty) {
             this._build();
@@ -78,6 +97,13 @@ export default class Camera {
         return this._viewMatrix;
     }
 
+    /**
+     Gets the current viewing transform matrix for normals.
+
+     This is the transposed inverse of the view matrix.
+
+     @returns {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
+     */
     get viewNormalMatrix() {
         if (this._dirty) {
             this._build();
@@ -85,10 +111,20 @@ export default class Camera {
         return this._viewNormalMatrix;
     }
 
+    /**
+     Gets the current projection transform matrix.
+
+     @returns {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
+     */
     get projMatrix() {
         return this._projection.projMatrix;
     }
 
+    /**
+     Selects the current projection type.
+
+     @param {String} projectionType Accepted values are "perspective" or "orthographic".
+     */
     set projectionType(projectionType) {
         switch (projectionType) {
             case "perspective":
@@ -102,53 +138,114 @@ export default class Camera {
         }
     }
 
+    /**
+     Gets the current projection type.
+
+     @returns {String} projectionType "perspective" or "orthographic".
+     */
     get projectionType() {
         return this._projection.type;
     }
 
+    /**
+     Gets the component that represents the current projection type.
+
+     @returns {Perspective|Orthographic}
+     */
     get projection() {
         return this._projection;
     }
 
+    /**
+     Sets the position of the camera.
+     @param {Float32Array} eye 3D position of the camera in World space.
+     */
     set eye(eye) {
         this._eye.set(eye || [0.0, 0.0, -10.0]);
         this._setDirty();
     }
 
+    /**
+     Gets the position of the camera.
+     @returns {Float32Array} 3D position of the camera in World space.
+     */
     get eye() {
         return this._eye;
     }
 
+    /**
+     Sets the point the camera is looking at.
+     @param {Float32Array} target 3D position of the point of interest in World space.
+     */
     set target(target) {
         this._target.set(target || [0.0, 0.0, 0.0]);
         this._setDirty();
     }
 
+    /**
+     Gets the point tha camera is looking at.
+     @returns {Float32Array} 3D position of the point of interest in World space.
+     */
     get target() {
         return this._target;
     }
 
+    /**
+     Sets the camera's "up" direction.
+     @param {Float32Array} up 3D vector indicating the camera's "up" direction in World-space.
+     */
     set up(up) {
         this._up.set(up || [0.0, 1.0, 0.0]);
         this._setDirty();
     }
 
+    /**
+     Gets the camera's "up" direction.
+     @returns {Float32Array} 3D vector indicating the camera's "up" direction in World-space.
+     */
     get up() {
         return this._up;
     }
 
+    /**
+     Sets whether camera rotation is gimbal locked.
+
+     When true, yaw rotation will always pivot about the World-space "up" axis.
+
+     @param {Boolean} gimbalLock Whether or not to enable gimbal locking.
+     */
     set gimbalLock(gimbalLock) {
         this._gimbalLock = gimbalLock;
     }
 
+    /**
+     Sets whether camera rotation is gimbal locked.
+
+     When true, yaw rotation will always pivot about the World-space "up" axis.
+
+     @returns {Boolean} True if gimbal locking is enabled.
+     */
     get gimbalLock() {
         return this._gimbalLock;
     }
 
+    /**
+     Sets whether its currently possible to pitch the camera to look at the model upside-down.
+
+     When this is true, camera will ignore attempts to orbit (camera or model) about the horizontal axis
+     that would result in the model being viewed upside-down.
+
+     @param {Boolean} constrainPitch Whether or not to activate the constraint.
+     */
     set constrainPitch(constrainPitch) {
         this._constrainPitch = constrainPitch;
     }
 
+    /**
+     Gets whether its currently possible to pitch the camera to look at the model upside-down.
+
+     @returns {Boolean}
+     */
     get constrainPitch() {
         return this._constrainPitch;
     }
@@ -159,6 +256,8 @@ export default class Camera {
      This is used for deriving rotation axis for yaw orbiting, and for moving camera to axis-aligned positions.
 
      Has format: ````[rightX, rightY, rightZ, upX, upY, upZ, forwardX, forwardY, forwardZ]````
+
+     @type {Float32Array}
      */
     set worldAxis(worldAxis) {
         this._worldAxis.set(worldAxis || [1, 0, 0, 0, 1, 0, 0, 0, 1]);
@@ -174,22 +273,51 @@ export default class Camera {
         this._setDirty();
     }
 
+    /**
+     Indicates the up, right and forward axis of the World coordinate system.
+
+     This is used for deriving rotation axis for yaw orbiting, and for moving camera to axis-aligned positions.
+
+     Has format: ````[rightX, rightY, rightZ, upX, upY, upZ, forwardX, forwardY, forwardZ]````
+
+     @type {Float32Array}
+     */
     get worldAxis() {
         return this._worldAxis;
     }
 
+    /**
+     Direction of World-space "up".
+
+     @type Float32Array
+     */
     get worldUp() {
         return this._worldUp;
     }
 
+    /**
+     Direction of World-space "right".
+
+     @type Float32Array
+     */
     get worldRight() {
         return this._worldRight;
     }
 
+    /**
+     Direction of World-space "forwards".
+
+     @type Float32Array
+     */
     get worldForward() {
         return this._worldForward;
     }
 
+    /**
+     Rotates the eye position about the target position, pivoting around the up vector.
+
+     @param {Number} degrees Angle of rotation in degrees
+     */
     orbitYaw(degrees) { // Rotate (yaw) 'eye' and 'up' about 'target', pivoting around World or camera 'up'
         var targetToEye = vec3.subtract(tempVec3, this._eye, this._target);
         mat4.fromRotation(tempMat4, degrees * 0.0174532925, this._gimbalLock ? this._worldUp : this._up);
@@ -199,6 +327,11 @@ export default class Camera {
         this._setDirty();
     }
 
+    /**
+     Rotates the eye position about the target position, pivoting around the right axis (orthogonal to up vector and eye->target vector).
+
+     @param {Number} degrees Angle of rotation in degrees
+     */
     orbitPitch(degrees) { // Rotate (pitch) 'eye' and 'up' about 'target', pivoting around vector ortho to (target->eye) and camera 'up'
         var targetToEye = vec3.subtract(tempVec3, this._eye, this._target);
         var a = vec3.normalize(tempVec3c, targetToEye);
@@ -218,6 +351,11 @@ export default class Camera {
         this._setDirty();
     }
 
+    /**
+     Rotates the target position about the eye, pivoting around the up vector.
+
+     @param {Number} degrees Angle of rotation in degrees
+     */
     yaw(degrees) { // Rotate (yaw) 'target' and 'up' about 'eye', pivoting around 'up'
         var eyeToTarget = vec3.subtract(tempVec3, this._target, this._eye);
         mat4.fromRotation(tempMat4, degrees * 0.0174532925, this._gimbalLock ? this._worldUp : this._up);
@@ -229,6 +367,11 @@ export default class Camera {
         this._setDirty();
     }
 
+    /**
+     Rotates the target position about the eye, pivoting around the right axis (orthogonal to up vector and eye->target vector).
+
+     @param {Number} degrees Angle of rotation in degrees
+     */
     pitch(degrees) { // Rotate (pitch) 'eye' and 'up' about 'target', pivoting around horizontal vector ortho to (target->eye) and camera 'up'
         var eyeToTarget = vec3.subtract(tempVec3, this._target, this._eye);
         var a = vec3.normalize(tempVec3c, eyeToTarget);
@@ -248,6 +391,11 @@ export default class Camera {
         this._setDirty();
     }
 
+    /**
+     Pans the camera along the camera's local X, Y and Z axis.
+
+     @param {Array} pan The pan vector
+     */
     pan(pan) { // Translate 'eye' and 'target' along local camera axis
         var eyeToTarget = vec3.subtract(tempVec3, this._eye, this._target);
         var vec = [0, 0, 0];
@@ -277,6 +425,11 @@ export default class Camera {
         this._setDirty();
     }
 
+    /**
+     Increments/decrements the zoom factor, ie. distance between the eye and the target.
+
+     @param {Number} delta Zoom increment.
+     */
     zoom(delta) { // Translate 'eye' by given increment on (eye->target) vector
         var targetToEye = vec3.subtract(tempVec3, this._eye, this._target);
         var lenLook = Math.abs(vec3.length(targetToEye));
@@ -290,6 +443,12 @@ export default class Camera {
         this._setDirty();
     }
 
+    /**
+     Jumps the camera to look at the given axis-aligned World-space bounding box.
+
+     @param {Float32Array} aabb The axis-aligned World-space bounding box (AABB).
+     @param {Number} fitFOV Field-of-view occupied by the AABB when the camera has fitted it to view.
+     */
     viewFit(aabb, fitFOV) {
         aabb = aabb || this.viewer.modelBounds;
         fitFOV = fitFOV || 45;

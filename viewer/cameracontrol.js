@@ -1,3 +1,6 @@
+/**
+ Controls the camera with user input.
+ */
 export default class CameraControl {
 
     constructor(viewer) {
@@ -56,7 +59,10 @@ export default class CameraControl {
         	this.canvasWheel(e);
         });
     }
-    
+
+    /**
+     * @private
+     */
     getCanvasPosFromEvent(event, canvasPos) {
         if (!event) {
             event = window.event;
@@ -77,6 +83,9 @@ export default class CameraControl {
         return canvasPos;
     }
 
+    /**
+     * @private
+     */
     getZoomRate() {
         var modelBounds = this.viewer.modelBounds;
         if (modelBounds) {
@@ -90,7 +99,10 @@ export default class CameraControl {
             return 1;
         }
     }
-    
+
+    /**
+     * @private
+     */
     canvasMouseDown(e) {
         this.getCanvasPosFromEvent(e, this.mousePos);
         switch (e.which) {
@@ -115,7 +127,10 @@ export default class CameraControl {
         this.down = true;
         e.preventDefault();
     }
-    
+
+    /**
+     * @private
+     */
     canvasMouseUp(e) {
         this.getCanvasPosFromEvent(e, this.mousePos);
         switch (e.which) {
@@ -144,7 +159,10 @@ export default class CameraControl {
         this.down = false;
         e.preventDefault();
     }
-    
+
+    /**
+     * @private
+     */
     canvasWheel(e) {
         var delta = Math.max(-1, Math.min(1, -e.deltaY * 40));
         if (delta === 0) {
@@ -156,13 +174,19 @@ export default class CameraControl {
         e.preventDefault();
     }
 
+    /**
+     * @private
+     */
     closeEnoughCanvas(p, q) {
         return p[0] >= (q[0] - this.canvasPickTolerance) &&
             p[0] <= (q[0] + this.canvasPickTolerance) &&
             p[1] >= (q[1] - this.canvasPickTolerance) &&
             p[1] <= (q[1] + this.canvasPickTolerance);
     }
-    
+
+    /**
+     * @private
+     */
     canvasMouseMove(e) {
         if (!this.over) {
             return;
@@ -190,7 +214,10 @@ export default class CameraControl {
         }
         e.preventDefault();
     }
-    
+
+    /**
+     * @private
+     */
     documentMouseUp(e) {
         switch (e.which) {
 	        case 1:
@@ -207,12 +234,15 @@ export default class CameraControl {
 	    }
 	    this.down = false;
     }
-    
+
     getEyeLookDist() {
         var vec = vec3.create();
         return vec3.length(vec3.subtract(vec, this.viewer.camera.target, this.viewer.camera.eye));
     }
 
+    /**
+     * @private
+     */
     cleanup() {
         var canvas = this.canvas;
     	document.removeEventListener("mouseup", this.documentMouseUpHandler);
