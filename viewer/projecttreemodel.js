@@ -38,12 +38,17 @@ export default class ProjectTreeModel extends TreeModel{
 	}
 	
 	addProject(parentNode, project, clickFn) {
+		if (project.lastRevisionId == -1 && project.subProjects.length == 0) {
+			return;
+		}
 		if (parentNode == null) {
 			var node = this.add(project.name);
 		} else {
 			var node = parentNode.add(project.name);
 		}
-		node.click(clickFn);
+		if (project.lastRevisionId != -1) {
+			node.click(clickFn);
+		}
 		node.project = project;
 		node.show();
 
