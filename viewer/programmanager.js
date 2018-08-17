@@ -144,27 +144,7 @@ export default class ProgramManager {
 	}
 
 	getVertexShaderName(settings) {
-		var vertexShaderName = "shaders/vertex";
-		if (settings.picking) {
-			vertexShaderName += "_pk";
-		}
-		if (settings.instancing) {
-			vertexShaderName += "_ins";
-		}
-		if (settings.useObjectColors) {
-			vertexShaderName += "_oc";
-		}
-		if (settings.quantizeNormals) {
-			vertexShaderName += "_in";
-		}
-		if (settings.quantizeVertices) {
-			vertexShaderName += "_iv";
-		}
-		if (settings.quantizeColors) {
-			vertexShaderName += "_qc";
-		}
-		vertexShaderName += ".glsl";
-		return vertexShaderName;
+		return "shaders/vertex_all.glsl";
 	}
 
 	getProgram(settings) {
@@ -191,7 +171,7 @@ export default class ProgramManager {
 		var p = new Promise((resolve, reject) => {
 			this.loadShaderFile(vertexShader).then((vsSource) => {
 				this.loadShaderFile(fragmentShader).then((fsSource) => {
-					var shaderProgram = this.initShaderProgram(this.gl, vertexShader, vsSource, fragmentShader, fsSource);
+					var shaderProgram = this.initShaderProgram(this.gl, vertexShader, vsSource, fragmentShader, fsSource, settings);
 
 					var programInfo = {
 						program: shaderProgram,
@@ -269,9 +249,9 @@ export default class ProgramManager {
 		return promise;
 	}
 
-	initShaderProgram(gl, vsName, vsSource, fsName, fsSource) {
-		const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vsName, vsSource);
-		const fragmentShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fsName, fsSource);
+	initShaderProgram(gl, vsName, vsSource, fsName, fsSource, settings) {
+		const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vsName, vsSource, settings);
+		const fragmentShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fsName, fsSource, settings);
 
 		const shaderProgram = gl.createProgram();
 		gl.attachShader(shaderProgram, vertexShader);
@@ -286,12 +266,20 @@ export default class ProgramManager {
 		return shaderProgram;
 	}
 
-	loadShader(gl, type, name, source) {
+	loadShader(gl, type, name, source, options) {
+		var fullSource = "#version 300 es\n\n";
+		for (const opt in (options || {})) {
+			if(options[opt]) {
+				fullSource += `#define WITH_${opt.toUpperCase()}\n`;
+			}
+		}
+		fullSource += "\n" + source;
 		const shader = gl.createShader(type);
-		gl.shaderSource(shader, source);
+		gl.shaderSource(shader, fullSource);
 		gl.compileShader(shader);
 		if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
 			console.error(name);
+			console.error(fullSource);
 			console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
 			gl.deleteShader(shader);
 			return null;
