@@ -30,7 +30,7 @@ export default class Settings {
 			quantizeNormals: true,
 			quantizeVertices: true,
 			quantizeColors: true,
-			useObjectColors: true,
+			useObjectColors: false,
 			useSmallIndicesIfPossible: true,
 			defaultLayerEnabled: true,
 			triangleThresholdDefaultLayer: 100000,
@@ -41,7 +41,7 @@ export default class Settings {
 				quantizeNormals: true,
 				quantizeVertices: true,
 				quantizeColors: true,
-				useObjectColors: true
+				useObjectColors: false
 			}
 		} : JSON.parse(settingsObject);
 		console.log("settings loaded", this.settings);
