@@ -20,7 +20,7 @@ export default class ProgramManager {
 			attributes: [],
 			uniforms: []
 		};
-		if (inputSettings.specialType == "line") {
+		if (inputSettings.linePrimitives === true) {
 			return settings;
 		}
 		if (inputSettings.instancing) {
@@ -96,9 +96,9 @@ export default class ProgramManager {
 		}
 
 		var settings = {
-			specialType: "line"
+			linePrimitives: true
 		};
-		this.setupProgram(this.viewerBasePath + "shaders/vertex_line.glsl", this.viewerBasePath + "shaders/fragment_line.glsl", {
+		this.setupProgram(this.viewerBasePath + "shaders/vertex.glsl", this.viewerBasePath + "shaders/fragment.glsl", {
 			attributes: ["vertexPosition"],
 			uniforms: [
 				"matrix",
@@ -139,12 +139,12 @@ export default class ProgramManager {
 			quantizeColors: quantizeColors
 		};
 		var vertexShaderName = this.getVertexShaderName(settings);
-		var fragShaderName = picking ? "shaders/fragment_pk.glsl" : "shaders/fragment.glsl";
+		var fragShaderName = "shaders/fragment.glsl";
 		this.setupProgram(this.viewerBasePath + vertexShaderName, this.viewerBasePath + fragShaderName, defaultSetup, this.generateSetup(settings), settings);
 	}
 
 	getVertexShaderName(settings) {
-		return "shaders/vertex_all.glsl";
+		return "shaders/vertex.glsl";
 	}
 
 	getProgram(settings) {
@@ -269,7 +269,7 @@ export default class ProgramManager {
 	loadShader(gl, type, name, source, options) {
 		var fullSource = "#version 300 es\n\n";
 		for (const opt in (options || {})) {
-			if(options[opt]) {
+			if(options[opt] === true) {
 				fullSource += `#define WITH_${opt.toUpperCase()}\n`;
 			}
 		}

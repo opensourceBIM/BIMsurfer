@@ -38,7 +38,7 @@ export default class LineBoxGeometry {
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.vertices, this.gl.STATIC_DRAW, 0, 0);
 		
 		this.programInfo = this.viewer.programManager.getProgram({
-			specialType: "line"
+			linePrimitives: true
 		});
 	}
 	
