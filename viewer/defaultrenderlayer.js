@@ -104,7 +104,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		this.bufferManager.resetBuffer(buffer);
 	}
 
-	renderBuffers(transparency, reuse) {
+	renderBuffers(transparency, reuse, visibleElements) {
 		var buffers = this.gpuBufferManager.getBuffers(transparency, reuse);
 		if (buffers.length > 0) {
 			var programInfo = this.viewer.programManager.getProgram({
@@ -129,7 +129,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 				}
 			}
 
-			this.renderFinalBuffers(buffers, programInfo);
+			this.renderFinalBuffers(buffers, programInfo, visibleElements);
 		}
 	}
 

@@ -19,6 +19,13 @@ export default class GpuBufferManager {
 		this.liveReusedBuffersOpaque = [];
 		this.liveReusedBuffersTransparent = [];
 	}
+
+	apply(fn) {
+		this.liveBuffersTransparent.forEach(fn);
+		this.liveBuffersOpaque.forEach(fn);
+		this.liveReusedBuffersOpaque.forEach(fn);
+		this.liveReusedBuffersTransparent.forEach(fn);
+	}
 	
 	isEmpty() {
 		return 

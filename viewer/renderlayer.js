@@ -13,6 +13,7 @@ export default class RenderLayer {
 
 		this.loaders = new Map();
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
+		this.geometryIdToBufferSet = new Map();
 	}
 
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
@@ -221,6 +222,17 @@ export default class RenderLayer {
 				buffer.pickColorsIndex += 2;
 			}
 
+			{var li = (buffer.geometryIdToIndex.get(object.id) || []);
+				li.push({
+					'start': startIndex, 
+					'length': geometry.indices.length
+				});
+				buffer.geometryIdToIndex.set(object.id, li);}
+
+			{var li = (this.geometryIdToBufferSet.get(object.id) || []);
+				li.push(buffer);
+				this.geometryIdToBufferSet.set(object.id, li);}
+			
 			if (startIndex == 0) {
 				// Small optimization, if this is the first object in the buffer, no need to add the startIndex to each index
 				buffer.indices.set(geometry.indices, 0);
@@ -577,12 +589,12 @@ export default class RenderLayer {
 		console.log("Not implemented in this layer");
 	}
 	
-	render(transparency) {
-		this.renderBuffers(transparency, false);
-		this.renderBuffers(transparency, true);
+	render(transparency, visibleElements) {
+		this.renderBuffers(transparency, false, visibleElements);
+		this.renderBuffers(transparency, true, visibleElements);
 	}
 	
-	renderFinalBuffers(buffers, programInfo) {
+	renderFinalBuffers(buffers, programInfo, visibleElements) {
 		if (buffers != null && buffers.length > 0) {
 			var lastUsedColorHash = null;
 			
@@ -593,12 +605,12 @@ export default class RenderLayer {
 						lastUsedColorHash = buffer.colorHash;
 					}
 				}
-				this.renderBuffer(buffer, programInfo);
+				this.renderBuffer(buffer, programInfo, visibleElements);
 			}
 		}
 	}
 	
-	renderBuffer(buffer, programInfo) {
+	renderBuffer(buffer, programInfo, visibleElements) {
 		this.gl.bindVertexArray(buffer.vao);
 		if (buffer.reuse) {
 			// TODO we only need to bind this again for every new roid, maybe sort by buffer.roid before iterating through the buffers?
@@ -607,7 +619,11 @@ export default class RenderLayer {
 			}
 			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 		} else {
-			this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
+			// @todo how does this work in es6?
+			buffer.computeVisibleRanges(buffer, visibleElements).forEach((range) => {
+				this.gl.drawElements(this.gl.TRIANGLES, range[1], this.gl.UNSIGNED_INT, range[0]);
+			})
+			// this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
 		}
 		this.gl.bindVertexArray(null);
 	}
@@ -792,7 +808,11 @@ export default class RenderLayer {
 				vao: vao,
 				vaoPick: vaoPick,
 				hasTransparency: buffer.hasTransparency,
-				reuse: false
+				reuse: false,
+				// @todo: prevent duplication here
+				computeVisibleRanges: buffer.computeVisibleRanges,
+				geometryIdToIndex: buffer.geometryIdToIndex,
+				visibleRanges: buffer.visibleRanges
 			};
 			
 			if (this.settings.useObjectColors) {

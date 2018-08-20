@@ -37,6 +37,9 @@ export default class Viewer {
 
         this.viewObjects = new Map();
 
+        // Null means everything visible, otherwise Set()
+        this.visibleElements = null;
+
         var self = this;
         window._debugViewer = this;  // HACK for console debugging
     }
@@ -175,7 +178,7 @@ export default class Viewer {
                 this.gl.depthMask(false);
             }
             for (var renderLayer of this.renderLayers) {
-                renderLayer.render(transparency);
+                renderLayer.render(transparency, this.visibleElements);
             }
         }
 
@@ -226,8 +229,11 @@ export default class Viewer {
 
         var viewObject = this.viewObjects.get(objectId);
         if (viewObject) {
+            this.visibleElements = [objectId];
             return viewObject;
         }
+
+        this.visibleElements = null;
 
         return null;
     }

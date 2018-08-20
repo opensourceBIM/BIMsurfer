@@ -86,7 +86,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		return false;
 	}
 
-	renderBuffers(transparency, reuse) {
+	renderBuffers(transparency, reuse, visibleElements) {
 		// TODO when navigation is active (rotating, panning etc...), this would be the place to decide to for example not-render anything in this layer, or maybe apply more aggressive culling
 //		if (this.viewer.navigationActive) {
 //			return;
@@ -151,7 +151,7 @@ export default class TilingRenderLayer extends RenderLayer {
 
 				var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
 
-				this.renderFinalBuffers(buffers, programInfo);
+				this.renderFinalBuffers(buffers, programInfo, visibleElements);
 			}
 		});
 

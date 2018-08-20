@@ -109,7 +109,39 @@ export default class BufferManager {
 			nrIndices: 0,
 			hasTransparency: hasTransparency,
 			color: color,
-			bytes: 0
+			bytes: 0,
+			geometryIdToIndex: new Map(),
+			// @todo make this something like a LRU cache?
+			visibleRanges: new Map(),
+			// @todo not a class so this does not work well
+			computeVisibleRanges: (self, ids) => {
+				var tmp;
+				if ((tmp = self.visibleRanges.get(ids))) {
+					return tmp;
+				}
+
+				if (ids === null || ids.size === 0) {
+					return [[0, self.nrIndices]];
+				}
+
+				function* _() {
+					var oids;
+					for (var i of ids) {
+						if ((oids = self.geometryIdToIndex.get(i))) {
+							for (var j = 0; j < oids.length; ++j) {
+								yield [oids[j].start, oids[j].start + oids[j].length];
+							}
+						}
+					}
+				};
+
+				var r = Array.from(_()).sort();
+				self.visibleRanges.set(ids, r);
+
+				console.log("visible", r);
+
+				return r;
+			}
 		};
 		return bufferSet;
 	}
