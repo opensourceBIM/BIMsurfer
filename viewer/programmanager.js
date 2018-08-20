@@ -1,9 +1,5 @@
 /*
  * Keeps track of all the programs and positions
- * 
- * In the future, an obvious next step would be to auto-generate at least the vertex shaders 
- * based on some templates, at the moment the shaders are all written manually, using a naming scheme file the file names
- * 
  */
 
 export default class ProgramManager {
@@ -23,11 +19,17 @@ export default class ProgramManager {
 		if (inputSettings.linePrimitives === true) {
 			return settings;
 		}
+		if (inputSettings.picking) {
+			if (inputSettings.instancing) {
+				settings.attributes.push("instancePickColors");
+			} else {
+				settings.attributes.push("vertexPickColor");
+			}
+		}
 		if (inputSettings.instancing) {
 			settings.attributes.push("instanceMatrices");
-			settings.attributes.push("instanceNormalMatrices");
-			if (inputSettings.picking) {
-				settings.attributes.push("instancePickColors");
+			if (!inputSettings.picking) {
+				settings.attributes.push("instanceNormalMatrices");
 			}
 		}
 		if (!inputSettings.picking) {
@@ -64,8 +66,7 @@ export default class ProgramManager {
 		};
 		var defaultSetupForPicking = {
 			attributes: [
-				"vertexPosition",
-				"vertexPickColor"
+				"vertexPosition"
 				],
 			uniforms: [
 				"projectionMatrix",
@@ -188,10 +189,10 @@ export default class ProgramManager {
 							//console.log("attributes:");
 							for (var attribute of setup.attributes) {
 								programInfo.attribLocations[attribute] = this.gl.getAttribLocation(shaderProgram, attribute);
-								// if (programInfo.attribLocations[attribute] == -1) {
-								// 	console.error("Missing attribute location", attribute, vertexShader);
-								// }
-								//console.log("attribute  '" + attribute + "' = " + programInfo.attribLocations[attribute]);
+								if (programInfo.attribLocations[attribute] == -1) {
+									console.error("Missing attribute location", attribute, vertexShader);
+									debugger;
+								}
 							}
 						}
 						if (setup.uniforms != null) {
@@ -199,9 +200,9 @@ export default class ProgramManager {
 							for (var uniform of setup.uniforms) {
 								programInfo.uniformLocations[uniform] = this.gl.getUniformLocation(shaderProgram, uniform);
 								if (programInfo.uniformLocations[uniform] == -1) {
-									//console.error("Missing uniform location", uniform, vertexShader);
+									console.error("Missing uniform location", uniform, vertexShader);
+									debugger;
 								}
-								//console.log("uniform '" + uniform + "' = " + programInfo.uniformLocations[uniform]);
 							}
 						}
 						if (setup.uniformBlocks != null) {
@@ -209,7 +210,8 @@ export default class ProgramManager {
 								for (var uniformBlock of setup.uniformBlocks) {
 									programInfo.uniformBlocks[uniformBlock] = this.gl.getUniformBlockIndex(shaderProgram, uniformBlock);
 									if (programInfo.uniformBlocks[uniformBlock] == -1) {
-										//console.log("Missing uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock]);
+										console.error("Missing uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock]);
+										debugger;
 									} else {
 										this.gl.uniformBlockBinding(shaderProgram, programInfo.uniformBlocks[uniformBlock], 0);
 									}
