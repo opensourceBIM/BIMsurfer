@@ -1,9 +1,5 @@
 /*
  * Keeps track of all the programs and positions
- * 
- * In the future, an obvious next step would be to auto-generate at least the vertex shaders 
- * based on some templates, at the moment the shaders are all written manually, using a naming scheme file the file names
- * 
  */
 
 export default class ProgramManager {
@@ -20,14 +16,20 @@ export default class ProgramManager {
 			attributes: [],
 			uniforms: []
 		};
-		if (inputSettings.specialType == "line") {
+		if (inputSettings.linePrimitives === true) {
 			return settings;
+		}
+		if (inputSettings.picking) {
+			if (inputSettings.instancing) {
+				settings.attributes.push("instancePickColors");
+			} else {
+				settings.attributes.push("vertexPickColor");
+			}
 		}
 		if (inputSettings.instancing) {
 			settings.attributes.push("instanceMatrices");
-			settings.attributes.push("instanceNormalMatrices");
-			if (inputSettings.picking) {
-				settings.attributes.push("instancePickColors");
+			if (!inputSettings.picking) {
+				settings.attributes.push("instanceNormalMatrices");
 			}
 		}
 		if (!inputSettings.picking) {
@@ -64,8 +66,7 @@ export default class ProgramManager {
 		};
 		var defaultSetupForPicking = {
 			attributes: [
-				"vertexPosition",
-				"vertexPickColor"
+				"vertexPosition"
 				],
 			uniforms: [
 				"projectionMatrix",
@@ -96,9 +97,9 @@ export default class ProgramManager {
 		}
 
 		var settings = {
-			specialType: "line"
+			linePrimitives: true
 		};
-		this.setupProgram(this.viewerBasePath + "shaders/vertex_line.glsl", this.viewerBasePath + "shaders/fragment_line.glsl", {
+		this.setupProgram(this.viewerBasePath + "shaders/vertex.glsl", this.viewerBasePath + "shaders/fragment.glsl", {
 			attributes: ["vertexPosition"],
 			uniforms: [
 				"matrix",
@@ -139,32 +140,12 @@ export default class ProgramManager {
 			quantizeColors: quantizeColors
 		};
 		var vertexShaderName = this.getVertexShaderName(settings);
-		var fragShaderName = picking ? "shaders/fragment_pk.glsl" : "shaders/fragment.glsl";
+		var fragShaderName = "shaders/fragment.glsl";
 		this.setupProgram(this.viewerBasePath + vertexShaderName, this.viewerBasePath + fragShaderName, defaultSetup, this.generateSetup(settings), settings);
 	}
 
 	getVertexShaderName(settings) {
-		var vertexShaderName = "shaders/vertex";
-		if (settings.picking) {
-			vertexShaderName += "_pk";
-		}
-		if (settings.instancing) {
-			vertexShaderName += "_ins";
-		}
-		if (settings.useObjectColors) {
-			vertexShaderName += "_oc";
-		}
-		if (settings.quantizeNormals) {
-			vertexShaderName += "_in";
-		}
-		if (settings.quantizeVertices) {
-			vertexShaderName += "_iv";
-		}
-		if (settings.quantizeColors) {
-			vertexShaderName += "_qc";
-		}
-		vertexShaderName += ".glsl";
-		return vertexShaderName;
+		return "shaders/vertex.glsl";
 	}
 
 	getProgram(settings) {
@@ -191,7 +172,7 @@ export default class ProgramManager {
 		var p = new Promise((resolve, reject) => {
 			this.loadShaderFile(vertexShader).then((vsSource) => {
 				this.loadShaderFile(fragmentShader).then((fsSource) => {
-					var shaderProgram = this.initShaderProgram(this.gl, vertexShader, vsSource, fragmentShader, fsSource);
+					var shaderProgram = this.initShaderProgram(this.gl, vertexShader, vsSource, fragmentShader, fsSource, settings);
 
 					var programInfo = {
 						program: shaderProgram,
@@ -208,10 +189,10 @@ export default class ProgramManager {
 							//console.log("attributes:");
 							for (var attribute of setup.attributes) {
 								programInfo.attribLocations[attribute] = this.gl.getAttribLocation(shaderProgram, attribute);
-								// if (programInfo.attribLocations[attribute] == -1) {
-								// 	console.error("Missing attribute location", attribute, vertexShader);
-								// }
-								//console.log("attribute  '" + attribute + "' = " + programInfo.attribLocations[attribute]);
+								if (programInfo.attribLocations[attribute] == -1) {
+									console.error("Missing attribute location", attribute, vertexShader);
+									debugger;
+								}
 							}
 						}
 						if (setup.uniforms != null) {
@@ -219,9 +200,9 @@ export default class ProgramManager {
 							for (var uniform of setup.uniforms) {
 								programInfo.uniformLocations[uniform] = this.gl.getUniformLocation(shaderProgram, uniform);
 								if (programInfo.uniformLocations[uniform] == -1) {
-									//console.error("Missing uniform location", uniform, vertexShader);
+									console.error("Missing uniform location", uniform, vertexShader);
+									debugger;
 								}
-								//console.log("uniform '" + uniform + "' = " + programInfo.uniformLocations[uniform]);
 							}
 						}
 						if (setup.uniformBlocks != null) {
@@ -229,7 +210,8 @@ export default class ProgramManager {
 								for (var uniformBlock of setup.uniformBlocks) {
 									programInfo.uniformBlocks[uniformBlock] = this.gl.getUniformBlockIndex(shaderProgram, uniformBlock);
 									if (programInfo.uniformBlocks[uniformBlock] == -1) {
-										//console.log("Missing uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock]);
+										console.error("Missing uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock]);
+										debugger;
 									} else {
 										this.gl.uniformBlockBinding(shaderProgram, programInfo.uniformBlocks[uniformBlock], 0);
 									}
@@ -269,9 +251,9 @@ export default class ProgramManager {
 		return promise;
 	}
 
-	initShaderProgram(gl, vsName, vsSource, fsName, fsSource) {
-		const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vsName, vsSource);
-		const fragmentShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fsName, fsSource);
+	initShaderProgram(gl, vsName, vsSource, fsName, fsSource, settings) {
+		const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vsName, vsSource, settings);
+		const fragmentShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fsName, fsSource, settings);
 
 		const shaderProgram = gl.createProgram();
 		gl.attachShader(shaderProgram, vertexShader);
@@ -286,12 +268,20 @@ export default class ProgramManager {
 		return shaderProgram;
 	}
 
-	loadShader(gl, type, name, source) {
+	loadShader(gl, type, name, source, options) {
+		var fullSource = "#version 300 es\n\n";
+		for (const opt in (options || {})) {
+			if(options[opt] === true) {
+				fullSource += `#define WITH_${opt.toUpperCase()}\n`;
+			}
+		}
+		fullSource += "\n" + source;
 		const shader = gl.createShader(type);
-		gl.shaderSource(shader, source);
+		gl.shaderSource(shader, fullSource);
 		gl.compileShader(shader);
 		if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
 			console.error(name);
+			console.error(fullSource);
 			console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
 			gl.deleteShader(shader);
 			return null;

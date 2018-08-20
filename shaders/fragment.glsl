@@ -1,18 +1,13 @@
-#version 300 es
-
 precision mediump int;
 precision mediump float;
 
+#ifdef WITH_PICKING
+flat in mediump uvec2 color;
+out mediump uvec2 myOutputColor;
+#else
 in mediump vec4 color;
-
-uniform LightData {
-	vec3 dir;
-	vec3 color;
-	vec3 ambientColor;
-	float intensity;
-} lightData;
-
 out vec4 myOutputColor;
+#endif
 
 void main(void) {
    myOutputColor = color;
