@@ -37,7 +37,7 @@ export default class Viewer {
 
         this.viewObjects = new Map();
 
-        // Null means everything visible, otherwise Set()
+        // Null means everything visible, otherwise Set(..., ..., ...)
         this.visibleElements = null;
 
         var self = this;
@@ -180,6 +180,10 @@ export default class Viewer {
             for (var renderLayer of this.renderLayers) {
                 renderLayer.render(transparency, this.visibleElements);
             }
+        }
+
+        for (var renderLayer of this.renderLayers) {
+            renderLayer.renderAnnotations();
         }
 
 //		this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, this.renderFrameBuffer);

@@ -224,7 +224,7 @@ export default class RenderLayer {
 
 			{var li = (buffer.geometryIdToIndex.get(object.id) || []);
 				li.push({
-					'start': startIndex, 
+					'start': buffer.indicesIndex, 
 					'length': geometry.indices.length
 				});
 				buffer.geometryIdToIndex.set(object.id, li);}
@@ -620,9 +620,11 @@ export default class RenderLayer {
 			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 		} else {
 			// @todo how does this work in es6?
-			buffer.computeVisibleRanges(buffer, visibleElements).forEach((range) => {
-				this.gl.drawElements(this.gl.TRIANGLES, range[1], this.gl.UNSIGNED_INT, range[0]);
-			})
+			buffer.computeVisibleRanges(buffer, visibleElements, this.gl).forEach((range) => {
+				// if (range[0] == 0) {
+				this.gl.drawElements(this.gl.TRIANGLES, range[1] - range[0], this.gl.UNSIGNED_INT, range[0] * 4);
+				// }
+			});
 			// this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
 		}
 		this.gl.bindVertexArray(null);
@@ -812,7 +814,9 @@ export default class RenderLayer {
 				// @todo: prevent duplication here
 				computeVisibleRanges: buffer.computeVisibleRanges,
 				geometryIdToIndex: buffer.geometryIdToIndex,
-				visibleRanges: buffer.visibleRanges
+				// @todo make these something like LRU caches?
+				visibleRanges: new Map(),
+				lineIndexBuffers: new Map()
 			};
 			
 			if (this.settings.useObjectColors) {
@@ -838,5 +842,57 @@ export default class RenderLayer {
 		this.viewer.stats.inc("Data", "GPU bytes", buffer.bytes);
 		this.viewer.stats.inc("Data", "GPU bytes total", buffer.bytes);
 		this.viewer.stats.inc("Buffers", "Buffer groups");
+	}
+
+	renderAnnotations() {
+		this.gl.lineWidth(4);
+
+		var matrix = mat4.identity(mat4.create());
+		var color = new Float32Array([1.0,0.5,0.0,1.0]);
+
+		var program = this.viewer.programManager.getProgram({
+			linePrimitives: true
+		});
+
+		this.gl.useProgram(program.program);
+		
+		this.gl.uniformMatrix4fv(program.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
+		this.gl.uniformMatrix4fv(program.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
+
+		this.gl.uniformMatrix4fv(program.uniformLocations.matrix, false, matrix);
+		this.gl.uniform4fv(program.uniformLocations.inputColor, color);
+
+		// console.log(this.gl.getError());
+
+		var buffers = this.gpuBufferManager.getBuffers(false, false);
+		for (let buffer of buffers) {
+			// 	this.gl.bindVertexArray(buffer.vao);
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer.positionBuffer);
+			var tmp = new Float32Array(buffer.nrPositions); // not divided by 3?
+			// console.log("nrPositions", buffer.nrPositions);
+			this.gl.getBufferSubData(this.gl.ARRAY_BUFFER, 0, tmp);
+			
+			for (let idxs of buffer.lineIndexBuffers.values()) {
+				this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, idxs.buffer);
+				var tmp2 = new Uint32Array(idxs.count);
+				this.gl.getBufferSubData(this.gl.ELEMENT_ARRAY_BUFFER, 0, tmp2);
+
+				/* for (var i of tmp2) {
+					console.log(i, tmp[3*i+0], tmp[3*i+1], tmp[3*i+2]);
+				} */
+				
+				this.gl.vertexAttribPointer(program.attribLocations.vertexPosition, 3, this.gl.FLOAT, false, 0, 0);
+				// console.log(this.gl.getError());
+				this.gl.enableVertexAttribArray(program.attribLocations.vertexPosition);
+
+				// console.log(this.gl.getError());
+				// console.log(idxs.count);
+				this.gl.drawElements(this.gl.LINES, idxs.count, this.gl.UNSIGNED_INT, 0);
+
+				// console.log(this.gl.getError());
+			}
+		}
+
+		this.gl.lineWidth(1);
 	}
 }
