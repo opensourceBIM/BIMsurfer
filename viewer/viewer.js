@@ -63,7 +63,7 @@ export default class Viewer {
             this.programManager = new ProgramManager(this.gl, this.settings.viewerBasePath);
 
             this.programManager.load().then(() => {
-                this.gl.enable(this.gl.CULL_FACE);
+                // this.gl.enable(this.gl.CULL_FACE);
 
                 // It would be really nice to get the BIMsurfer V1 like anti-aliasing, so far I understand this is definitely
                 // possible in WebGL2 but you need to do something with framebuffers/renderbuffers.

@@ -170,18 +170,18 @@ export default class TilingRenderLayer extends RenderLayer {
 					// No visualisation, node is not empty (or parent node)
 				} else if (node.loadingStatus == 1) {
 					// Node is waiting to start loading
-					color = [1, 0, 0, 0.5];
+					color = [1, 0, 0, 1];
 				} else if (node.loadingStatus == 2) {
 					// Node is loading
 				} else if (node.loadingStatus == 3) {
 					// Node is loaded
 					if (node.visibilityStatus == 0) {
-						color = [0, 1, 0, 0.5];
+						color = [0, 1, 0, 1];
 					} else if (node.visibilityStatus == 1) {
-						color = [0, 0, 1, 0.5];
+						color = [0, 0, 1, 1];
 					}
 				} else if (node.loadingStatus == 4) {
-					color = [0.5, 0.5, 0.5, 0.5];
+					color = [0.5, 0.5, 0.5, 1];
 				} else if (node.loadingStatus == 5) {
 					// Node has been tried to load, but no objects were returned
 				}
@@ -333,6 +333,10 @@ export default class TilingRenderLayer extends RenderLayer {
 				}
 			}
 		}, false);
+	}
+
+	renderAnnotations() {
+		// traverse...
 	}
 	
 	flushBuffer(buffer) {
