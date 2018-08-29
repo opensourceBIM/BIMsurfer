@@ -102,7 +102,6 @@ export default class LineBoxGeometry {
 		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 		const aspect = this.viewer.width / this.viewer.height;
 		this.gl.uniform1f(this.programInfo.uniformLocations.aspect, aspect);
-		this.gl.uniform1f(this.programInfo.uniformLocations.thickness, 0.01);
 
 		for (const fn of this.setupFunctions) {
 			fn();
@@ -115,7 +114,8 @@ export default class LineBoxGeometry {
 		
 	}
 	
-	render(color, matrix) {
+	render(color, matrix, thickness) {
+		this.gl.uniform1f(this.programInfo.uniformLocations.thickness, thickness || 0.005);
 		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.matrix, false, matrix);
 		this.gl.uniform4fv(this.programInfo.uniformLocations.inputColor, color);
 		this.gl.drawElements(

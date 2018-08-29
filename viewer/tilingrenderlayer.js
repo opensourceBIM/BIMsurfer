@@ -164,7 +164,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		if (transparency && !reuse && this.drawTileBorders) {
 			// The lines are rendered in the transparency-phase only
 			this.lineBoxGeometry.renderStart();
-			this.octree.traverse((node) => {
+			this.octree.traverse((node, level) => {
 				var color = null;
 				if (node.loadingStatus == 0) {
 					// No visualisation, node is not empty (or parent node)
@@ -186,7 +186,7 @@ export default class TilingRenderLayer extends RenderLayer {
 					// Node has been tried to load, but no objects were returned
 				}
 				if (color != null) {
-					this.lineBoxGeometry.render(color, node.getMatrix());
+					this.lineBoxGeometry.render(color, node.getMatrix(), 0.008 / Math.pow(2, level));
 				}
 			});
 			this.lineBoxGeometry.renderStop();

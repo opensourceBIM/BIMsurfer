@@ -112,7 +112,6 @@ void main(void) {
     mat4 projViewModel = projectionMatrix * viewMatrix * matrix;
     vec4 currentProjected = projViewModel * floatVertex;
     vec2 currentScreen = currentProjected.xy / currentProjected.w * aspectVec;
-    currentScreen.x *= aspect;
 
     vec4 nextProjected = projViewModel * vec4(nextVertexPosition, 1.0);
     vec2 nextScreen = nextProjected.xy / nextProjected.w * aspectVec;

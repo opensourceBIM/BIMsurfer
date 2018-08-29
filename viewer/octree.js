@@ -88,16 +88,16 @@ class OctreeNode {
 		}
 	}
 	
-	traverse(fn, onlyLeafs) {
+	traverse(fn, onlyLeafs, level) {
 		if (this.leaf == true || !onlyLeafs) {
-			fn(this);
+			fn(this, level || 0);
 		}
 		if (this.quadrants == null) {
 			return;
 		}
 		for (var node of this.quadrants) {
 			if (node != null) {
-				node.traverse(fn, onlyLeafs);
+				node.traverse(fn, onlyLeafs, (level || 0) + 1);
 			}
 		}
 	}
