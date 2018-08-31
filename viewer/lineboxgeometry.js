@@ -4,8 +4,6 @@ import FatLineRenderer from './fatlinerenderer.js'
 export default class LineBoxGeometry extends FatLineRenderer {
 	constructor(viewer, gl) {
 		super(gl);
-		this.idx = 0;
-		
 		this.gl = gl;
 		this.viewer = viewer;
 		

@@ -799,6 +799,9 @@ export default class RenderLayer {
 
 			this.gl.bindVertexArray(null);
 
+			// @todo: why are there some many positions +- 100 000 on the Duplex model?
+			console.log("nrPositions", buffer.positionsIndex);
+
 			var newBuffer = {
 				positionBuffer: positionBuffer,
 				normalBuffer: normalBuffer,
@@ -813,9 +816,8 @@ export default class RenderLayer {
 				// @todo: prevent duplication here
 				computeVisibleRanges: buffer.computeVisibleRanges,
 				geometryIdToIndex: buffer.geometryIdToIndex,
-				// @todo make these something like LRU caches?
-				visibleRanges: new Map(),
-				lineIndexBuffers: new Map()
+				visibleRanges: buffer.visibleRanges,
+				lineIndexBuffers: buffer.lineIndexBuffers
 			};
 			
 			if (this.settings.useObjectColors) {
@@ -844,54 +846,17 @@ export default class RenderLayer {
 	}
 
 	renderAnnotations() {
-		this.gl.lineWidth(4);
-
 		var matrix = mat4.identity(mat4.create());
 		var color = new Float32Array([1.0,0.5,0.0,1.0]);
 
-		var program = this.viewer.programManager.getProgram({
-			linePrimitives: true
-		});
-
-		this.gl.useProgram(program.program);
-		
-		this.gl.uniformMatrix4fv(program.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-		this.gl.uniformMatrix4fv(program.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
-
-		this.gl.uniformMatrix4fv(program.uniformLocations.matrix, false, matrix);
-		this.gl.uniform4fv(program.uniformLocations.inputColor, color);
-
-		// console.log(this.gl.getError());
-
+		var lines;
 		var buffers = this.gpuBufferManager.getBuffers(false, false);
 		for (let buffer of buffers) {
-			// 	this.gl.bindVertexArray(buffer.vao);
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer.positionBuffer);
-			var tmp = new Float32Array(buffer.nrPositions); // not divided by 3?
-			// console.log("nrPositions", buffer.nrPositions);
-			this.gl.getBufferSubData(this.gl.ARRAY_BUFFER, 0, tmp);
-			
-			for (let idxs of buffer.lineIndexBuffers.values()) {
-				this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, idxs.buffer);
-				var tmp2 = new Uint32Array(idxs.count);
-				this.gl.getBufferSubData(this.gl.ELEMENT_ARRAY_BUFFER, 0, tmp2);
-
-				/* for (var i of tmp2) {
-					console.log(i, tmp[3*i+0], tmp[3*i+1], tmp[3*i+2]);
-				} */
-				
-				this.gl.vertexAttribPointer(program.attribLocations.vertexPosition, 3, this.gl.FLOAT, false, 0, 0);
-				// console.log(this.gl.getError());
-				this.gl.enableVertexAttribArray(program.attribLocations.vertexPosition);
-
-				// console.log(this.gl.getError());
-				// console.log(idxs.count);
-				this.gl.drawElements(this.gl.LINES, idxs.count, this.gl.UNSIGNED_INT, 0);
-
-				// console.log(this.gl.getError());
+			for (lines of buffer.lineIndexBuffers.values()) {
+				lines.renderStart(this.viewer);
+				lines.render(color, matrix, 0.01);
+				lines.renderStop();
 			}
 		}
-
-		this.gl.lineWidth(1);
 	}
 }

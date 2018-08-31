@@ -163,7 +163,7 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		if (transparency && !reuse && this.drawTileBorders) {
 			// The lines are rendered in the transparency-phase only
-			this.lineBoxGeometry.renderStart();
+			this.lineBoxGeometry.renderStart(this.viewer);
 			this.octree.traverse((node, level) => {
 				var color = null;
 				if (node.loadingStatus == 0) {

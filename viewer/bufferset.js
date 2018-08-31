@@ -1,3 +1,5 @@
+import FatLineRenderer from './fatlinerenderer.js'
+
 export default class BufferSet {
     
     constructor(settings, hasTransparency, color, sizes) {
@@ -20,22 +22,23 @@ export default class BufferSet {
         this.lineIndexBuffers = new Map();
     };
     
-    computeVisibleRanges(ids) {
-        var tmp;
-        if ((tmp = this.visibleRanges.get(ids))) {
-            return tmp;
+    computeVisibleRanges(ids, gl) {
+        {
+            var cache_lookup;
+            if ((cache_lookup = this.visibleRanges.get(ids))) {
+                return cache_lookup;
+            }
         }
-
-        const gl = this.gl;
 
         if (ids === null || ids.size === 0) {
             return [[0, this.nrIndices]];
         }
 
-        function* _() {
+        // generator function that yields ranges in this buffer for the selected ids
+        function* _(geometryIdToIndex) {
             var oids;
             for (var i of ids) {
-                if ((oids = this.geometryIdToIndex.get(i))) {
+                if ((oids = geometryIdToIndex.get(i))) {
                     for (var j = 0; j < oids.length; ++j) {
                         yield [oids[j].start, oids[j].start + oids[j].length];
                     }
@@ -43,58 +46,50 @@ export default class BufferSet {
             }
         };
 
-        var r = Array.from(_()).sort();
-        this.visibleRanges.set(ids, r);
+        var ranges = Array.from(_(this.geometryIdToIndex)).sort();
 
-        // 
+        // store in cache
+        this.visibleRanges.set(ids, ranges);
 
-        // console.log("visible", r);
+        ranges.forEach((range, i) => {
+            let id = ids[i];
+            let [a, b] = range;
 
-        if (r.length) {
-        
-        var a = r[0][0], b = r[0][1];
-        
-        var old2 = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
-        var tmp = new Float32Array(this.nrPositions); // not divided by 3?
-        // console.log("nrPositions create", this.nrPositions);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-        gl.getBufferSubData(gl.ARRAY_BUFFER, 0, tmp);
-        gl.bindBuffer(gl.ARRAY_BUFFER, old2);
+            const lineRenderer = new FatLineRenderer(gl);
 
-        var old = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        var origArr = new Uint32Array(b-a);
-        gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, a * 4, origArr, 0, origArr.length);
+            // not divided by 3?
+            const positions = new Float32Array(this.nrPositions);
+            const indices = new Uint32Array(b-a);
+            
+            // @todo: get only part of positions [min(indices), max(indices)]
+            var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+            gl.getBufferSubData(gl.ARRAY_BUFFER, 0, positions);
+            
+            var restoreElementBinding = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+            gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, a * 4, indices, 0, indices.length);
 
-        /* for (var idx of origArr) {
-            console.log(idx, tmp[idx*3+0], tmp[idx*3+1], tmp[idx*3+2]);
-        } */
+            for (var i = 0; i < indices.length; i += 3) {
+                let a = positions.subarray(indices[i    ] * 3).subarray(0,3);
+                let b = positions.subarray(indices[i + 1] * 3).subarray(0,3);
+                let c = positions.subarray(indices[i + 2] * 3).subarray(0,3);
+                lineRenderer.pushVertices(a, b);
+                lineRenderer.pushVertices(b, c);
+                lineRenderer.pushVertices(c, a);
+            }
 
-        var newArr = new Uint32Array((b-a) * 2);
-        var j = 0;
-        for (var i = 0; i < origArr.length; i += 3) {
-            newArr[j++] = origArr[i  ];
-            newArr[j++] = origArr[i+1];
-            newArr[j++] = origArr[i+1];
-            newArr[j++] = origArr[i+2];
-            newArr[j++] = origArr[i+2];
-            newArr[j++] = origArr[i  ];
-        }
-        var lineIndexBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, lineIndexBuffer);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, newArr, gl.STATIC_DRAW);
-        this.lineIndexBuffers.set(ids[0], {'buffer': lineIndexBuffer, 'count': newArr.length});
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, old);
+			lineRenderer.finalize();
+            this.lineIndexBuffers.set(id, lineRenderer);
 
-        // console.log(origArr, newArr);
-        }
-        // this.gl.bindBuffer(this.gl.COPY_WRITE_BUFFER, lineIndexBuffer);
-        // s.gl.bufferData(this.gl.COPY_WRITE_BUFFER, (r[0][1] - r[0][0]) * 2, this.gl.STATIC_DRAW);
-        // this.gl.copyBufferSubData(this.gl.COPY_READ_BUFFER, this.gl.COPY_WRITE_BUFFER, r[0][0] * 4, 0, buffer.nrIndices * 4);
-        
-        return r;
+            gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, restoreElementBinding);
+        });
+       
+        return ranges;
     }
 
+    // @todo: this is not used yet
     flush(gpuBufferManager) {
 		if (this.nrIndices == 0) {
 			return;

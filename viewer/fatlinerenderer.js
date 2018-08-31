@@ -24,6 +24,7 @@
  */
 export default class FatLineRenderer {
     constructor(gl) {
+		this.idx = 0;
         this.gl = gl;
         this.vertexPosition = Array();
 		this.nextVertexPosition = Array();
@@ -32,13 +33,13 @@ export default class FatLineRenderer {
     }
 
     finalize() {
+		const gl = this.gl;
+		var indexType = this.indexType = ((this.vertexPosition.length / 3) < 256) ? gl.UNSIGNED_BYTE : gl.UNSIGNED_SHORT;
         this.setupFunctions = ["vertexPosition", "nextVertexPosition", "direction", "indices"].map((bufferName, i) => {
-			const gl = this.gl;
-
 			const buf = this[bufferName + "Buffer"] = gl.createBuffer();
 			const bufType = bufferName === "indices" ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER;
 			// @todo, somehow just cannot get direction as a byte to work :(
-			const elemType = [gl.FLOAT, gl.FLOAT, gl.FLOAT, gl.UNSIGNED_BYTE][i];
+			const elemType = [gl.FLOAT, gl.FLOAT, gl.FLOAT, indexType][i];
 			const typedArrFn = (new Map([
 				[gl.FLOAT, Float32Array],
                 [gl.UNSIGNED_BYTE, Uint8Array],
@@ -51,10 +52,10 @@ export default class FatLineRenderer {
 			gl.bindBuffer(bufType, buf);
 			gl.bufferData(bufType, typedArr, this.gl.STATIC_DRAW);
 
-			return () => {
+			return (programInfo) => {
 				gl.bindBuffer(bufType, buf);
 				if (bufType != gl.ELEMENT_ARRAY_BUFFER) {
-					var loc = this.programInfo.attribLocations[bufferName];
+					var loc = programInfo.attribLocations[bufferName];
 					if (elemType == gl.FLOAT) {
 						gl.vertexAttribPointer(loc, numElements, elemType, false, 0, 0);
 					} else {
@@ -64,13 +65,13 @@ export default class FatLineRenderer {
 				}
 			};
 		});
-
-		this.programInfo = this.viewer.programManager.getProgram({
-			linePrimitives: true
-		});
     }
 
     pushVertices(a, b) {
+		if (this.idx > 8 * 32) {
+
+		}
+
 		Array.prototype.push.apply(this.vertexPosition, a);
 		Array.prototype.push.apply(this.vertexPosition, b);
 		Array.prototype.push.apply(this.vertexPosition, a);
@@ -92,16 +93,19 @@ export default class FatLineRenderer {
     }
     
     // To minimize GPU calls, renderStart and renderStop can (and have to be) used in order to batch-draw a lot of boxes
-	renderStart() {
-		this.gl.useProgram(this.programInfo.program);
+	renderStart(viewer) {
+        var programInfo = this.programInfo = this.programInfo || viewer.programManager.getProgram({
+			linePrimitives: true
+		});
+		this.gl.useProgram(programInfo.program);
 		
-		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
-		const aspect = this.viewer.width / this.viewer.height;
-		this.gl.uniform1f(this.programInfo.uniformLocations.aspect, aspect);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, viewer.camera.projMatrix);
+		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, viewer.camera.viewMatrix);
+		const aspect = viewer.width / viewer.height;
+		this.gl.uniform1f(programInfo.uniformLocations.aspect, aspect);
 
 		for (const fn of this.setupFunctions) {
-			fn();
+			fn(programInfo);
 		}
 
 		this.first = true;
@@ -115,10 +119,6 @@ export default class FatLineRenderer {
 		this.gl.uniform1f(this.programInfo.uniformLocations.thickness, thickness || 0.005);
 		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.matrix, false, matrix);
 		this.gl.uniform4fv(this.programInfo.uniformLocations.inputColor, color);
-		this.gl.drawElements(
-			this.gl.TRIANGLES,
-			this.indices.length,
-			this.gl.UNSIGNED_BYTE, 
-			0);
+		this.gl.drawElements(this.gl.TRIANGLES, this.indices.length, this.indexType, 0);
 	}
 }
