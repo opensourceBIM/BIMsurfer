@@ -38,10 +38,30 @@ export default class Viewer {
         this.viewObjects = new Map();
 
         // Null means everything visible, otherwise Set(..., ..., ...)
+        this.invisibleElements = null;
+
         this.selectedElements = null;
 
         var self = this;
         window._debugViewer = this;  // HACK for console debugging
+
+        document.addEventListener("keypress", (evt) => {
+            if (evt.key === 'h') {
+                if (this.selectedElements) {
+                    if (this.invisibleElements) {
+                        this.selectedElements.forEach((i) => {
+                            this.invisibleElements.add(i);
+                        });
+                    } else {
+                        this.invisibleElements = new Set(this.selectedElements);
+                    }
+                    this.selectedElements = new Set();
+                }
+            } else {
+                this.invisibleElements = null;
+            }
+            this.drawScene();
+        });
     }
 
     init() {
@@ -191,7 +211,7 @@ export default class Viewer {
             }
         }
 
-        render(null);
+        render({without: this.invisibleElements});
 
         if (this.selectedElements) {
             gl.enable(gl.STENCIL_TEST);
@@ -202,7 +222,7 @@ export default class Viewer {
             gl.disable(gl.DEPTH_TEST);
             gl.colorMask(false, false, false, false);
             
-            render(this.selectedElements, true);
+            render({with: this.selectedElements}, true);
 
             gl.stencilFunc(gl.NOTEQUAL, 1, 0xff);
             gl.stencilMask(0x00);

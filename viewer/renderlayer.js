@@ -619,9 +619,7 @@ export default class RenderLayer {
 			}
 			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 		} else {
-			console.log('buffer');
 			buffer.computeVisibleRanges(visibleElements, this.gl).forEach((range) => {
-				console.log(range);
 				this.gl.drawElements(this.gl.TRIANGLES, range[1] - range[0], this.gl.UNSIGNED_INT, range[0] * 4);
 			});
 		}

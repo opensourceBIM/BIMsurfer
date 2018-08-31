@@ -22,11 +22,14 @@ export default class BufferSet {
         this.lineIndexBuffers = new Map();
     };
     
-    computeVisibleRanges(ids, gl) {
+    computeVisibleRanges(ids_with_or_without, gl) {
+		var ids = Object.values(ids_with_or_without)[0];
+		var exclude = "without" in ids_with_or_without;
+
 		// Wow set equality is really broken. This is going to hurt performance.
 		var ids_str = Array.from(ids || []);
 		ids_str.sort();
-		ids_str = ids_str.join(',');
+		ids_str = Object.keys(ids_with_or_without)[0] + ':' +  ids_str.join(',');
 
         {
             var cache_lookup;
@@ -52,11 +55,59 @@ export default class BufferSet {
         };
 
 		const id_ranges = Array.from(_(this.geometryIdToIndex)).sort();
-		const ranges = id_ranges.map((arr) => {return arr[1];})
+		const ranges = id_ranges.map((arr) => {return arr[1];});
+
+		// @todo: are there any off-by-1 errors here?
+
+		// join consecutive ranges
+		while (true) {
+			var removed = false;
+			for (let i = 0; i < ranges.length - 1; ++i) {
+				let a = ranges[i];
+				let b = ranges[i+1];
+				if (a[1] == b[0]) {
+					ranges.splice(i, 2, [a[0], b[1]]);
+					removed = true;
+				}
+			}
+			if (!removed) {
+				break;
+			}
+		}
+
+		if (exclude) {
+			// @todo: horribly inefficient, do not try this at home.
+			var complement =  [[0, this.nrIndices]];
+			ranges.forEach((range)=>{
+				let [a, b] = range;
+				const break_out_foreach = {};
+				try {
+					complement.forEach((originalRange, i)=>{
+						let [o, p] = originalRange;
+						if (a > o && a <= p) {
+							complement.splice(i, 1, [o, a], [b, p]);
+							throw break_out_foreach;
+						}
+					});
+				} catch (e) {
+					if (e !== break_out_foreach) {
+						throw e;
+					}
+				}
+			});
+
+			// store in cache
+			this.visibleRanges.set(ids_str, complement);
+
+			return complement;
+		}		
 
         // store in cache
         this.visibleRanges.set(ids_str, ranges);
 
+		// Create fat line renderings for these elements. This should (a) be in
+		// a separate function (b) not in the draw loop (c) maybe in something
+		// like a web worker
         id_ranges.forEach((range, i) => {
             let [id, [a, b]] = range;
 
