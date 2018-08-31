@@ -23,9 +23,14 @@ export default class BufferSet {
     };
     
     computeVisibleRanges(ids, gl) {
+		// Wow set equality is really broken. This is going to hurt performance.
+		var ids_str = Array.from(ids || []);
+		ids_str.sort();
+		ids_str = ids_str.join(',');
+
         {
             var cache_lookup;
-            if ((cache_lookup = this.visibleRanges.get(ids))) {
+            if ((cache_lookup = this.visibleRanges.get(ids_str))) {
                 return cache_lookup;
             }
         }
@@ -40,24 +45,25 @@ export default class BufferSet {
             for (var i of ids) {
                 if ((oids = geometryIdToIndex.get(i))) {
                     for (var j = 0; j < oids.length; ++j) {
-                        yield [oids[j].start, oids[j].start + oids[j].length];
+                        yield [i, [oids[j].start, oids[j].start + oids[j].length]];
                     }
                 }
             }
         };
 
-        var ranges = Array.from(_(this.geometryIdToIndex)).sort();
+		const id_ranges = Array.from(_(this.geometryIdToIndex)).sort();
+		const ranges = id_ranges.map((arr) => {return arr[1];})
 
         // store in cache
-        this.visibleRanges.set(ids, ranges);
+        this.visibleRanges.set(ids_str, ranges);
 
-        ranges.forEach((range, i) => {
-            let id = ids[i];
-            let [a, b] = range;
+        id_ranges.forEach((range, i) => {
+            let [id, [a, b]] = range;
 
-            const lineRenderer = new FatLineRenderer(gl);
+			const lineRenderer = new FatLineRenderer(gl);
 
-            // not divided by 3?
+			// not divided by 3?
+			// @todo does not work with quantization yet.
             const positions = new Float32Array(this.nrPositions);
             const indices = new Uint32Array(b-a);
             

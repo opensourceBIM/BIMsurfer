@@ -619,12 +619,11 @@ export default class RenderLayer {
 			}
 			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 		} else {
+			console.log('buffer');
 			buffer.computeVisibleRanges(visibleElements, this.gl).forEach((range) => {
-				// if (range[0] == 0) {
+				console.log(range);
 				this.gl.drawElements(this.gl.TRIANGLES, range[1] - range[0], this.gl.UNSIGNED_INT, range[0] * 4);
-				// }
 			});
-			// this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
 		}
 		this.gl.bindVertexArray(null);
 	}
@@ -845,18 +844,26 @@ export default class RenderLayer {
 		this.viewer.stats.inc("Buffers", "Buffer groups");
 	}
 
-	renderAnnotations() {
+	renderSelectionOutlines(ids, node) {
 		var matrix = mat4.identity(mat4.create());
 		var color = new Float32Array([1.0,0.5,0.0,1.0]);
 
 		var lines;
-		var buffers = this.gpuBufferManager.getBuffers(false, false);
-		for (let buffer of buffers) {
-			for (lines of buffer.lineIndexBuffers.values()) {
-				lines.renderStart(this.viewer);
-				lines.render(color, matrix, 0.01);
-				lines.renderStop();
+		const false_true = [false, true];
+		let viewer = (node || this).gpuBufferManager.viewer;
+
+		for (let a of false_true) { for (let b of false_true) {
+			var buffers = (node || this).gpuBufferManager.getBuffers(a, b);
+			for (let buffer of buffers) {
+				ids.forEach((id) => {
+					let lines = buffer.lineIndexBuffers.get(id);
+					if (lines) {
+						lines.renderStart(viewer);
+						lines.render(color, matrix, 0.005);
+						lines.renderStop();
+					}
+				});
 			}
-		}
+		}}
 	}
 }

@@ -137,7 +137,10 @@ export default class CameraControl {
             case 1:
             	this.mouseDownLeft = false;
                 if (this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
-                    var viewObject = this.viewer.pick({canvasPos: this.mousePos});
+                    var viewObject = this.viewer.pick({
+                        canvasPos: this.mousePos,
+                        shiftKey: e.shiftKey
+                    });
                     if (viewObject) {
                         var aabb = viewObject.aabb;
                         var center = [(aabb[0] + aabb[3]) / 2, (aabb[1] + aabb[4]) / 2, (aabb[2] + aabb[5]) / 2];
