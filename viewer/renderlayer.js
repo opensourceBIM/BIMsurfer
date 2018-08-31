@@ -619,8 +619,7 @@ export default class RenderLayer {
 			}
 			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 		} else {
-			// @todo how does this work in es6?
-			buffer.computeVisibleRanges(buffer, visibleElements, this.gl).forEach((range) => {
+			buffer.computeVisibleRanges(visibleElements, this.gl).forEach((range) => {
 				// if (range[0] == 0) {
 				this.gl.drawElements(this.gl.TRIANGLES, range[1] - range[0], this.gl.UNSIGNED_INT, range[0] * 4);
 				// }
