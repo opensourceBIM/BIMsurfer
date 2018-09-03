@@ -294,7 +294,11 @@ export default class Viewer {
     }
 
     getPickColor(objectId) { // Converts an integer to a pick color
-        return new Uint32Array([new Number(objectId & 0xFFFFFFFFn), new Number((objectId >> 32n) & 0xFFFFFFFFn)]);
+        if (objectId.constructor.name == "BigInt") {
+            return new Uint32Array([new Number(objectId & 0xFFFFFFFFn), new Number((objectId >> 32n) & 0xFFFFFFFFn)]);
+        } else {
+            return new Uint32Array([objectId, 0]);
+        }
     }
 
     setModelBounds(modelBounds) {

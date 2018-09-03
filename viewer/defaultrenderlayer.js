@@ -110,10 +110,10 @@ export default class DefaultRenderLayer extends RenderLayer {
 			var programInfo = this.viewer.programManager.getProgram({
 				picking: false,
 				instancing: reuse,
-				useObjectColors: this.settings.useObjectColors,
-				quantizeNormals: this.settings.quantizeNormals,
-				quantizeVertices: this.settings.quantizeVertices,
-				quantizeColors: this.settings.quantizeColors
+				useObjectColors: this.settings.useObjectColors || false,
+				quantizeNormals: this.settings.quantizeNormals || false,
+				quantizeVertices: this.settings.quantizeVertices || false,
+				quantizeColors: this.settings.quantizeColors || false
 			});
 			this.gl.useProgram(programInfo.program);
 			// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
@@ -139,9 +139,9 @@ export default class DefaultRenderLayer extends RenderLayer {
 			var programInfo = this.viewer.programManager.getProgram({
 				picking: true,
 				instancing: reuse,
-				useObjectColors: this.settings.useObjectColors,
+				useObjectColors: this.settings.useObjectColors || false,
 				quantizeNormals: false,
-				quantizeVertices: this.settings.quantizeVertices,
+				quantizeVertices: this.settings.quantizeVertices || false,
 				quantizeColors: false
 			});
 			this.gl.useProgram(programInfo.program);

@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BIMsurfer Static Mode</title>
+<link rel="icon" type="image/png" href="../img/application_home.png" />
+<link href="../css/dev.css" type="text/css" rel="stylesheet" />
+<link href="../css/viewer.css" type="text/css" rel="stylesheet" />
+<style>
+canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+</style>
+</head>
+
+<body>
+	<div id="viewer">
+		<div id="overlay">
+			<div id="inside">
+				<a id="backButton">Back</a>
+				<div id="stats"></div>
+			</div>
+		</div>
+		<div id="settings">
+		</div>
+		<div id="canvasWrapper" style="width:100%;height:100%">
+		</div>
+		<div id="progressbar">
+			<div id="progress"></div>
+		</div>
+	</div>
+</body>
+
+<script src="../gl-matrix.js"></script>
+<script>
+const inf = +Infinity;
+window.xeogl = {};
+xeogl.Model = class {
+    constructor(args) {
+        this.scene = {
+            canvas: {
+                spinner: {
+                    processes: 0
+                }
+            }
+        };
+        this.geometriesCreated = new Set();
+        this.globalBounds = new Float32Array([inf, inf, inf, -inf, -inf, -inf]);
+        this.init(args);       
+    }
+
+    init(args) {
+        xeogl._apply(args, this);
+    }
+
+    clear() {}
+
+    _addComponent() {}
+
+    addChild(mesh) {
+        if (!this.geometriesCreated.has(mesh.geometry.id)) {
+            const geom = mesh.geometry;
+            const color = mesh.colorize;
+            const colors = new Float32Array(geom.positions.length / 3 * color.length);
+            let k = 0;
+            for (let i = 0; i < geom.positions.length / 3; i++) {
+                for (let j = 0; j < color.length; ++j) {
+                    colors[k++] = color[j];
+                }
+            }
+            this.layer.createGeometry(0, 0, 0, geom.id, geom.positions, geom.normals, colors, null, geom.indices, false, false);
+            this.geometriesCreated.add(geom.id)
+        }
+        
+        // @todo why is this part of the createObject() function signature
+        var normalMatrix = mat3.create();
+		mat3.fromMat4(normalMatrix, mesh.matrix);
+		mat3.invert(normalMatrix, normalMatrix);
+		mat3.transpose(normalMatrix, normalMatrix);
+        
+        var scaleMatrix = mat4.identity(mat4.create());
+
+        const bounds = new Float32Array([inf, inf, inf, -inf, -inf, -inf]);
+        const ps = mesh.geometry.positions;
+
+        for (let i = 0; i < ps.length; i += 3) {
+            if (ps[i+0] < bounds[0]) {
+                bounds[0] = ps[i+0];
+            } 
+            if (ps[i+1] < bounds[1]) {
+                bounds[1] = ps[i+1];
+            } 
+            if (ps[i+2] < bounds[2]) {
+                bounds[2] = ps[i+2];
+            } 
+            if (ps[i+0] > bounds[3]) {
+                bounds[3] = ps[i+0];
+            } 
+            if (ps[i+1] > bounds[4]) {
+                bounds[4] = ps[i+1];
+            } 
+            if (ps[i+2] > bounds[5]) {
+                bounds[5] = ps[i+2];
+            } 
+        }
+
+        vec3.transformMat4(bounds.subarray(0), bounds.subarray(0), mesh.matrix);
+        vec3.transformMat4(bounds.subarray(3), bounds.subarray(3), mesh.matrix);
+
+        for (let i = 0; i < 6; ++i) {
+            let fn = i < 3 ? Math.min : Math.max;
+            this.globalBounds[i] = fn(this.globalBounds[i], bounds[i]);
+        }
+        
+        this.layer.createObject(0, 0, mesh.id, mesh.id, [mesh.geometry.id], mesh.matrix, normalMatrix, scaleMatrix, mesh.colorize[3] != 1., "IfcOpenShell", bounds);
+    }
+};
+xeogl._isString =  function (value) {
+    return (typeof value === 'string' || value instanceof String);
+}
+xeogl._apply = function (o, o2) {
+    for (var name in o) {
+        if (o.hasOwnProperty(name)) {
+            o2[name] = o[name];
+        }
+    }
+    return o2;
+};
+xeogl.scheduleTask = function(fn) {fn();};
+xeogl.Geometry = class {
+    constructor(scene, args) {
+        xeogl._apply(args, this);
+        this._id = xeogl.Geometry.counter;
+    }
+
+    get id() {
+        return this._id;
+    }
+
+    static get counter() {
+        xeogl.Geometry._counter = (xeogl.Geometry._counter || 0) + 1;
+        return xeogl.Geometry._counter;
+    }
+}
+xeogl.math = {
+    mulMat4: mat4.multiply,
+    mat4: mat4.create
+}
+xeogl.LambertMaterial = class {
+    constructor(scene, args) {
+        xeogl._apply(args, this);
+    }
+};
+xeogl.Mesh = class {
+    constructor(scene, args) {
+        xeogl._apply(args, this);
+        this._id = xeogl.Mesh.counter;
+    }
+
+    get id() {
+        return this._id;
+    }
+
+    static get counter() {
+        xeogl.Mesh._counter = (xeogl.Mesh._counter || 0) + 1;
+        return xeogl.Geometry._counter;
+    }
+};
+</script>
+<script src="../lib/xeogl/glTFModel.js"></script>
+<script type="module" src="static.js"></script>
+</html>

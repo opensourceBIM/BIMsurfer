@@ -663,18 +663,18 @@ export default class RenderLayer {
 		var programInfo = this.viewer.programManager.getProgram({
 			picking: false,
 			instancing: false,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: this.settings.quantizeNormals,
-			quantizeVertices: this.settings.quantizeVertices,
-			quantizeColors: this.settings.quantizeColors
+			useObjectColors: this.settings.useObjectColors || false,
+			quantizeNormals: this.settings.quantizeNormals || false,
+			quantizeVertices: this.settings.quantizeVertices || false,
+			quantizeColors: this.settings.quantizeColors || false
 		});
 
 		var pickProgramInfo = this.viewer.programManager.getProgram({
 			picking: true,
 			instancing: false,
-			useObjectColors: this.settings.useObjectColors,
+			useObjectColors: this.settings.useObjectColors || false,
 			quantizeNormals: false,
-			quantizeVertices: this.settings.quantizeVertices,
+			quantizeVertices: this.settings.quantizeVertices || false,
 			quantizeColors: false
 		});
 		
