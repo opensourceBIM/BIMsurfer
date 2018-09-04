@@ -60,6 +60,8 @@ xeogl.Model = class {
     _addComponent() {}
 
     addChild(mesh) {
+        mesh.matrix = mesh.matrix || mat4.identity(mat4.create());
+
         if (!this.geometriesCreated.has(mesh.geometry.id)) {
             const geom = mesh.geometry;
             const color = mesh.colorize;

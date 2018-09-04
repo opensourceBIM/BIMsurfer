@@ -184,7 +184,7 @@ export default class RenderLayer {
 				buffer.normalsIndex += 3;
 			}
 			if (geometry.colors != null) {
-				if (geometry.colors instanceof Uint8Array == this.settings.quantizeColors) {
+				if ((geometry.colors instanceof Uint8Array) === (this.settings.quantizeColors || false)) {
 					// The same, just copy
 					buffer.colors.set(geometry.colors, buffer.colorsIndex);
 					buffer.colorsIndex += geometry.colors.length;

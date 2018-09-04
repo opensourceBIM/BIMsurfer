@@ -24,15 +24,16 @@ export default class StaticViewer {
         this.viewer.init().then(() => {
             const model = new xeogl.GLTFModel({
                 id: "tile0",
-                src: "../scene/tile.gltf",
+                src: "../scene/complete.gltf",
                 lambertMaterials: true,
                 quantizeGeometry: false,
                 viewer: this.viewer,
                 layer: this.layers[0],
                 fire: (evt) => {
                     if (evt === "loaded") {
-                        debugger;
+                        this.resizeCanvas();
                         this.layers[0].flushAllBuffers();
+                        this.viewer.setDimensions(this.canvas.width, this.canvas.height);
                         this.viewer.setModelBounds(model.globalBounds);
                         // @todo ugh don't tuch each other's privates
                         this.viewer.renderLayers.push(this.layers[0]);
@@ -41,4 +42,10 @@ export default class StaticViewer {
             });     
         });   
     }
+
+    resizeCanvas() {
+		this.canvas.width = window.innerWidth;
+		this.canvas.height = window.innerHeight;
+		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
+	}
 }
