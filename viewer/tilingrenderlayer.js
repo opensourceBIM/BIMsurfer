@@ -1,5 +1,4 @@
 import RenderLayer from './renderlayer.js'
-import Octree from './octree.js'
 import Frustum from './frustum.js'
 import LineBoxGeometry from './lineboxgeometry.js'
 import BufferManagerTransparencyOnly from './buffermanagertransparencyonly.js'
@@ -14,15 +13,15 @@ import ReuseLoader from './reuseloader.js'
  */
 
 export default class TilingRenderLayer extends RenderLayer {
-	constructor(viewer, geometryDataToReuse, bounds) {
+	constructor(viewer, tiles, geometryDataToReuse, bounds) {
 		super(viewer, geometryDataToReuse);
 
-		this.octree = new Octree(bounds, viewer.settings.maxOctreeDepth);
+		this.tiles = tiles;
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
 
 		this.loaderToNode = {};
 
-		this.drawTileBorders = this.viewer.settings.drawTileBorders;
+		this.drawTileBorders = this.viewer.settings.drawTileBorders || true;
 
 		this._frustum = new Frustum();
 		
@@ -102,10 +101,10 @@ export default class TilingRenderLayer extends RenderLayer {
 		var programInfo = this.viewer.programManager.getProgram({
 			picking: false,
 			instancing: reuse,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: this.settings.quantizeNormals,
-			quantizeVertices: this.settings.quantizeVertices,
-			quantizeColors: this.settings.quantizeColors
+			useObjectColors: this.settings.useObjectColors || false,
+			quantizeNormals: this.settings.quantizeNormals || false,
+			quantizeVertices: this.settings.quantizeVertices || false,
+			quantizeColors: this.settings.quantizeColors || false
 		});
 		this.gl.useProgram(programInfo.program);
 		// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
@@ -121,7 +120,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
 		}
 
-		this.octree.traverse((node) => {
+		this.tiles.traverse((node) => {
 			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling 
 			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
 			// skip the remaining child nodes
@@ -164,7 +163,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		if (transparency && !reuse && this.drawTileBorders) {
 			// The lines are rendered in the transparency-phase only
 			this.lineBoxGeometry.renderStart(this.viewer);
-			this.octree.traverse((node, level) => {
+			this.tiles.traverse((node, level) => {
 				var color = null;
 				if (node.loadingStatus == 0) {
 					// No visualisation, node is not empty (or parent node)
@@ -212,7 +211,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		if (firstRunOfFrame) { // Saves us from initializing two times per frame
 			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
 		}
-		this.octree.traverse((node) => {
+		this.tiles.traverse((node) => {
 			if (firstRunOfFrame) {
 				if (this.cull(node)) {
 					node.visibilityStatus = 0; // TODO: Should this be updated on pick?
@@ -318,7 +317,7 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	flushAllBuffers() {
-		this.octree.traverse((node) => {
+		this.tiles.traverse((node) => {
 			var bufferManager = node.bufferManager;
 			if (bufferManager != null) {
 				for (var buffer of bufferManager.getAllBuffers()) {
@@ -336,7 +335,7 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	renderSelectionOutlines(ids) {
-		this.octree.traverse((node) => {
+		this.tiles.traverse((node) => {
 			super.renderSelectionOutlines(ids, node);
 		});
 	}

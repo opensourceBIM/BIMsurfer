@@ -54,7 +54,7 @@ export default class TileLoader {
 						continue;
 					}
 					this.viewer.stats.inc("Tiling", "Full");
-					var node = this.tilingRenderLayer.octree.getNodeById(tileId);
+					var node = this.tilingRenderLayer.tiles.getNodeById(tileId);
 					
 					node.loadingStatus = 0;
 					node.nrObjects = nrObjects;
@@ -162,7 +162,7 @@ export default class TileLoader {
 //				
 //			}
 			
-		this.tilingRenderLayer.octree.traverseBreathFirst((node) => {
+		this.tilingRenderLayer.tiles.traverseBreathFirst((node) => {
 			this.loadTile(node, executor);
 		});
 	

@@ -1,5 +1,6 @@
 import Viewer from './viewer.js'
 import DefaultRenderLayer from './defaultrenderlayer.js'
+import Octree from './octree.js'
 import TilingRenderLayer from './tilingrenderlayer.js'
 import VertexQuantization from './vertexquantization.js'
 import Executor from './executor.js'
@@ -254,7 +255,8 @@ export default class BimServerViewer {
 				this.viewer.dirty = true;
 				var tilingPromise = Promise.resolve();
 				if (this.viewer.settings.tilingLayerEnabled && nrPrimitivesAbove > 0) {
-					var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.geometryDataIdsToReuse, bounds);
+					this.octree = new Octree(bounds, this.viewer.settings.maxOctreeDepth);
+					var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.octree, this.geometryDataIdsToReuse, bounds);
 					this.layers.push(tilingRenderLayer);
 					this.viewer.renderLayers.push(tilingRenderLayer);
 					
