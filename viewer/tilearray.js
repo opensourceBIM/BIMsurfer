@@ -17,7 +17,7 @@ class TileArrayNode {
 		this.height = height;
 		this.depth = depth;
 		
-        this.level = 0;
+        this.level = 1;
         
         this.center = vec4.fromValues(this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2, 1);
 		this.radius = (Math.sqrt(Math.pow(this.width, 2) + Math.pow(this.height, 2) + Math.pow(this.depth, 2))) / 2;
@@ -46,19 +46,24 @@ class TileArrayNode {
 }
 
 export default class TileArray {
-    constructor(viewer, baseUrl, index) {
+    constructor(viewer, index) {
         this.viewer = viewer;
-        this.baseUrl = baseUrl;
         this.index = index;
-        this.tiles = this.index.map((tile, i) => {
-            let mi = new Float32Array(tile.bounds.slice(0,3));
-            let ma = new Float32Array(tile.bounds.slice(3,6));
-            let size = vec3.subtract(vec3.create(), ma, mi);
-            let node = new TileArrayNode(tile.id, mi[0], mi[1], mi[2], size[0], size[1], size[2]);
-            node.url = tile.url;
-            node.number = i + 1;
-            return node;
-        })
+        var tmp = {};
+        this.index.forEach((tile) => {
+            if (!(tile.id in tmp)) {
+                let mi = new Float32Array(tile.bounds.slice(0,3));
+                let ma = new Float32Array(tile.bounds.slice(3,6));
+                let size = vec3.subtract(vec3.create(), ma, mi);
+                tmp[tile.id] = new TileArrayNode(tile.id, mi[0], mi[1], mi[2], size[0], size[1], size[2]);
+                tmp[tile.id].urls = []
+            }
+            tmp[tile.id].urls.push(tile.url);
+        });
+        this.tiles = Object.values(tmp);
+        this.tiles.forEach((tile, i) => {
+            tile.number = i + 1;
+        });
     }
 
     traverse(fn) {
@@ -76,37 +81,22 @@ export default class TileArray {
         }
 
         // @todo this needs some cleaning up
-        this.viewer.layers[1].registerLoader(node.number);
-        this.viewer.layers[1].loaderToNode[node.number] = node;
-        node.stats = this.viewer.stats;
+        this.layer.registerLoader(node.number);
+        this.layer.loaderToNode[node.number] = node;
+        node.stats = {
+            triangles: 0,
+            drawCallsPerFrame: 0
+        };
         
-		node.loadingStatus = 1;
         node.gpuBufferManager = new GpuBufferManager(this.viewer);
         
         this.viewer.stats.inc("Tiling", "Loading");
         this.viewer.dirty = true;
         node.loadingStatus = 2;
-		
-		const model = new xeogl.GLTFModel({
-            id: node.id,
-            src: `${this.baseUrl}/${node.url}`,
-            lambertMaterials: true,
-            quantizeGeometry: false,
-            viewer: this.viewer,
-            layer: this.viewer.layers[1],
-            loaderId: node.number,
-            fire: (evt) => {
-                if (evt === "loaded") {
-                    console.log("Loaded", node.id);
-
-                    this.viewer.stats.dec("Tiling", "Loading");
-                    this.viewer.stats.inc("Tiling", "Loaded");
-                    
-                    node.loadingStatus = 3;
-
-                    this.layer.done(node.number);
-                }
-            }
+        
+        this.viewer.loadFiles(node.id, node.number, node.urls, this.layer).then(()=>{
+            node.loadingStatus = 3;
+            this.layer.done(node.number);
         });
 	}
 };

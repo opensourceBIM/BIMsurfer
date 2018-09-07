@@ -28,6 +28,20 @@ function request(url) {
     });
 }
 
+class executor {
+    constructor() {
+        this.current = null;
+    }
+
+    add(task) {
+        if (this.current === null) {
+            return this.current = task();
+        } else {
+            return this.current = this.current.then(task)
+        }
+    }
+}
+
 export default class StaticViewer {
 
     constructor() {
@@ -44,55 +58,92 @@ export default class StaticViewer {
 
         this.viewer = new Viewer(this.canvas, this.settings, this.stats, window.innerWidth, window.innerHeight);
 
-        let baseUrl = "../scene";
+        this.baseUrl = "../scene";
+
+        this.executor = new executor();
         
-        request(`${baseUrl}/index.json`).then((resp) => {
+        request(`${this.baseUrl}/index.json`).then((resp) => {
             let tiles = [];
-            var baseLayer;
+            var baseLayers = [];
+
+            // @todo bounds based on actual geometry would be nicer
+            let inf = Infinity;
+            let bounds = [+inf, +inf, +inf, -inf, -inf, -inf];
+
             JSON.parse(resp).forEach((desc)=>{
                 if (desc.id === "base") {
-                    baseLayer = desc.url;
+                    baseLayers.push(desc.url);
                 } else {
                     tiles.push(desc);
+                    for (let i = 0; i < 6; ++i) {
+                        let fn = i < 3 ? Math.min : Math.max;
+                        bounds[i] = fn(bounds[i], desc.bounds[i]);
+                    }
                 }
             });
 
-            var tilearray = new TileArray(this, baseUrl, tiles);
-            this.layers = [
-                new DefaultRenderLayer(this.viewer, {}),
-                new TilingRenderLayer(this.viewer, tilearray, {}, null)
-            ]
-            this.layers[0].registerLoader(0);
-            tilearray.layer = this.layers[1];
+            this.viewer.setModelBounds(bounds);
+
+            var tilearray = new TileArray(this, tiles);
+            var defaultLayer = new DefaultRenderLayer(this.viewer, {});
+            var tilingLayer = new TilingRenderLayer(this.viewer, tilearray, {}, null);
+            tilingLayer.tileLoader = tilearray;
+            this.layers = [defaultLayer, tilingLayer];
+
+            defaultLayer.registerLoader(0);
+            tilearray.layer = tilingLayer;
             tilearray.layer.enabled = true;
 
             this.viewer.init().then(() => {
-                const model = new xeogl.GLTFModel({
-                    id: "base",
-                    src: `${baseUrl}/${baseLayer}`,
-                    lambertMaterials: true,
-                    quantizeGeometry: false,
-                    viewer: this.viewer,
-                    layer: this.layers[0],
-                    fire: (evt) => {
-                        if (evt === "loaded") {
-                            this.resizeCanvas();
-                            this.layers[0].flushAllBuffers();
-                            this.viewer.setDimensions(this.canvas.width, this.canvas.height);
-                            this.viewer.setModelBounds(model.globalBounds);
-                            // @todo ugh don't tuch each other's privates
-                            this.layers.forEach((layer) => {
-                                this.viewer.renderLayers.push(layer);
-                            });
+                this.loadFiles("base", 0, baseLayers, defaultLayer).then(() => {
+                    this.resizeCanvas();
+                    defaultLayer.flushAllBuffers();
+                    this.viewer.setDimensions(this.canvas.width, this.canvas.height);
+                    
+                    // @todo ugh don't touch each other's privates
+                    this.layers.forEach((layer) => {
+                        this.viewer.renderLayers.push(layer);
+                    });
 
-                            tilearray.traverse((node)=>{
-                                tilearray.loadTile(node);
-                            });
-                        }
-                    }
-                });     
+                    let tiles = [];
+                });                
             });   
         });
+    }
+
+    loadFiles(tileId, loaderId, urls, layer) {
+        let urlsCopy = Array.from(urls);
+        let task = () => {
+            console.log("loading", tileId);
+            return new Promise((resolve, reject) => {
+                let loadone = () => {
+                    let url = urlsCopy.pop();
+                    const model = new xeogl.GLTFModel({
+                        id: tileId,
+                        src: `${this.baseUrl}/${url}`,
+                        lambertMaterials: true,
+                        quantizeGeometry: false,
+                        viewer: this,
+                        layer: layer,
+                        loaderId: loaderId,
+                        fire: (evt) => {
+                            if (evt === "reallyLoaded") {
+                                if (urlsCopy.length > 0) {
+                                    loadone();
+                                } else {
+                                    this.viewer.stats.dec("Tiling", "Loading");
+                                    this.viewer.stats.inc("Tiling", "Loaded");
+                                    this.loaderPromise = null;
+                                    resolve();
+                                }
+                            }
+                        }
+                    });
+                };
+                loadone();
+            });
+        };
+        return this.executor.add(task);
     }
 
     resizeCanvas() {

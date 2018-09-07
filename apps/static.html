@@ -39,15 +39,25 @@ const inf = +Infinity;
 window.xeogl = {};
 xeogl.Model = class {
     constructor(args) {
+        let self = this;
         this.scene = {
             canvas: {
                 spinner: {
                     processes: 0
                 }
+            },
+            _loading: 0,
+            get loading() {
+                return this._loading;
+            },
+            set loading(v) {
+                this._loading = v;
+                if (v === 0) {
+                    self.fire("reallyLoaded");
+                }
             }
         };
         this.geometriesCreated = new Set();
-        this.globalBounds = new Float32Array([inf, inf, inf, -inf, -inf, -inf]);
         this.init(args);       
     }
 
@@ -88,33 +98,18 @@ xeogl.Model = class {
         const ps = mesh.geometry.positions;
 
         for (let i = 0; i < ps.length; i += 3) {
-            if (ps[i+0] < bounds[0]) {
-                bounds[0] = ps[i+0];
-            } 
-            if (ps[i+1] < bounds[1]) {
-                bounds[1] = ps[i+1];
-            } 
-            if (ps[i+2] < bounds[2]) {
-                bounds[2] = ps[i+2];
-            } 
-            if (ps[i+0] > bounds[3]) {
-                bounds[3] = ps[i+0];
-            } 
-            if (ps[i+1] > bounds[4]) {
-                bounds[4] = ps[i+1];
-            } 
-            if (ps[i+2] > bounds[5]) {
-                bounds[5] = ps[i+2];
-            } 
+            for (let j = 0; j < 3; ++j) {
+                if (ps[i+j] < bounds[j]) {
+                    bounds[j] = ps[i+j];
+                }
+                if (ps[i+j] > bounds[j+3]) {
+                    bounds[j+3] = ps[i+j];
+                } 
+            }
         }
 
         vec3.transformMat4(bounds.subarray(0), bounds.subarray(0), matrix);
         vec3.transformMat4(bounds.subarray(3), bounds.subarray(3), matrix);
-
-        for (let i = 0; i < 6; ++i) {
-            let fn = i < 3 ? Math.min : Math.max;
-            this.globalBounds[i] = fn(this.globalBounds[i], bounds[i]);
-        }
         
         this.layer.createObject(this.loaderId || 0, 0, mesh.id, mesh.id, [mesh.geometry.id], matrix, normalMatrix, scaleMatrix, mesh.colorize[3] != 1., "IfcOpenShell", bounds);
     }

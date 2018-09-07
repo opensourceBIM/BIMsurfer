@@ -72,17 +72,14 @@ export default class TilingRenderLayer extends RenderLayer {
 		if (isect === Frustum.OUTSIDE_FRUSTUM) {
 			return true;
 		}
+	}
 
+	priority(node) {
 		// 3. In the tile too far away?
 		var cameraEye = this.viewer.camera.eye;
 		var tileCenter = node.getCenter();
 		var sizeFactor = 1 / Math.pow(2, node.level);
-		if (vec3.distance(cameraEye, tileCenter) / sizeFactor > 2000000) { // TODO use something related to the total bounding box size
-			return true;
-		}
-
-		// Default response
-		return false;
+		return vec3.distance(cameraEye, tileCenter) / sizeFactor;
 	}
 
 	renderBuffers(transparency, reuse, visibleElements) {
@@ -116,21 +113,29 @@ export default class TilingRenderLayer extends RenderLayer {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 		}
 
+		// tfk: todo do this in a web worker or outside of render loop
 		if (firstRunOfFrame) { // Saves us from initializing two times per frame
 			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
-		}
 
-		this.tiles.traverse((node) => {
-			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling 
-			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
-			// skip the remaining child nodes
+			this.tiles.traverse((node) => {
+				node.visibilityStatus = this.cull(node) ? 0 : 1;
+			});
 
-			if (firstRunOfFrame) {
-				if (this.cull(node)) {
-					node.visibilityStatus = 0;
-					return;
-				} else {
-					node.visibilityStatus = 1;
+			let priorityNodes = [];
+
+			this.tiles.traverse((node) => {
+				if (node.visibilityStatus !== 0) {
+					priorityNodes.push([this.priority(node), node]);
+				}
+			});
+
+			priorityNodes.sort();
+
+			priorityNodes.forEach((pr_node, index) => {
+				let visible = index < 10 || index < priorityNodes.length / 5;
+				let node = pr_node[1];
+				node.visibilityStatus = visible ? 1 : 0;
+				if (visible) {
 					renderingTiles++;
 					if (node.stats != null) {
 						renderingTriangles += node.stats.triangles;
@@ -140,8 +145,13 @@ export default class TilingRenderLayer extends RenderLayer {
 						this.tileLoader.loadTile(node);
 					}
 				}
-			}
+			});
+		}
 
+		this.tiles.traverse((node) => {
+			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling 
+			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
+			// skip the remaining child nodes
 			if (node.visibilityStatus == 1) {
 				if (node.gpuBufferManager == null) {
 					// Not initialized yet
@@ -215,6 +225,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			if (firstRunOfFrame) {
 				if (this.cull(node)) {
 					node.visibilityStatus = 0; // TODO: Should this be updated on pick?
+					                           //       tfk: probably not?
 					return;
 				} else {
 					node.visibilityStatus = 1;
