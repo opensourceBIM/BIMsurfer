@@ -276,7 +276,11 @@ export default class Viewer {
 
         this.renderBuffer.unbind();
 
-        var objectId = BigInt(pickColor[0]) + (BigInt(pickColor[1]) * 4294967296n);
+        if (this.hasBigInts) {
+            var objectId = BigInt(pickColor[0]) + (BigInt(pickColor[1]) * 4294967296n);
+        } else {
+            var objectId = pickColor[0];
+        }
 
         var viewObject = this.viewObjects.get(objectId);
         
@@ -295,6 +299,7 @@ export default class Viewer {
 
     getPickColor(objectId) { // Converts an integer to a pick color
         if (objectId.constructor.name == "BigInt") {
+            this.hasBigInts = true;
             return new Uint32Array([new Number(objectId & 0xFFFFFFFFn), new Number((objectId >> 32n) & 0xFFFFFFFFn)]);
         } else {
             return new Uint32Array([objectId, 0]);
