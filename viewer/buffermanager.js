@@ -123,6 +123,7 @@ export default class BufferManager {
 		bufferSet.indicesIndex = 0;
 		bufferSet.nrIndices = 0;
 		bufferSet.bytes = 0;
+		// @todo clear maps
 	}
 	
 	getAllBuffers() {
