@@ -27,6 +27,7 @@ export default class BimServerViewer {
 		this.stats = stats;
 		this.width = width;
 		this.height = height;
+		this.layers = [];
 		
 		this.settings = DefaultSettings.create(settings);
 		
@@ -48,6 +49,9 @@ export default class BimServerViewer {
 		} else {
 			this.viewer.setDimensions(width, height);
 		}
+
+		// tfk: temporary debugging aid
+		window.bimServerViewer = this;
 	}
 
 	resizeCanvas() {
@@ -135,6 +139,8 @@ export default class BimServerViewer {
 	 * Private method
 	 */
 	internalLoadRevision(revision, nrPrimitivesBelow, nrPrimitivesAbove) {
+		this.revisionId = revision.oid;
+
 		this.viewer.stats.setParameter("Models", "Models to load", 1);
 
 		console.log("Total triangles", nrPrimitivesBelow + nrPrimitivesAbove);
@@ -233,6 +239,7 @@ export default class BimServerViewer {
 			var promise = Promise.resolve();
 			if (this.viewer.settings.defaultLayerEnabled && nrPrimitivesBelow) {
 				var defaultRenderLayer = new DefaultRenderLayer(this.viewer, this.geometryDataIdsToReuse);
+				this.layers.push(defaultRenderLayer);
 				this.viewer.renderLayers.push(defaultRenderLayer);
 
 				defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
@@ -248,6 +255,7 @@ export default class BimServerViewer {
 				var tilingPromise = Promise.resolve();
 				if (this.viewer.settings.tilingLayerEnabled && nrPrimitivesAbove > 0) {
 					var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.geometryDataIdsToReuse, bounds);
+					this.layers.push(tilingRenderLayer);
 					this.viewer.renderLayers.push(tilingRenderLayer);
 					
 					tilingPromise = this.loadTilingLayer(tilingRenderLayer, revision, bounds, fieldsToInclude);
@@ -260,6 +268,23 @@ export default class BimServerViewer {
 					}
 					this.viewer.dirty = true;
 				});
+			});
+		});
+	}
+
+	findElement(globalId) {
+		this.bimServerApi.call("ServiceInterface", "getOidByGuid", {
+			roid: this.revisionId,
+			guid: globalId
+		}, (oid) => {
+			// @todo: This does not work, leaving this for Ruben
+			var buffer, desc;
+			this.layers.forEach((layer, index) => {
+				if ((buffer = layer.geometryIdToBufferSet.get(oid))) {
+					if ((desc = buffer.geometryIdToIndex.get(oid))) {
+						console.log(buffer, desc);
+					}
+				}
 			});
 		});
 	}

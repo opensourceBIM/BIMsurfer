@@ -20,7 +20,7 @@ export default class Viewer {
         this.canvas = canvas;
         this.camera = new Camera(this);
 
-        this.gl = this.canvas.getContext('webgl2');
+        this.gl = this.canvas.getContext('webgl2', {stencil: true});
 
         if (!this.gl) {
             alert('Unable to initialize WebGL. Your browser or machine may not support it.');
@@ -37,8 +37,31 @@ export default class Viewer {
 
         this.viewObjects = new Map();
 
+        // Null means everything visible, otherwise Set(..., ..., ...)
+        this.invisibleElements = null;
+
+        this.selectedElements = null;
+
         var self = this;
         window._debugViewer = this;  // HACK for console debugging
+
+        document.addEventListener("keypress", (evt) => {
+            if (evt.key === 'h') {
+                if (this.selectedElements) {
+                    if (this.invisibleElements) {
+                        this.selectedElements.forEach((i) => {
+                            this.invisibleElements.add(i);
+                        });
+                    } else {
+                        this.invisibleElements = new Set(this.selectedElements);
+                    }
+                    this.selectedElements = new Set();
+                }
+            } else {
+                this.invisibleElements = null;
+            }
+            this.drawScene();
+        });
     }
 
     init() {
@@ -60,7 +83,7 @@ export default class Viewer {
             this.programManager = new ProgramManager(this.gl, this.settings.viewerBasePath);
 
             this.programManager.load().then(() => {
-                this.gl.enable(this.gl.CULL_FACE);
+                // this.gl.enable(this.gl.CULL_FACE);
 
                 // It would be really nice to get the BIMsurfer V1 like anti-aliasing, so far I understand this is definitely
                 // possible in WebGL2 but you need to do something with framebuffers/renderbuffers.
@@ -131,14 +154,19 @@ export default class Viewer {
     }
 
     drawScene(buffers, deltaTime) {
-        this.gl.depthMask(true);
-        this.gl.clearColor(1, 1, 1, 1.0);
-        this.gl.clearDepth(1);
-        this.gl.enable(this.gl.DEPTH_TEST);
-        this.gl.depthFunc(this.gl.LEQUAL);
+        let gl = this.gl;
 
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-        this.gl.disable(this.gl.BLEND);
+        gl.depthMask(true);
+        gl.disable(gl.STENCIL_TEST);
+        // gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+        // gl.stencilFunc(gl.ALWAYS, 0, 1);
+        gl.clearColor(1, 1, 1, 1.0);
+        gl.clearDepth(1);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+        gl.disable(gl.BLEND);
 
         if (this.modelBounds != null) {
 
@@ -165,17 +193,43 @@ export default class Viewer {
             }
         }
 
-        for (var transparency of [false, true]) {
-            if (!transparency) {
-                this.gl.disable(this.gl.BLEND);
-                this.gl.depthMask(true);
-            } else {
-                this.gl.enable(this.gl.BLEND);
-                this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-                this.gl.depthMask(false);
+        let render = (elems, force) => {
+            for (var transparency of [false, true]) {
+                if (force !== true) {
+                    if (!transparency) {
+                        gl.disable(gl.BLEND);
+                        gl.depthMask(true);
+                    } else {
+                        gl.enable(gl.BLEND);
+                        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+                        gl.depthMask(false);
+                    }
+                }
+                for (var renderLayer of this.renderLayers) {
+                    renderLayer.render(transparency, elems);
+                }
             }
+        }
+
+        render({without: this.invisibleElements});
+
+        if (this.selectedElements) {
+            gl.enable(gl.STENCIL_TEST);
+            gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+            gl.stencilFunc(gl.ALWAYS, 1, 0xff);
+            gl.stencilMask(0xff);
+            gl.depthMask(false);
+            gl.disable(gl.DEPTH_TEST);
+            gl.colorMask(false, false, false, false);
+            
+            render({with: this.selectedElements}, true);
+
+            gl.stencilFunc(gl.NOTEQUAL, 1, 0xff);
+            gl.stencilMask(0x00);
+            gl.colorMask(true, true, true, true);
+
             for (var renderLayer of this.renderLayers) {
-                renderLayer.render(transparency);
+                renderLayer.renderSelectionOutlines(this.selectedElements);
             }
         }
 
@@ -225,9 +279,16 @@ export default class Viewer {
         var objectId = BigInt(pickColor[0]) + (BigInt(pickColor[1]) * 4294967296n);
 
         var viewObject = this.viewObjects.get(objectId);
+        
         if (viewObject) {
+            if (!params.shiftKey || !this.selectedElements) {
+                this.selectedElements = new Set();
+            }
+            this.selectedElements.add(objectId);
             return viewObject;
         }
+
+        this.selectedElements = null;
 
         return null;
     }

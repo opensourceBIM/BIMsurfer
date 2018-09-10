@@ -1,3 +1,5 @@
+import BufferSet from './bufferset.js';
+
 /*
  * BufferManager keeps track of (CPU side) buffers, these buffers are eventually flushed to the GPU.
  * 
@@ -97,21 +99,7 @@ export default class BufferManager {
 	 * Default implementation to create a buffer, subclasses can add other buffers
 	 */
 	createBufferSet(hasTransparency, color, sizes) {
-		var bufferSet = {
-			positions: this.settings.quantizeVertices ? new Int16Array(sizes.vertices) : new Float32Array(sizes.vertices),
-			positionsIndex: 0,
-			normals: this.settings.quantizeNormals ? new Int8Array(sizes.normals) : new Float32Array(sizes.normals),
-			normalsIndex: 0,
-			pickColors: new Uint32Array(sizes.pickColors),
-			pickColorsIndex: 0,
-			indices: new Uint32Array(sizes.indices), // The optimal buffer size is most definitely above the Uint16 threshold, so always use Uint32Array
-			indicesIndex: 0,
-			nrIndices: 0,
-			hasTransparency: hasTransparency,
-			color: color,
-			bytes: 0
-		};
-		return bufferSet;
+		return new BufferSet(this.settings, hasTransparency, color, sizes)
 	}
 	
 	createBufferSetPooled(hasTransparency, color, sizes) {
@@ -135,6 +123,7 @@ export default class BufferManager {
 		bufferSet.indicesIndex = 0;
 		bufferSet.nrIndices = 0;
 		bufferSet.bytes = 0;
+		// @todo clear maps
 	}
 	
 	getAllBuffers() {

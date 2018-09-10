@@ -13,6 +13,7 @@ export default class RenderLayer {
 
 		this.loaders = new Map();
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
+		this.geometryIdToBufferSet = new Map();
 	}
 
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
@@ -221,6 +222,17 @@ export default class RenderLayer {
 				buffer.pickColorsIndex += 2;
 			}
 
+			{var li = (buffer.geometryIdToIndex.get(object.id) || []);
+				li.push({
+					'start': buffer.indicesIndex, 
+					'length': geometry.indices.length
+				});
+				buffer.geometryIdToIndex.set(object.id, li);}
+
+			{var li = (this.geometryIdToBufferSet.get(object.id) || []);
+				li.push(buffer);
+				this.geometryIdToBufferSet.set(object.id, li);}
+			
 			if (startIndex == 0) {
 				// Small optimization, if this is the first object in the buffer, no need to add the startIndex to each index
 				buffer.indices.set(geometry.indices, 0);
@@ -577,12 +589,12 @@ export default class RenderLayer {
 		console.log("Not implemented in this layer");
 	}
 	
-	render(transparency) {
-		this.renderBuffers(transparency, false);
-		this.renderBuffers(transparency, true);
+	render(transparency, visibleElements) {
+		this.renderBuffers(transparency, false, visibleElements);
+		this.renderBuffers(transparency, true, visibleElements);
 	}
 	
-	renderFinalBuffers(buffers, programInfo) {
+	renderFinalBuffers(buffers, programInfo, visibleElements) {
 		if (buffers != null && buffers.length > 0) {
 			var lastUsedColorHash = null;
 			
@@ -593,12 +605,12 @@ export default class RenderLayer {
 						lastUsedColorHash = buffer.colorHash;
 					}
 				}
-				this.renderBuffer(buffer, programInfo);
+				this.renderBuffer(buffer, programInfo, visibleElements);
 			}
 		}
 	}
 	
-	renderBuffer(buffer, programInfo) {
+	renderBuffer(buffer, programInfo, visibleElements) {
 		this.gl.bindVertexArray(buffer.vao);
 		if (buffer.reuse) {
 			// TODO we only need to bind this again for every new roid, maybe sort by buffer.roid before iterating through the buffers?
@@ -607,7 +619,9 @@ export default class RenderLayer {
 			}
 			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 		} else {
-			this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
+			buffer.computeVisibleRanges(visibleElements, this.gl).forEach((range) => {
+				this.gl.drawElements(this.gl.TRIANGLES, range[1] - range[0], this.gl.UNSIGNED_INT, range[0] * 4);
+			});
 		}
 		this.gl.bindVertexArray(null);
 	}
@@ -782,6 +796,9 @@ export default class RenderLayer {
 
 			this.gl.bindVertexArray(null);
 
+			// @todo: why are there some many positions +- 100 000 on the Duplex model?
+			console.log("nrPositions", buffer.positionsIndex);
+
 			var newBuffer = {
 				positionBuffer: positionBuffer,
 				normalBuffer: normalBuffer,
@@ -792,7 +809,12 @@ export default class RenderLayer {
 				vao: vao,
 				vaoPick: vaoPick,
 				hasTransparency: buffer.hasTransparency,
-				reuse: false
+				reuse: false,
+				// @todo: prevent duplication here
+				computeVisibleRanges: buffer.computeVisibleRanges,
+				geometryIdToIndex: buffer.geometryIdToIndex,
+				visibleRanges: buffer.visibleRanges,
+				lineIndexBuffers: buffer.lineIndexBuffers
 			};
 			
 			if (this.settings.useObjectColors) {
@@ -818,5 +840,28 @@ export default class RenderLayer {
 		this.viewer.stats.inc("Data", "GPU bytes", buffer.bytes);
 		this.viewer.stats.inc("Data", "GPU bytes total", buffer.bytes);
 		this.viewer.stats.inc("Buffers", "Buffer groups");
+	}
+
+	renderSelectionOutlines(ids, node) {
+		var matrix = mat4.identity(mat4.create());
+		var color = new Float32Array([1.0,0.5,0.0,1.0]);
+
+		var lines;
+		const false_true = [false, true];
+		let viewer = (node || this).gpuBufferManager.viewer;
+
+		for (let a of false_true) { for (let b of false_true) {
+			var buffers = (node || this).gpuBufferManager.getBuffers(a, b);
+			for (let buffer of buffers) {
+				ids.forEach((id) => {
+					let lines = buffer.lineIndexBuffers.get(id);
+					if (lines) {
+						lines.renderStart(viewer);
+						lines.render(color, matrix, 0.005);
+						lines.renderStop();
+					}
+				});
+			}
+		}}
 	}
 }

@@ -100,12 +100,14 @@ export default class ProgramManager {
 			linePrimitives: true
 		};
 		this.setupProgram(this.viewerBasePath + "shaders/vertex.glsl", this.viewerBasePath + "shaders/fragment.glsl", {
-			attributes: ["vertexPosition"],
+			attributes: ["vertexPosition", "nextVertexPosition", "direction"],
 			uniforms: [
 				"matrix",
 				"inputColor",
 				"projectionMatrix",
-				"viewMatrix"
+				"viewMatrix",
+				"aspect",
+				"thickness"
 			]
 		}, this.generateSetup(settings), settings);
 

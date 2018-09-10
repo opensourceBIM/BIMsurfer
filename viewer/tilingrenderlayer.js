@@ -86,7 +86,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		return false;
 	}
 
-	renderBuffers(transparency, reuse) {
+	renderBuffers(transparency, reuse, visibleElements) {
 		// TODO when navigation is active (rotating, panning etc...), this would be the place to decide to for example not-render anything in this layer, or maybe apply more aggressive culling
 //		if (this.viewer.navigationActive) {
 //			return;
@@ -151,7 +151,7 @@ export default class TilingRenderLayer extends RenderLayer {
 
 				var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
 
-				this.renderFinalBuffers(buffers, programInfo);
+				this.renderFinalBuffers(buffers, programInfo, visibleElements);
 			}
 		});
 
@@ -163,30 +163,30 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		if (transparency && !reuse && this.drawTileBorders) {
 			// The lines are rendered in the transparency-phase only
-			this.lineBoxGeometry.renderStart();
-			this.octree.traverse((node) => {
+			this.lineBoxGeometry.renderStart(this.viewer);
+			this.octree.traverse((node, level) => {
 				var color = null;
 				if (node.loadingStatus == 0) {
 					// No visualisation, node is not empty (or parent node)
 				} else if (node.loadingStatus == 1) {
 					// Node is waiting to start loading
-					color = [1, 0, 0, 0.5];
+					color = [1, 0, 0, 1];
 				} else if (node.loadingStatus == 2) {
 					// Node is loading
 				} else if (node.loadingStatus == 3) {
 					// Node is loaded
 					if (node.visibilityStatus == 0) {
-						color = [0, 1, 0, 0.5];
+						color = [0, 1, 0, 1];
 					} else if (node.visibilityStatus == 1) {
-						color = [0, 0, 1, 0.5];
+						color = [0, 0, 1, 1];
 					}
 				} else if (node.loadingStatus == 4) {
-					color = [0.5, 0.5, 0.5, 0.5];
+					color = [0.5, 0.5, 0.5, 1];
 				} else if (node.loadingStatus == 5) {
 					// Node has been tried to load, but no objects were returned
 				}
 				if (color != null) {
-					this.lineBoxGeometry.render(color, node.getMatrix());
+					this.lineBoxGeometry.render(color, node.getMatrix(), 0.008 / Math.pow(2, level));
 				}
 			});
 			this.lineBoxGeometry.renderStop();
@@ -333,6 +333,12 @@ export default class TilingRenderLayer extends RenderLayer {
 				}
 			}
 		}, false);
+	}
+
+	renderSelectionOutlines(ids) {
+		this.octree.traverse((node) => {
+			super.renderSelectionOutlines(ids, node);
+		});
 	}
 	
 	flushBuffer(buffer) {

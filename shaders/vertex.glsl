@@ -6,6 +6,10 @@ uniform mat4 vertexQuantizationMatrix;
 in ivec3 vertexPosition;
 #else
 in vec3 vertexPosition;
+#ifdef WITH_LINEPRIMITIVES
+in vec3 nextVertexPosition;
+in float direction;
+#endif
 #endif
 
 #ifndef WITH_PICKING
@@ -58,6 +62,8 @@ uniform vec4 objectColor;
 #ifdef WITH_LINEPRIMITIVES
 uniform vec4 inputColor;
 uniform mat4 matrix;
+uniform float aspect;
+uniform float thickness;
 #else
 uniform mat3 viewNormalMatrix;
 #endif
@@ -101,8 +107,24 @@ void main(void) {
 
 #ifdef WITH_LINEPRIMITIVES
     // tfk: todo: line matrix could be same as instanceMatrix?
-    floatVertex = matrix * floatVertex;
-#endif
+    color = inputColor;
+    vec2 aspectVec = vec2(aspect, 1.0);
+    mat4 projViewModel = projectionMatrix * viewMatrix * matrix;
+    vec4 currentProjected = projViewModel * floatVertex;
+    vec2 currentScreen = currentProjected.xy / currentProjected.w * aspectVec;
+
+    vec4 nextProjected = projViewModel * vec4(nextVertexPosition, 1.0);
+    vec2 nextScreen = nextProjected.xy / nextProjected.w * aspectVec;
+
+    vec2 dir = normalize(nextScreen - currentScreen);
+    vec2 normal = vec2(-dir.y, dir.x);
+
+    vec4 offset = vec4(normal / aspectVec * float(direction) * thickness * currentProjected.w, 0.0, 0.0);
+    vec4 offset2 = vec4(dir / -2. / aspectVec * thickness * currentProjected.w, 0.0, 0.0);
+    gl_Position = currentProjected + offset + offset2;
+
+    color = inputColor;
+#else
 
     gl_Position = projectionMatrix * viewMatrix * floatVertex;
 
@@ -113,12 +135,11 @@ void main(void) {
     color = vertexPickColor;
 #endif
 #else
-#ifdef WITH_LINEPRIMITIVES
-    color = inputColor;
-#else
     vec3 viewNormal = normalize(viewNormalMatrix * floatNormal);
     float lambertian = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
     color = vec4(lambertian * floatColor.rgb, floatColor.a);
 #endif
+
 #endif
+
 }
