@@ -824,7 +824,14 @@ export default class RenderLayer {
 
 		var lines;
 		const false_true = [false, true];
-		let viewer = (node || this).gpuBufferManager.viewer;
+		let bufferManager = (node || this).gpuBufferManager;
+
+		if (!bufferManager) {
+			// probably a tile that has not been loaded yet
+			return;
+		}
+
+		let viewer = bufferManager.viewer;
 
 		for (let a of false_true) { for (let b of false_true) {
 			var buffers = (node || this).gpuBufferManager.getBuffers(a, b);
