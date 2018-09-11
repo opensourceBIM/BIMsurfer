@@ -84,8 +84,12 @@ export default class BufferSet {
 				try {
 					complement.forEach((originalRange, i)=>{
 						let [o, p] = originalRange;
-						if (a > o && a <= p) {
-							complement.splice(i, 1, [o, a], [b, p]);
+						if (a >= o && a <= p) {
+							if (o == a) {
+								complement[i][0] = b;
+							} else {
+								complement.splice(i, 1, [o, a], [b, p]);
+							}							
 							throw break_out_foreach;
 						}
 					});
