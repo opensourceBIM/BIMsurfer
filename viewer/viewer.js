@@ -290,7 +290,11 @@ export default class Viewer {
             if (!params.shiftKey || !this.selectedElements) {
                 this.selectedElements = new Set();
             }
-            this.selectedElements.add(objectId);
+            if (this.selectedElements.has(objectId)) {
+                this.selectedElements.delete(objectId);
+            } else {
+                this.selectedElements.add(objectId);
+            }
             return viewObject;
         }
 
