@@ -842,7 +842,7 @@ export default class RenderLayer {
 		this.viewer.stats.inc("Buffers", "Buffer groups");
 	}
 
-	renderSelectionOutlines(ids, node) {
+	renderSelectionOutlines(ids, width, node) {
 		var matrix = mat4.identity(mat4.create());
 		var color = new Float32Array([1.0,0.5,0.0,1.0]);
 
@@ -857,7 +857,7 @@ export default class RenderLayer {
 					let lines = buffer.lineIndexBuffers.get(id);
 					if (lines) {
 						lines.renderStart(viewer);
-						lines.render(color, matrix, 0.005);
+						lines.render(color, matrix, width || 0.005);
 						lines.renderStop();
 					}
 				});

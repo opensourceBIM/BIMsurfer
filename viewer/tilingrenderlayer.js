@@ -335,9 +335,9 @@ export default class TilingRenderLayer extends RenderLayer {
 		}, false);
 	}
 
-	renderSelectionOutlines(ids) {
+	renderSelectionOutlines(ids, width) {
 		this.octree.traverse((node) => {
-			super.renderSelectionOutlines(ids, node);
+			super.renderSelectionOutlines(ids, width, node);
 		});
 	}
 	

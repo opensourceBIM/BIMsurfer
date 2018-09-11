@@ -231,6 +231,12 @@ export default class Viewer {
             for (var renderLayer of this.renderLayers) {
                 renderLayer.renderSelectionOutlines(this.selectedElements);
             }
+
+            gl.disable(gl.STENCIL_TEST);
+
+            for (var renderLayer of this.renderLayers) {
+                renderLayer.renderSelectionOutlines(this.selectedElements, 0.001);
+            }
         }
 
 //		this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, this.renderFrameBuffer);
