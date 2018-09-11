@@ -222,7 +222,7 @@ export default class Viewer {
             gl.disable(gl.DEPTH_TEST);
             gl.colorMask(false, false, false, false);
             
-            render({with: this.selectedElements}, true);
+            render({with: this.selectedElements, pass: 'stencil'}, true);
 
             gl.stencilFunc(gl.NOTEQUAL, 1, 0xff);
             gl.stencilMask(0x00);
