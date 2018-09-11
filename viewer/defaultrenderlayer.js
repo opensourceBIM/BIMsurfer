@@ -107,8 +107,10 @@ export default class DefaultRenderLayer extends RenderLayer {
 	renderBuffers(transparency, reuse, visibleElements) {
 		var buffers = this.gpuBufferManager.getBuffers(transparency, reuse);
 		if (buffers.length > 0) {
+			let picking = visibleElements.pass === 'pick';
+
 			var programInfo = this.viewer.programManager.getProgram({
-				picking: false,
+				picking: picking,
 				instancing: reuse,
 				useObjectColors: this.settings.useObjectColors,
 				quantizeNormals: this.settings.quantizeNormals,
@@ -117,11 +119,15 @@ export default class DefaultRenderLayer extends RenderLayer {
 			});
 			this.gl.useProgram(programInfo.program);
 			// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
-			this.viewer.lighting.render(programInfo.uniformBlocks.LightData);
+
+			if (!picking) {
+				this.viewer.lighting.render(programInfo.uniformBlocks.LightData);
+				this.gl.uniformMatrix3fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
+			}
 
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-			this.gl.uniformMatrix3fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
+
 			if (this.settings.quantizeVertices) {
 				if (!reuse) {
 					// This is odd, it seems as though the reused shaders also need the vertexQuantizationMatrix, but it seems to work anyways... (same code in pickBuffers)
@@ -130,29 +136,6 @@ export default class DefaultRenderLayer extends RenderLayer {
 			}
 
 			this.renderFinalBuffers(buffers, programInfo, visibleElements);
-		}
-	}
-
-	pickBuffers(transparency, reuse) {
-		var buffers = this.gpuBufferManager.getBuffers(transparency, reuse);
-		if (buffers.length > 0) {
-			var programInfo = this.viewer.programManager.getProgram({
-				picking: true,
-				instancing: reuse,
-				useObjectColors: this.settings.useObjectColors,
-				quantizeNormals: false,
-				quantizeVertices: this.settings.quantizeVertices,
-				quantizeColors: false
-			});
-			this.gl.useProgram(programInfo.program);
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
-			if (this.settings.quantizeVertices) {
-				if (!reuse) {
-					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
-				}
-			}
-			this.pickFinalBuffers(buffers, programInfo);
 		}
 	}
 

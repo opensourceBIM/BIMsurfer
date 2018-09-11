@@ -274,7 +274,7 @@ export default class Viewer {
 
         for (var transparency of [false, true]) {
         	for (var renderLayer of this.renderLayers) {
-        		renderLayer.pick(transparency);
+                renderLayer.render(transparency, {without: this.invisibleElements, pass: 'pick'});
         	}
         }
 
