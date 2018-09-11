@@ -117,13 +117,7 @@ export default class BufferManager {
 	}
 	
 	resetBuffer(bufferSet) {
-		bufferSet.positionsIndex = 0;
-		bufferSet.normalsIndex = 0;
-		bufferSet.pickColorsIndex = 0;
-		bufferSet.indicesIndex = 0;
-		bufferSet.nrIndices = 0;
-		bufferSet.bytes = 0;
-		// @todo clear maps
+		bufferSet.reset();
 	}
 	
 	getAllBuffers() {

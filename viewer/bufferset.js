@@ -144,7 +144,19 @@ export default class BufferSet {
         });
        
         return ranges;
-    }
+	}
+	
+	reset() {
+		this.positionsIndex = 0;
+		this.normalsIndex = 0;
+		this.pickColorsIndex = 0;
+		this.indicesIndex = 0;
+		this.nrIndices = 0;
+		this.bytes = 0;
+		this.visibleRanges = new Map();
+		this.geometryIdToIndex = new Map();
+		this.lineIndexBuffers = new Map();
+	}
 
     // @todo: this is not used yet
     flush(gpuBufferManager) {
