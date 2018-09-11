@@ -84,8 +84,12 @@ export default class BufferSet {
 				try {
 					complement.forEach((originalRange, i)=>{
 						let [o, p] = originalRange;
-						if (a > o && a <= p) {
-							complement.splice(i, 1, [o, a], [b, p]);
+						if (a >= o && a <= p) {
+							if (o == a) {
+								complement[i][0] = b;
+							} else {
+								complement.splice(i, 1, [o, a], [b, p]);
+							}							
 							throw break_out_foreach;
 						}
 					});
@@ -125,16 +129,32 @@ export default class BufferSet {
             
             var restoreElementBinding = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-            gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, a * 4, indices, 0, indices.length);
+			gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, a * 4, indices, 0, indices.length);
+			
+			const s = new Set();
+			
+            for (let i = 0; i < indices.length; i += 3) {
+				let abc = indices.subarray(i, i + 3);
 
-            for (var i = 0; i < indices.length; i += 3) {
-                let a = positions.subarray(indices[i    ] * 3).subarray(0,3);
-                let b = positions.subarray(indices[i + 1] * 3).subarray(0,3);
-                let c = positions.subarray(indices[i + 2] * 3).subarray(0,3);
-                lineRenderer.pushVertices(a, b);
-                lineRenderer.pushVertices(b, c);
-                lineRenderer.pushVertices(c, a);
-            }
+				for (let j = 0; j < 3; ++j) {
+					let ab = [abc[j], abc[(j+1)%3]];
+					ab.sort();
+					let abs = ab.join(":");
+
+					if (s.has(abs)) {
+						s.delete(abs);
+					} else {
+						s.add(abs);
+					}
+				}
+			}
+			
+			for (let e of s) {
+				let [a,b] = e.split(":");
+				let A = positions.subarray(a * 3).subarray(0,3);
+				let B = positions.subarray(b * 3).subarray(0,3);
+				lineRenderer.pushVertices(A, B);
+			}			
 
 			lineRenderer.finalize();
             this.lineIndexBuffers.set(id, lineRenderer);
@@ -144,7 +164,19 @@ export default class BufferSet {
         });
        
         return ranges;
-    }
+	}
+	
+	reset() {
+		this.positionsIndex = 0;
+		this.normalsIndex = 0;
+		this.pickColorsIndex = 0;
+		this.indicesIndex = 0;
+		this.nrIndices = 0;
+		this.bytes = 0;
+		this.visibleRanges = new Map();
+		this.geometryIdToIndex = new Map();
+		this.lineIndexBuffers = new Map();
+	}
 
     // @todo: this is not used yet
     flush(gpuBufferManager) {

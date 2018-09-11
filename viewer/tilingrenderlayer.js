@@ -88,36 +88,43 @@ export default class TilingRenderLayer extends RenderLayer {
 
 	renderBuffers(transparency, reuse, visibleElements) {
 		// TODO when navigation is active (rotating, panning etc...), this would be the place to decide to for example not-render anything in this layer, or maybe apply more aggressive culling
-//		if (this.viewer.navigationActive) {
-//			return;
-//		}
+		// if (this.viewer.navigationActive) {
+		// 	return;
+		// }
 		
 		// TODO would be nicer if this was passed as an integer argument, indicating the iteration count of this frame
 		var firstRunOfFrame = !transparency && !reuse;
+		let picking = visibleElements.pass === 'pick';
+		let shouldUpdateVisibility = firstRunOfFrame && !picking;
 
 		var renderingTiles = 0;
 		var renderingTriangles = 0;
 		var drawCalls = 0;
 
 		var programInfo = this.viewer.programManager.getProgram({
-			picking: false,
+			picking: picking,
 			instancing: reuse,
 			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: this.settings.quantizeNormals,
 			quantizeVertices: this.settings.quantizeVertices,
 			quantizeColors: this.settings.quantizeColors
 		});
+
 		this.gl.useProgram(programInfo.program);
-		// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
-		this.viewer.lighting.render(programInfo.uniformBlocks.LightData);
+
+		if (!picking) {
+			// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
+			this.viewer.lighting.render(programInfo.uniformBlocks.LightData);
+			this.gl.uniformMatrix3fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
+		}
+
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-		this.gl.uniformMatrix3fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 		if (this.settings.quantizeVertices) {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 		}
 
-		if (firstRunOfFrame) { // Saves us from initializing two times per frame
+		if (shouldUpdateVisibility) { // Saves us from initializing two times per frame
 			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
 		}
 
@@ -126,7 +133,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
 			// skip the remaining child nodes
 
-			if (firstRunOfFrame) {
+			if (shouldUpdateVisibility) {
 				if (this.cull(node)) {
 					node.visibilityStatus = 0;
 					return;
@@ -150,18 +157,17 @@ export default class TilingRenderLayer extends RenderLayer {
 				}
 
 				var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
-
 				this.renderFinalBuffers(buffers, programInfo, visibleElements);
 			}
 		});
 
-		if (firstRunOfFrame) {
+		if (shouldUpdateVisibility) {
 			this.viewer.stats.setParameter("Drawing", "Draw calls per frame (L2)", drawCalls);
 			this.viewer.stats.setParameter("Drawing", "Triangles to draw (L2)", renderingTriangles);
 			this.viewer.stats.setParameter("Tiling", "Rendering", renderingTiles);
 		}
 
-		if (transparency && !reuse && this.drawTileBorders) {
+		if (!picking && transparency && !reuse && this.drawTileBorders) {
 			// The lines are rendered in the transparency-phase only
 			this.lineBoxGeometry.renderStart(this.viewer);
 			this.octree.traverse((node, level) => {
@@ -185,54 +191,12 @@ export default class TilingRenderLayer extends RenderLayer {
 				} else if (node.loadingStatus == 5) {
 					// Node has been tried to load, but no objects were returned
 				}
-				if (color != null) {
+				if (color != null && visibleElements.pass != 'stencil') {
 					this.lineBoxGeometry.render(color, node.getMatrix(), 0.008 / Math.pow(2, level));
 				}
 			});
 			this.lineBoxGeometry.renderStop();
 		}
-	}
-
-	pickBuffers(transparency, reuse) {
-		var firstRunOfFrame = !transparency && !reuse;
-		var programInfo = this.viewer.programManager.getProgram({
-			picking: true,
-			instancing: reuse,
-			useObjectColors: !!this.settings.useObjectColors, // WTF is this for?
-			quantizeNormals: false,
-			quantizeVertices: !!this.settings.quantizeVertices, // WTF is this for?
-			quantizeColors: false
-		});
-		this.gl.useProgram(programInfo.program);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
-		if (this.settings.quantizeVertices) {
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
-		}
-		if (firstRunOfFrame) { // Saves us from initializing two times per frame
-			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
-		}
-		this.octree.traverse((node) => {
-			if (firstRunOfFrame) {
-				if (this.cull(node)) {
-					node.visibilityStatus = 0; // TODO: Should this be updated on pick?
-					return;
-				} else {
-					node.visibilityStatus = 1;
-					if (node.loadingStatus == 0) {
-						this.tileLoader.loadTile(node); // TODO: On-demand loading make sense for picking?
-					}
-				}
-			}
-			if (node.visibilityStatus == 1) {
-				if (node.gpuBufferManager == null) {
-					// Not initialized yet
-					return;
-				}
-				var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
-				this.pickFinalBuffers(buffers, programInfo);
-			}
-		});
 	}
 
 	addGeometry(loaderId, geometry, object) {
@@ -335,9 +299,9 @@ export default class TilingRenderLayer extends RenderLayer {
 		}, false);
 	}
 
-	renderSelectionOutlines(ids) {
+	renderSelectionOutlines(ids, width) {
 		this.octree.traverse((node) => {
-			super.renderSelectionOutlines(ids, node);
+			super.renderSelectionOutlines(ids, width, node);
 		});
 	}
 	

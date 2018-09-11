@@ -596,10 +596,11 @@ export default class RenderLayer {
 	
 	renderFinalBuffers(buffers, programInfo, visibleElements) {
 		if (buffers != null && buffers.length > 0) {
+			let picking = visibleElements.pass === 'pick';
 			var lastUsedColorHash = null;
 			
 			for (let buffer of buffers) {
-				if (this.settings.useObjectColors) {
+				if (!picking && this.settings.useObjectColors) {
 					if (lastUsedColorHash == null || lastUsedColorHash != buffer.colorHash) {
 						this.gl.uniform4fv(programInfo.uniformLocations.vertexColor, buffer.color);
 						lastUsedColorHash = buffer.colorHash;
@@ -611,7 +612,8 @@ export default class RenderLayer {
 	}
 	
 	renderBuffer(buffer, programInfo, visibleElements) {
-		this.gl.bindVertexArray(buffer.vao);
+		let picking = visibleElements.pass === 'pick';
+		this.gl.bindVertexArray(picking ? buffer.vaoPick : buffer.vao);
 		if (buffer.reuse) {
 			// TODO we only need to bind this again for every new roid, maybe sort by buffer.roid before iterating through the buffers?
 			if (this.viewer.settings.quantizeVertices) {
@@ -625,33 +627,7 @@ export default class RenderLayer {
 		}
 		this.gl.bindVertexArray(null);
 	}
-
-	pickFinalBuffers(buffers, programInfo) {
-		if (buffers != null && buffers.length > 0) {
-			for (let buffer of buffers) {
-				this.pickBuffer(buffer, programInfo);
-			}
-		}
-	}
-
-	pickBuffer(buffer, programInfo) {
-		this.gl.bindVertexArray(buffer.vaoPick);
-		if (buffer.reuse) {
-			if (this.viewer.settings.quantizeVertices) {
-				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(buffer.croid));
-			}
-			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
-		} else {
-			this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
-		}
-		this.gl.bindVertexArray(null);
-	}
-
-	pick(transparency) {
-		this.pickBuffers(transparency, false);
-		this.pickBuffers(transparency, true);
-	}
-
+	
 	flushBuffer(buffer, gpuBufferManager) {
 		if (buffer == null) {
 			return;
@@ -842,7 +818,7 @@ export default class RenderLayer {
 		this.viewer.stats.inc("Buffers", "Buffer groups");
 	}
 
-	renderSelectionOutlines(ids, node) {
+	renderSelectionOutlines(ids, width, node) {
 		var matrix = mat4.identity(mat4.create());
 		var color = new Float32Array([1.0,0.5,0.0,1.0]);
 
@@ -857,7 +833,7 @@ export default class RenderLayer {
 					let lines = buffer.lineIndexBuffers.get(id);
 					if (lines) {
 						lines.renderStart(viewer);
-						lines.render(color, matrix, 0.005);
+						lines.render(color, matrix, width || 0.005);
 						lines.renderStop();
 					}
 				});

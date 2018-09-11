@@ -222,7 +222,7 @@ export default class Viewer {
             gl.disable(gl.DEPTH_TEST);
             gl.colorMask(false, false, false, false);
             
-            render({with: this.selectedElements}, true);
+            render({with: this.selectedElements, pass: 'stencil'}, true);
 
             gl.stencilFunc(gl.NOTEQUAL, 1, 0xff);
             gl.stencilMask(0x00);
@@ -230,6 +230,12 @@ export default class Viewer {
 
             for (var renderLayer of this.renderLayers) {
                 renderLayer.renderSelectionOutlines(this.selectedElements);
+            }
+
+            gl.disable(gl.STENCIL_TEST);
+
+            for (var renderLayer of this.renderLayers) {
+                renderLayer.renderSelectionOutlines(this.selectedElements, 0.001);
             }
         }
 
@@ -268,7 +274,7 @@ export default class Viewer {
 
         for (var transparency of [false, true]) {
         	for (var renderLayer of this.renderLayers) {
-        		renderLayer.pick(transparency);
+                renderLayer.render(transparency, {without: this.invisibleElements, pass: 'pick'});
         	}
         }
 
@@ -284,7 +290,11 @@ export default class Viewer {
             if (!params.shiftKey || !this.selectedElements) {
                 this.selectedElements = new Set();
             }
-            this.selectedElements.add(objectId);
+            if (this.selectedElements.has(objectId)) {
+                this.selectedElements.delete(objectId);
+            } else {
+                this.selectedElements.add(objectId);
+            }
             return viewObject;
         }
 
