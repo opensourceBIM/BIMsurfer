@@ -44,6 +44,7 @@ in uvec2 instancePickColors;
 in uvec2 vertexPickColor;
 #endif
 flat out mediump uvec2 color;
+out mediump float depth;
 #else
 uniform LightData {
 	vec3 dir;
@@ -130,10 +131,11 @@ void main(void) {
 
 #ifdef WITH_PICKING
 #ifdef WITH_INSTANCING
-    color = instancePickColors;
+    color.rg = instancePickColors;
 #else
-    color = vertexPickColor;
+    color.rg = vertexPickColor;
 #endif
+    depth = gl_Position.z / gl_Position.w;
 #else
     vec3 viewNormal = normalize(viewNormalMatrix * floatNormal);
     float lambertian = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);

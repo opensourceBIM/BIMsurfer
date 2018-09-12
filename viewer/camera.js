@@ -432,14 +432,13 @@ export default class Camera {
      */
     zoom(delta) { // Translate 'eye' by given increment on (eye->target) vector
         var targetToEye = vec3.subtract(tempVec3, this._eye, this._target);
-        var lenLook = Math.abs(vec3.length(targetToEye));
-        var newLenLook = Math.abs(lenLook + delta);
-        if (newLenLook < 0.5) {
-            return;
-        }
+
         vec3.normalize(targetToEye, targetToEye);
-        vec3.scale(targetToEye, targetToEye, newLenLook);
-        vec3.add(this._eye, this._target, targetToEye);
+        vec3.scale(targetToEye, targetToEye, delta);
+
+        vec3.add(this._eye, this._eye, targetToEye);
+        vec3.add(this._target, this._target, targetToEye);
+        
         this._setDirty();
     }
 

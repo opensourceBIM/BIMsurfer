@@ -32,9 +32,21 @@ export default class RenderBuffer {
             }
         }
 
+        // var ext = gl.getExtension('WEBGL_draw_buffers');
+        var ext = gl.getExtension('EXT_color_buffer_float');
+
         this.colorBuffer = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.colorBuffer);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32UI, width, height, 0, gl.RG_INTEGER, gl.UNSIGNED_INT, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        this.depthFloat = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.depthFloat);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
@@ -48,11 +60,21 @@ export default class RenderBuffer {
         var framebuf = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuf);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.colorBuffer, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, this.depthFloat, 0);
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthBuffer);
 
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.bindRenderbuffer(gl.RENDERBUFFER, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+        /*
+        ext.drawBuffersWEBGL([
+            ext.COLOR_ATTACHMENT0_WEBGL, // gl_FragData[0]
+            ext.COLOR_ATTACHMENT1_WEBGL, // gl_FragData[1]
+            ext.COLOR_ATTACHMENT2_WEBGL, // gl_FragData[2]
+            ext.COLOR_ATTACHMENT3_WEBGL  // gl_FragData[3]
+        ]);
+        */
 
         // Verify framebuffer is OK
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuf);
