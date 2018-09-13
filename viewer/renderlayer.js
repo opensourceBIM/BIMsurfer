@@ -773,6 +773,7 @@ export default class RenderLayer {
 			this.gl.bindVertexArray(null);
 
 			// @todo: why are there some many positions +- 100 000 on the Duplex model?
+			// Ruben: If you are referring to the positionsIndex, this is in bytes, and especially when vertex quantization is off (which is is now), it will use 3 * 4 = 12 bytes per vertex
 
 			var newBuffer = {
 				positionBuffer: positionBuffer,
