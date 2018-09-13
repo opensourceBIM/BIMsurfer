@@ -773,7 +773,6 @@ export default class RenderLayer {
 			this.gl.bindVertexArray(null);
 
 			// @todo: why are there some many positions +- 100 000 on the Duplex model?
-			console.log("nrPositions", buffer.positionsIndex);
 
 			var newBuffer = {
 				positionBuffer: positionBuffer,
