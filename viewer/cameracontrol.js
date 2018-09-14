@@ -111,6 +111,10 @@ export default class CameraControl {
                 this.lastX = this.mousePos[0];
                 this.lastY = this.mousePos[1];
                 this.mouseDownPos.set(this.mousePos);
+                let obj = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
+                if (obj) {
+                    this.viewer.camera.center = obj.coordinates;
+                }
                 break;
             case 2:
             	this.mouseDownMiddle = true;
@@ -142,11 +146,11 @@ export default class CameraControl {
                         shiftKey: e.shiftKey
                     });
                     if (viewObject) {
-                        var aabb = viewObject.aabb;
+                        var aabb = viewObject.object.aabb;
                         var center = [(aabb[0] + aabb[3]) / 2, (aabb[1] + aabb[4]) / 2, (aabb[2] + aabb[5]) / 2];
                         // this.viewer.camera.target = center;
 
-                        console.log("Picked", viewObject);
+                        console.log("Picked", viewObject.object);
                     }
                     this.viewer.drawScene();
                 }
@@ -168,13 +172,14 @@ export default class CameraControl {
      * @private
      */
     canvasWheel(e) {
+        this.getCanvasPosFromEvent(e, this.mousePos);
         var delta = Math.max(-1, Math.min(1, -e.deltaY * 40));
         if (delta === 0) {
             return;
         }
         var d = delta / Math.abs(delta);
         var zoom = -d * this.getZoomRate() * this.mousePanSensitivity;
-        this.camera.zoom(zoom);
+        this.camera.zoom(zoom, this.mousePos);
         e.preventDefault();
     }
 

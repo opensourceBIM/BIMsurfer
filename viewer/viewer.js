@@ -12,6 +12,8 @@ import RenderBuffer from './renderbuffer.js'
  * - Contains the basic render loop (and delegates to the render layers)
  */
 
+var tmp_unproject = vec3.create();
+
 export default class Viewer {
 
     constructor(canvas, settings, stats, width, height) {
@@ -169,15 +171,6 @@ export default class Viewer {
         gl.disable(gl.BLEND);
 
         if (this.modelBounds != null) {
-
-            // This should not be computed every frame
-            var diagonal = Math.sqrt(
-                Math.pow(this.modelBounds[3] - this.modelBounds[0], 2) +
-                Math.pow(this.modelBounds[4] - this.modelBounds[1], 2) +
-                Math.pow(this.modelBounds[5] - this.modelBounds[2], 2));
-
-            var scale = 1 / diagonal;
-
             if (!this.cameraSet) { // HACK to look at model origin as soon as available
                 this.camera.target = [0, 0, 0];
                 this.camera.eye = [0, 1, 0];
@@ -188,7 +181,6 @@ export default class Viewer {
                     0, -1, 0  // Forward
                 ];
                 this.camera.viewFit(this.modelBounds); // Position camera so that entire model bounds are in view
-                this.camera.worldScale = scale;
                 this.cameraSet = true;
             }
         }
@@ -281,7 +273,11 @@ export default class Viewer {
 
         let [x,y] = [Math.round(canvasPos[0]), Math.round(canvasPos[1])];
         var pickColor = this.renderBuffer.read(x, y);
-        console.log(this.renderBuffer.depth(x,y));
+        let z = this.renderBuffer.depth(x,y);
+        vec3.set(tmp_unproject, x / this.width * 2 - 1, - y / this.height * 2 + 1, z);
+        vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.projection.projMatrixInverted);
+        vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.viewMatrixInverted);
+        console.log("Picked @", tmp_unproject[0], tmp_unproject[1], tmp_unproject[2]);
 
         this.renderBuffer.unbind();
 
@@ -290,15 +286,17 @@ export default class Viewer {
         var viewObject = this.viewObjects.get(objectId);
         
         if (viewObject) {
-            if (!params.shiftKey || !this.selectedElements) {
-                this.selectedElements = new Set();
+            if (params.select !== false) {
+                if (!params.shiftKey || !this.selectedElements) {
+                    this.selectedElements = new Set();
+                }
+                if (this.selectedElements.has(objectId)) {
+                    this.selectedElements.delete(objectId);
+                } else {
+                    this.selectedElements.add(objectId);
+                }
             }
-            if (this.selectedElements.has(objectId)) {
-                this.selectedElements.delete(objectId);
-            } else {
-                this.selectedElements.add(objectId);
-            }
-            return viewObject;
+            return {object: viewObject, coordinates: tmp_unproject};
         }
 
         this.selectedElements = null;
@@ -312,6 +310,7 @@ export default class Viewer {
 
     setModelBounds(modelBounds) {
         this.modelBounds = modelBounds;
+        this.camera.setModelBounds(modelBounds);
         this.updateViewport();
     }
 
