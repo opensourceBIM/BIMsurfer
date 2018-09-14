@@ -382,8 +382,21 @@ export default class Camera {
      @param {Number} degrees Angle of rotation in degrees
      */
     orbitPitch(degrees) { // Rotate (pitch) 'eye' and 'up' about 'target', pivoting around vector ortho to (target->eye) and camera 'up'
+        let currentPitch = Math.acos(this._viewMatrix[10]);
+        let adjustment = - degrees * 0.0174532925 * 2;
+        if (currentPitch + adjustment < 0.01) {
+            adjustment = 0.01 - currentPitch;
+        }
+        if (currentPitch + adjustment > Math.PI - 0.01) {
+            adjustment = Math.PI - 0.01 - currentPitch;
+        }
+
+        if (Math.abs(adjustment) < 1.e-5) {
+            return;
+        }
+
         var T1 = mat4.fromTranslation(mat4.create(), this._center);
-        var R = mat4.fromRotation(mat4.create(), - degrees * 0.0174532925 * 2, this._viewMatrixInverted);
+        var R = mat4.fromRotation(mat4.create(), adjustment, this._viewMatrixInverted);
         var T2 = mat4.fromTranslation(mat4.create(), vec3.negate(vec3.create(), this._center));
 
         vec3.transformMat4(this._eye, this._eye, T2);

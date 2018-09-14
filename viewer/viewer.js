@@ -297,9 +297,9 @@ export default class Viewer {
                 }
             }
             return {object: viewObject, coordinates: tmp_unproject};
+        } else if (params.select !== false) {
+            this.selectedElements = null;
         }
-
-        this.selectedElements = null;
 
         return null;
     }
