@@ -15,6 +15,7 @@ export default class RenderBuffer {
         }
         var gl = this.gl;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.buffer.framebuf);
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
         this.bound = true;
     }
 
@@ -67,15 +68,6 @@ export default class RenderBuffer {
         gl.bindRenderbuffer(gl.RENDERBUFFER, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-        /*
-        ext.drawBuffersWEBGL([
-            ext.COLOR_ATTACHMENT0_WEBGL, // gl_FragData[0]
-            ext.COLOR_ATTACHMENT1_WEBGL, // gl_FragData[1]
-            ext.COLOR_ATTACHMENT2_WEBGL, // gl_FragData[2]
-            ext.COLOR_ATTACHMENT3_WEBGL  // gl_FragData[3]
-        ]);
-        */
-
         // Verify framebuffer is OK
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuf);
         if (!gl.isFramebuffer(framebuf)) {
@@ -114,7 +106,18 @@ export default class RenderBuffer {
         var y = this.canvas.height - pickY;
         var pix = new Uint32Array(2);
         var gl = this.gl;
+        gl.readBuffer(gl.COLOR_ATTACHMENT0);
         gl.readPixels(x, y, 1, 1, gl.RG_INTEGER, gl.UNSIGNED_INT, pix);
+        return pix;
+    }
+
+    depth(pickX, pickY) {
+        var x = pickX;
+        var y = this.canvas.height - pickY;
+        var pix = new Float32Array(1);
+        var gl = this.gl;
+        gl.readBuffer(gl.COLOR_ATTACHMENT1);
+        gl.readPixels(x, y, 1, 1, gl.RED, gl.FLOAT, pix);
         return pix;
     }
 

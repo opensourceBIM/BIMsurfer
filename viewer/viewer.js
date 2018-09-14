@@ -266,8 +266,8 @@ export default class Viewer {
         this.renderBuffer.bind();
 
         this.gl.depthMask(true);
-        this.gl.clearBufferuiv(this.gl.COLOR, this.renderBuffer.colorBuffer, new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]));
-        this.gl.clearBufferfv(this.gl.COLOR, this.renderBuffer.depthFloat, new Float32Array([1.,1.,1.,1.]));
+        this.gl.clearBufferuiv(this.gl.COLOR, 0, new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]));
+        this.gl.clearBufferfv(this.gl.COLOR, 1, new Float32Array([1.]));
         this.gl.clearBufferfv(this.gl.DEPTH, this.renderBuffer.depthBuffer, new Uint8Array([1, 0])); // TODO should be a Float16Array, which does not exists, need to find the 16bits that define the number 1 here
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.depthFunc(this.gl.LEQUAL);
@@ -279,7 +279,9 @@ export default class Viewer {
         	}
         }
 
-        var pickColor = this.renderBuffer.read(Math.round(canvasPos[0]), Math.round(canvasPos[1]));
+        let [x,y] = [Math.round(canvasPos[0]), Math.round(canvasPos[1])];
+        var pickColor = this.renderBuffer.read(x, y);
+        console.log(this.renderBuffer.depth(x,y));
 
         this.renderBuffer.unbind();
 
