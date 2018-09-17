@@ -23,13 +23,15 @@
  * 
  */
 export default class FatLineRenderer {
-    constructor(gl) {
+    constructor(gl, settings) {
+		settings = settings || {};
 		this.idx = 0;
         this.gl = gl;
         this.vertexPosition = Array();
 		this.nextVertexPosition = Array();
 		this.direction = Array();
 		this.indices = Array();
+		this.quantize = settings.quantize || false;
     }
 
     finalize() {
@@ -39,12 +41,13 @@ export default class FatLineRenderer {
 			const buf = this[bufferName + "Buffer"] = gl.createBuffer();
 			const bufType = bufferName === "indices" ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER;
 			// @todo, somehow just cannot get direction as a byte to work :(
-			const elemType = [gl.FLOAT, gl.FLOAT, gl.FLOAT, indexType][i];
+			const elemType = [this.quantize ? gl.SHORT : gl.FLOAT, this.quantize ? gl.SHORT : gl.FLOAT, gl.FLOAT, indexType][i];
 			const typedArrFn = (new Map([
-				[gl.FLOAT, Float32Array],
-                [gl.UNSIGNED_BYTE, Uint8Array],
+				[gl.BYTE, Int8Array],
+				[gl.SHORT, Int16Array],
+				[gl.UNSIGNED_BYTE, Uint8Array],
                 [gl.UNSIGNED_SHORT, Uint16Array],
-				[gl.BYTE, Int8Array]
+				[gl.FLOAT, Float32Array]
 			])).get(elemType);
 			const typedArr = new typedArrFn(this[bufferName]);
 			const numElements = bufferName === "direction" ? 1 : 3;
@@ -68,10 +71,6 @@ export default class FatLineRenderer {
     }
 
     pushVertices(a, b) {
-		if (this.idx > 8 * 32) {
-
-		}
-
 		Array.prototype.push.apply(this.vertexPosition, a);
 		Array.prototype.push.apply(this.vertexPosition, b);
 		Array.prototype.push.apply(this.vertexPosition, a);
@@ -95,6 +94,7 @@ export default class FatLineRenderer {
     // To minimize GPU calls, renderStart and renderStop can (and have to be) used in order to batch-draw a lot of boxes
 	renderStart(viewer) {
         var programInfo = this.programInfo = this.programInfo || viewer.programManager.getProgram({
+			quantizeVertices: this.quantize,
 			linePrimitives: true
 		});
 		this.gl.useProgram(programInfo.program);
@@ -103,6 +103,10 @@ export default class FatLineRenderer {
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, viewer.camera.viewMatrix);
 		const aspect = viewer.width / viewer.height;
 		this.gl.uniform1f(programInfo.uniformLocations.aspect, aspect);
+
+		if (this.quantize) {
+			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
+		}
 
 		for (const fn of this.setupFunctions) {
 			fn(programInfo);

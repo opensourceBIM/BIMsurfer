@@ -115,11 +115,11 @@ export default class BufferSet {
         id_ranges.forEach((range, i) => {
             let [id, [a, b]] = range;
 
-			const lineRenderer = new FatLineRenderer(gl);
+			const lineRenderer = new FatLineRenderer(gl, {
+				quantize: this.positionBuffer.js_type !== Float32Array.name
+			});
 
-			// not divided by 3?
-			// @todo does not work with quantization yet.
-            const positions = new Float32Array(this.nrPositions);
+            const positions = new window[this.positionBuffer.js_type](this.nrPositions);
             const indices = new Uint32Array(b-a);
             
             // @todo: get only part of positions [min(indices), max(indices)]

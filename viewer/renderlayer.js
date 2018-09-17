@@ -653,41 +653,35 @@ export default class RenderLayer {
 			quantizeVertices: this.settings.quantizeVertices,
 			quantizeColors: false
 		});
+
+		let createBuffer = (data, n, t) => {
+			var b = this.gl.createBuffer();
+			t = t || this.gl.ARRAY_BUFFER;
+			this.gl.bindBuffer(t, b);
+			this.gl.bufferData(t, data, this.gl.STATIC_DRAW, 0, n);
+			b.N = n;
+			b.gl_type = t;
+			b.js_type = data.constructor.name;
+			return b;
+		};
+
+		let createIndexBuffer = (data, n) => {
+			return createBuffer(data, n, this.gl.ELEMENT_ARRAY_BUFFER);
+		};
 		
 		if (!this.settings.fakeLoading) {
-
-			// Positions
-			const positionBuffer = this.gl.createBuffer();
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-			this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.positions, this.gl.STATIC_DRAW, 0, buffer.positionsIndex);
-
-			// Normals
-			const normalBuffer = this.gl.createBuffer();
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-			this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.normals, this.gl.STATIC_DRAW, 0, buffer.normalsIndex);
-
-			// Colors
-			var colorBuffer;
-			if (buffer.colors) {
-				colorBuffer = this.gl.createBuffer();
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.colors, this.gl.STATIC_DRAW, 0, buffer.colorsIndex);
-			}
-
+			const positionBuffer = createBuffer(buffer.positions, buffer.positionsIndex);
+			const normalBuffer = createBuffer(buffer.normals, buffer.normalsIndex);
+			var colorBuffer = buffer.colors
+				? createBuffer(buffer.colors, buffer.colorsIndex)
+				: null;
 			// Per-object pick vertex colors
-			var pickColorBuffer;
-			if (buffer.pickColors) {
-				pickColorBuffer = this.gl.createBuffer();
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, buffer.pickColors, this.gl.STATIC_DRAW, 0, buffer.pickColorsIndex);
-			}
+			var pickColorBuffer = buffer.pickColors
+				? createBuffer(buffer.pickColors, buffer.pickColorsIndex)
+				: null;
+			const indexBuffer = createIndexBuffer(buffer.indices, buffer.indicesIndex);
 
-			// Indices
-			const indexBuffer = this.gl.createBuffer();
-			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-			this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, buffer.indices, this.gl.STATIC_DRAW, 0, buffer.indicesIndex);
-
-			// Normal drawing VAO
+			// Regular drawing VAO
 			var vao = this.gl.createVertexArray();
 			this.gl.bindVertexArray(vao);
 

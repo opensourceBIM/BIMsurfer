@@ -259,7 +259,13 @@ export default class Viewer {
 
         this.gl.depthMask(true);
         this.gl.clearBufferuiv(this.gl.COLOR, 0, new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]));
-        this.gl.clearBufferfv(this.gl.COLOR, 1, new Float32Array([1.]));
+        
+        /*
+         * @todo: clearing the 2nd attachment does not work? Not a big issue as long
+         * as one of the buffers is cleared to be able to detect clicks outside of the model.
+         */
+        // this.gl.clearBufferfv(this.gl.COLOR, 1, new Float32Array([1.]));
+
         this.gl.clearBufferfv(this.gl.DEPTH, this.renderBuffer.depthBuffer, new Uint8Array([1, 0])); // TODO should be a Float16Array, which does not exists, need to find the 16bits that define the number 1 here
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.depthFunc(this.gl.LEQUAL);

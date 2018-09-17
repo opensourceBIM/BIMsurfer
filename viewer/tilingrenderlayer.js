@@ -105,9 +105,10 @@ export default class TilingRenderLayer extends RenderLayer {
 			picking: picking,
 			instancing: reuse,
 			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: this.settings.quantizeNormals,
 			quantizeVertices: this.settings.quantizeVertices,
-			quantizeColors: this.settings.quantizeColors
+			// next two are always false in case of picking
+			quantizeNormals: !picking && this.settings.quantizeNormals,
+			quantizeColors: !picking && this.settings.quantizeColors
 		});
 
 		this.gl.useProgram(programInfo.program);

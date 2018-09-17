@@ -96,20 +96,27 @@ export default class ProgramManager {
 			}
 		}
 
-		var settings = {
-			linePrimitives: true
-		};
-		this.setupProgram(this.viewerBasePath + "shaders/vertex.glsl", this.viewerBasePath + "shaders/fragment.glsl", {
-			attributes: ["vertexPosition", "nextVertexPosition", "direction"],
-			uniforms: [
+		for (var quantizeVertices of [true, false]) {
+			var settings = {
+				quantizeVertices: quantizeVertices,
+				linePrimitives: true
+			};
+			let lineUniforms = [
 				"matrix",
 				"inputColor",
 				"projectionMatrix",
 				"viewMatrix",
 				"aspect",
 				"thickness"
-			]
-		}, this.generateSetup(settings), settings);
+			];
+			if (quantizeVertices) {
+				lineUniforms.push("vertexQuantizationMatrix");
+			}
+			this.setupProgram(this.viewerBasePath + "shaders/vertex.glsl", this.viewerBasePath + "shaders/fragment.glsl", {
+				attributes: ["vertexPosition", "nextVertexPosition", "direction"],
+				uniforms: lineUniforms
+			}, this.generateSetup(settings), settings);
+		}
 
         //  Picking shaders - 8 combinations
 		{
@@ -150,6 +157,16 @@ export default class ProgramManager {
 		return "shaders/vertex.glsl";
 	}
 
+	stringify(settings) {
+		// tfk: don't rely on JSON.stringify() because the ordering of keys is not deterministic.
+		function* g(s) {
+			for (let k of Object.keys(s).sort()) {
+				yield `${k}:${s[k]}`
+			}
+		}
+		return Array.from(g(settings)).join(";");
+	}
+
 	getProgram(settings) {
 		this.programNames = this.programNames || {};
 		var vertexShaderName = this.getVertexShaderName(settings);
@@ -158,7 +175,7 @@ export default class ProgramManager {
 			this.programNames[vertexShaderName] = true;
 		}
 
-		var program = this.programs[JSON.stringify(settings)];
+		var program = this.programs[this.stringify(settings)];
 		if (program == null) {
 			console.error("Program not found", settings);
 		}
@@ -166,8 +183,7 @@ export default class ProgramManager {
 	}
 
 	setProgram(settings, program) {
-		//console.log("setProgram('" + JSON.stringify(settings) + "', program");
-		this.programs[JSON.stringify(settings)] = program;
+		this.programs[this.stringify(settings)] = program;
 	}
 
 	setupProgram(vertexShader, fragmentShader, defaultSetup, specificSetup, settings) {

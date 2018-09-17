@@ -6,10 +6,15 @@ uniform mat4 vertexQuantizationMatrix;
 in ivec3 vertexPosition;
 #else
 in vec3 vertexPosition;
-#ifdef WITH_LINEPRIMITIVES
-in vec3 nextVertexPosition;
-in float direction;
 #endif
+
+#ifdef WITH_LINEPRIMITIVES
+#ifdef WITH_QUANTIZEVERTICES
+in ivec3 nextVertexPosition;
+#else
+in vec3 nextVertexPosition;
+#endif
+in float direction;
 #endif
 
 #ifndef WITH_PICKING
@@ -114,7 +119,13 @@ void main(void) {
     vec4 currentProjected = projViewModel * floatVertex;
     vec2 currentScreen = currentProjected.xy / currentProjected.w * aspectVec;
 
-    vec4 nextProjected = projViewModel * vec4(nextVertexPosition, 1.0);
+#ifdef WITH_QUANTIZEVERTICES
+    vec4 nextVertexPositionFloat = vertexQuantizationMatrix * vec4(float(nextVertexPosition.x), float(nextVertexPosition.y), float(nextVertexPosition.z), 1);
+#else
+    vec4 nextVertexPositionFloat = vec4(nextVertexPosition, 1);
+#endif
+
+    vec4 nextProjected = projViewModel * nextVertexPositionFloat;
     vec2 nextScreen = nextProjected.xy / nextProjected.w * aspectVec;
 
     vec2 dir = normalize(nextScreen - currentScreen);
