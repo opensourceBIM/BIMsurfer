@@ -70,7 +70,7 @@ export default class BimServerViewer {
 					roids: [roid]
 				}, (bbs) => {
 					if (bbs.length > 1) {
-						this.settings.regionSelector().then((bb) => {
+						this.settings.regionSelector(bbs).then((bb) => {
 							this.genDensityThreshold(roid, bb);
 						});
 					} else {
