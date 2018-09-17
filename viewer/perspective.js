@@ -9,6 +9,7 @@ export default class Perspective {
     constructor(viewer) {
         this.viewer = viewer;
         this._projMatrix = mat4.create();
+        this._projMatrixInverted = mat4.create();
         this._fov = 45;
         this._near = 0.01;
         this._far = 100;
@@ -18,6 +19,13 @@ export default class Perspective {
     _setDirty() {
         this._dirty = true;
         this.viewer.dirty = true;
+    }
+
+    build() {
+        var aspect = this.viewer.width / this.viewer.height;
+        mat4.perspective(this._projMatrix, this._fov * Math.PI / 180.0, aspect, this._near, this._far);
+        mat4.invert(this._projMatrixInverted, this._projMatrix);
+        this._dirty = false;
     }
 
     /**
@@ -88,10 +96,15 @@ export default class Perspective {
      */
     get projMatrix() {
         if (this._dirty) {
-            var aspect = this.viewer.width / this.viewer.height;
-            mat4.perspective(this._projMatrix, this._fov * Math.PI / 180.0, aspect, this._near, this._far);
-            this._dirty = false;
+            this.build();
         }
         return this._projMatrix;
+    }
+
+    get projMatrixInverted() {
+        if (this._dirty) {
+            this.build();
+        }
+        return this._projMatrixInverted;
     }
 }
