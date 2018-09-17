@@ -112,7 +112,7 @@ export default class CameraControl {
                 this.lastY = this.mousePos[1];
                 this.mouseDownPos.set(this.mousePos);
                 let obj = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
-                if (obj) {
+                if (obj && obj.coordinates) {
                     this.viewer.camera.center = obj.coordinates;
                 }
                 break;
@@ -145,7 +145,7 @@ export default class CameraControl {
                         canvasPos: this.mousePos,
                         shiftKey: e.shiftKey
                     });
-                    if (viewObject) {
+                    if (viewObject && viewobject.object) {
                         var aabb = viewObject.object.aabb;
                         var center = [(aabb[0] + aabb[3]) / 2, (aabb[1] + aabb[4]) / 2, (aabb[2] + aabb[5]) / 2];
                         // this.viewer.camera.target = center;

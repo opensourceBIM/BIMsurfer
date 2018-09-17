@@ -277,19 +277,23 @@ export default class Viewer {
         	}
         }
 
+        
         let [x,y] = [Math.round(canvasPos[0]), Math.round(canvasPos[1])];
         var pickColor = this.renderBuffer.read(x, y);
-        let z = this.renderBuffer.depth(x,y);
+        var objectId = BigInt(pickColor[0]) + (BigInt(pickColor[1]) * 4294967296n);
+        var viewObject = this.viewObjects.get(objectId);
+
+        // Don't attempt to read depth if there is no object under the cursor
+        // Note that the default depth of 1. corresponds to the far plane, which
+        // can be quite far away but at least is something that is recognizable
+        // in most cases.
+        let z = viewObject ? this.renderBuffer.depth(x,y) : 1.;
         vec3.set(tmp_unproject, x / this.width * 2 - 1, - y / this.height * 2 + 1, z);
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.projection.projMatrixInverted);
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.viewMatrixInverted);
         console.log("Picked @", tmp_unproject[0], tmp_unproject[1], tmp_unproject[2]);
 
         this.renderBuffer.unbind();
-
-        var objectId = BigInt(pickColor[0]) + (BigInt(pickColor[1]) * 4294967296n);
-
-        var viewObject = this.viewObjects.get(objectId);
         
         if (viewObject) {
             if (params.select !== false) {
@@ -307,7 +311,7 @@ export default class Viewer {
             this.selectedElements = null;
         }
 
-        return null;
+        return {object: null, coordinates: tmp_unproject};
     }
 
     getPickColor(objectId) { // Converts an integer to a pick color
