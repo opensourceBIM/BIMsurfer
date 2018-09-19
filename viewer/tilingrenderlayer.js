@@ -238,22 +238,17 @@ export default class TilingRenderLayer extends RenderLayer {
 		console.log(this.tileLoader.executor);
 	}
 
-	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager) {
-		if (!gpuBufferManager) {
-			var loader = this.getLoader(loaderId);
-			var node = this.loaderToNode[loaderId];
-			gpuBufferManager = node.gpuBufferManager;
-		}
-		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager);
+	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
+		var loader = this.getLoader(loaderId);
+		var node = this.loaderToNode[loaderId];
+		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, node.gpuBufferManager);
 	}
 
-	addGeometryReusable(geometry, loader, gpuBufferManager, useInstancing) {
-		super.addGeometryReusable(geometry, loader, gpuBufferManager, useInstancing);
-		if (loader) {
-			var node = this.loaderToNode[loader.loaderId];
-			node.stats.triangles += ((geometry.indices.length / 3) * (geometry.matrices.length));
-			node.stats.drawCallsPerFrame++;
-		}
+	addGeometryReusable(geometry, loader, gpuBufferManager) {
+		super.addGeometryReusable(geometry, loader, gpuBufferManager);
+		var node = this.loaderToNode[loader.loaderId];
+		node.stats.triangles += ((geometry.indices.length / 3) * (geometry.matrices.length));
+		node.stats.drawCallsPerFrame++;
 	}
 
 	done(loaderId) {

@@ -15,7 +15,7 @@ export default class RenderLayer {
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
 	}
 
-	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused, forceReuse) {
+	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
 		var bytesUsed = RenderLayer.calculateBytesUsed(this.settings, positions, colors, indices, normals);
 		var geometry = {
 				id: geometryId,
@@ -35,11 +35,9 @@ export default class RenderLayer {
 		};
 		
 		var loader = this.getLoader(loaderId);
-		if (loader) {
-			loader.geometries.set(geometryId, geometry);
-		}
 
-		geometry.isReused = forceReuse || (geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id));
+		loader.geometries.set(geometryId, geometry);
+		geometry.isReused = geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id);
 		if (geometry.isReused) {
 			this.viewer.stats.inc("Models", "Geometries reused");
 		} else {
@@ -95,9 +93,7 @@ export default class RenderLayer {
 		};
 
 		var loader = this.getLoader(loaderId);
-		if (loader) {
-			loader.objects.set(oid , object);
-		}
+		loader.objects.set(oid , object);
 
 		var viewObject = {
             type: type,
@@ -313,10 +309,10 @@ export default class RenderLayer {
 		}
 	}
 	
-	addGeometryReusable(geometry, loader, gpuBufferManager, useInstancing) {
+	addGeometryReusable(geometry, loader, gpuBufferManager) {
 		var programInfo = this.viewer.programManager.getProgram({
 			picking: false,
-			instancing: useInstancing !== false,
+			instancing: true,
 			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: this.settings.quantizeNormals,
 			quantizeVertices: this.settings.quantizeVertices,
@@ -325,7 +321,7 @@ export default class RenderLayer {
 
 		var pickProgramInfo = this.viewer.programManager.getProgram({
 			picking: true,
-			instancing: useInstancing !== false,
+			instancing: true,
 			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: false,
 			quantizeVertices: this.settings.quantizeVertices,
@@ -434,6 +430,8 @@ export default class RenderLayer {
 			}
 			this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
 		}
+
+		// Instance matrices for positions
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceMatricesBuffer);
 		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices);
@@ -546,9 +544,7 @@ export default class RenderLayer {
 			buffer.colorHash = Utils.hash(JSON.stringify(buffer.color));
 		}
 		
-		if (loader) {
-			loader.geometries.delete(geometry.id);
-		}
+		loader.geometries.delete(geometry.id);
 		gpuBufferManager.pushBuffer(buffer);
 
 		this.viewer.stats.inc("Primitives", "Nr primitives loaded", (buffer.nrIndices / 3) * geometry.matrices.length);
