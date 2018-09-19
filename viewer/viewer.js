@@ -136,8 +136,15 @@ export default class Viewer {
 
                     let original = bufferSet.copy(this.gl, objectId);
 
+                    let clrSameType = new original.colors.constructor(4);
+                    let factor = clrSameType.constructor.name === "Uint8Array" ? 255. : 1.;
+
+                    for (let i = 0; i < 4; ++i) {
+                        clrSameType[i] = clr[i] * factor;
+                    }
+
                     for (let i = 0; i < original.colors.length; i += 4) {
-                        original.colors.set(clr, i);
+                        original.colors.set(clrSameType, i);
                     }
 
                     original.hasTransparency = !bufferSet.hasTransparency;
