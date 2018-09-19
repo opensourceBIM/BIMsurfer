@@ -117,7 +117,9 @@ export default class BufferManager {
 	}
 	
 	resetBuffer(bufferSet) {
-		bufferSet.reset();
+		if (bufferSet.reset) {
+			bufferSet.reset();
+		}
 	}
 	
 	getAllBuffers() {

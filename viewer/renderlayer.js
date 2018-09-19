@@ -13,10 +13,9 @@ export default class RenderLayer {
 
 		this.loaders = new Map();
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
-		this.geometryIdToBufferSet = new Map();
 	}
 
-	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
+	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused, forceReuse) {
 		var bytesUsed = RenderLayer.calculateBytesUsed(this.settings, positions, colors, indices, normals);
 		var geometry = {
 				id: geometryId,
@@ -36,9 +35,11 @@ export default class RenderLayer {
 		};
 		
 		var loader = this.getLoader(loaderId);
+		if (loader) {
+			loader.geometries.set(geometryId, geometry);
+		}
 
-		loader.geometries.set(geometryId, geometry);
-		geometry.isReused = geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id);
+		geometry.isReused = forceReuse || (geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id));
 		if (geometry.isReused) {
 			this.viewer.stats.inc("Models", "Geometries reused");
 		} else {
@@ -94,7 +95,9 @@ export default class RenderLayer {
 		};
 
 		var loader = this.getLoader(loaderId);
-		loader.objects.set(oid , object);
+		if (loader) {
+			loader.objects.set(oid , object);
+		}
 
 		var viewObject = {
             type: type,
@@ -183,6 +186,7 @@ export default class RenderLayer {
 
 				buffer.normalsIndex += 3;
 			}
+			let originalColorIndex = buffer.colorsIndex;
 			if (geometry.colors != null) {
 				if (geometry.colors instanceof Uint8Array == this.settings.quantizeColors) {
 					// The same, just copy
@@ -225,13 +229,11 @@ export default class RenderLayer {
 			{var li = (buffer.geometryIdToIndex.get(object.id) || []);
 				li.push({
 					'start': buffer.indicesIndex, 
-					'length': geometry.indices.length
+					'length': geometry.indices.length,
+					'color': originalColorIndex,
+					'colorLength': geometry.colors.length
 				});
 				buffer.geometryIdToIndex.set(object.id, li);}
-
-			{var li = (this.geometryIdToBufferSet.get(object.id) || []);
-				li.push(buffer);
-				this.geometryIdToBufferSet.set(object.id, li);}
 			
 			if (startIndex == 0) {
 				// Small optimization, if this is the first object in the buffer, no need to add the startIndex to each index
@@ -311,10 +313,10 @@ export default class RenderLayer {
 		}
 	}
 	
-	addGeometryReusable(geometry, loader, gpuBufferManager) {
+	addGeometryReusable(geometry, loader, gpuBufferManager, useInstancing) {
 		var programInfo = this.viewer.programManager.getProgram({
 			picking: false,
-			instancing: true,
+			instancing: useInstancing !== false,
 			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: this.settings.quantizeNormals,
 			quantizeVertices: this.settings.quantizeVertices,
@@ -323,7 +325,7 @@ export default class RenderLayer {
 
 		var pickProgramInfo = this.viewer.programManager.getProgram({
 			picking: true,
-			instancing: true,
+			instancing: useInstancing !== false,
 			useObjectColors: this.settings.useObjectColors,
 			quantizeNormals: false,
 			quantizeVertices: this.settings.quantizeVertices,
@@ -432,8 +434,6 @@ export default class RenderLayer {
 			}
 			this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
 		}
-
-		// Instance matrices for positions
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceMatricesBuffer);
 		this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices);
@@ -546,7 +546,9 @@ export default class RenderLayer {
 			buffer.colorHash = Utils.hash(JSON.stringify(buffer.color));
 		}
 		
-		loader.geometries.delete(geometry.id);
+		if (loader) {
+			loader.geometries.delete(geometry.id);
+		}
 		gpuBufferManager.pushBuffer(buffer);
 
 		this.viewer.stats.inc("Primitives", "Nr primitives loaded", (buffer.nrIndices / 3) * geometry.matrices.length);
@@ -621,19 +623,35 @@ export default class RenderLayer {
 			}
 			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 		} else {
-			buffer.computeVisibleRanges(visibleElements, this.gl).forEach((range) => {
-				this.gl.drawElements(this.gl.TRIANGLES, range[1] - range[0], this.gl.UNSIGNED_INT, range[0] * 4);
-			});
+			if (buffer.computeVisibleRanges) {
+				buffer.computeVisibleRanges(visibleElements, this.gl).forEach((range) => {
+					this.gl.drawElements(this.gl.TRIANGLES, range[1] - range[0], this.gl.UNSIGNED_INT, range[0] * 4);
+				});
+			} else {
+				// This is a buffer for one specific element, probably created when
+				// a call to setColor() changed the transparency state of an element.
+				let include = true;
+				if (visibleElements.with && !visibleElements.with.has(buffer.objectId)) {
+					include = false;
+				} else if (visibleElements.without && visibleElements.without.has(buffer.objectId)) {
+					include = false;
+				}
+				if (include) {
+					this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
+				}
+			}
 		}
 		this.gl.bindVertexArray(null);
 	}
 	
 	flushBuffer(buffer, gpuBufferManager) {
+		var newBuffer = null;
+
 		if (buffer == null) {
-			return;
+			return newBuffer;
 		}
 		if (buffer.nrIndices == 0) {
-			return;
+			return newBuffer;
 		}
 		
 		var programInfo = this.viewer.programManager.getProgram({
@@ -686,7 +704,7 @@ export default class RenderLayer {
 			this.gl.bindVertexArray(vao);
 
 			{
-				const numComponents = 3;
+				const numComponents = positionBuffer.components = 3;
 				const normalize = false;
 				const stride = 0;
 				const offset = 0;
@@ -699,7 +717,7 @@ export default class RenderLayer {
 				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
 			}
 			{
-				const numComponents = 3;
+				const numComponents = normalBuffer.components = 3;
 				const normalize = false;
 				const stride = 0;
 				const offset = 0;
@@ -713,7 +731,7 @@ export default class RenderLayer {
 			}
 			
 			if (!this.settings.useObjectColors) {
-				const numComponents = 4;
+				const numComponents = colorBuffer.components = 4;
 				const normalize = false;
 				const stride = 0;
 				const offset = 0;
@@ -752,7 +770,7 @@ export default class RenderLayer {
 
 			// Per-object pick vertex colors
 			if (buffer.pickColors) {
-				const numComponents = 2;
+				const numComponents = pickColorBuffer.components = 2;
 				const type = this.gl.UNSIGNED_INT;
 				const normalize = false;
 				const stride = 0;
@@ -769,10 +787,12 @@ export default class RenderLayer {
 			// @todo: why are there some many positions +- 100 000 on the Duplex model?
 			// Ruben: If you are referring to the positionsIndex, this is in bytes, and especially when vertex quantization is off (which is is now), it will use 3 * 4 = 12 bytes per vertex
 
-			var newBuffer = {
+			newBuffer = {
 				positionBuffer: positionBuffer,
 				normalBuffer: normalBuffer,
-				indexBuffer: indexBuffer,
+				colorBuffer: colorBuffer,
+				pickColorBuffer: pickColorBuffer,
+				indexBuffer: indexBuffer,				
 				nrIndices: buffer.nrIndices,
 				nrNormals: buffer.normalsIndex,
 				nrPositions: buffer.positionsIndex,
@@ -784,8 +804,20 @@ export default class RenderLayer {
 				computeVisibleRanges: buffer.computeVisibleRanges,
 				geometryIdToIndex: buffer.geometryIdToIndex,
 				visibleRanges: buffer.visibleRanges,
-				lineIndexBuffers: buffer.lineIndexBuffers
+				lineIndexBuffers: buffer.lineIndexBuffers,
+				setColor: buffer.setColor,
+				copy: buffer.copy,
+				owner: this,
+				manager: gpuBufferManager
 			};
+
+			if (buffer.geometryIdToIndex) {
+				for (var key of buffer.geometryIdToIndex.keys()) {
+					var li = (this.viewer.geometryIdToBufferSet.get(key) || []);
+					li.push(newBuffer);
+					this.viewer.geometryIdToBufferSet.set(key, li);
+				}
+			}
 			
 			if (this.settings.useObjectColors) {
 				newBuffer.color = [buffer.color.r, buffer.color.g, buffer.color.b, buffer.color.a];
@@ -810,6 +842,8 @@ export default class RenderLayer {
 		this.viewer.stats.inc("Data", "GPU bytes", buffer.bytes);
 		this.viewer.stats.inc("Data", "GPU bytes total", buffer.bytes);
 		this.viewer.stats.inc("Buffers", "Buffer groups");
+
+		return newBuffer;
 	}
 
 	renderSelectionOutlines(ids, width, node) {
@@ -831,11 +865,13 @@ export default class RenderLayer {
 			var buffers = (node || this).gpuBufferManager.getBuffers(a, b);
 			for (let buffer of buffers) {
 				ids.forEach((id) => {
-					let lines = buffer.lineIndexBuffers.get(id);
-					if (lines) {
-						lines.renderStart(viewer);
-						lines.render(color, matrix, width || 0.005);
-						lines.renderStop();
+					if (buffer.lineIndexBuffers) {
+						let lines = buffer.lineIndexBuffers.get(id);
+						if (lines) {
+							lines.renderStart(viewer);
+							lines.render(color, matrix, width || 0.005);
+							lines.renderStop();
+						}
 					}
 				});
 			}

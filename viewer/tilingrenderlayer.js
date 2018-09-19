@@ -238,17 +238,22 @@ export default class TilingRenderLayer extends RenderLayer {
 		console.log(this.tileLoader.executor);
 	}
 
-	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
-		var loader = this.getLoader(loaderId);
-		var node = this.loaderToNode[loaderId];
-		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, node.gpuBufferManager);
+	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager) {
+		if (!gpuBufferManager) {
+			var loader = this.getLoader(loaderId);
+			var node = this.loaderToNode[loaderId];
+			gpuBufferManager = node.gpuBufferManager;
+		}
+		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager);
 	}
 
-	addGeometryReusable(geometry, loader, gpuBufferManager) {
-		super.addGeometryReusable(geometry, loader, gpuBufferManager);
-		var node = this.loaderToNode[loader.loaderId];
-		node.stats.triangles += ((geometry.indices.length / 3) * (geometry.matrices.length));
-		node.stats.drawCallsPerFrame++;
+	addGeometryReusable(geometry, loader, gpuBufferManager, useInstancing) {
+		super.addGeometryReusable(geometry, loader, gpuBufferManager, useInstancing);
+		if (loader) {
+			var node = this.loaderToNode[loader.loaderId];
+			node.stats.triangles += ((geometry.indices.length / 3) * (geometry.matrices.length));
+			node.stats.drawCallsPerFrame++;
+		}
 	}
 
 	done(loaderId) {
@@ -308,13 +313,19 @@ export default class TilingRenderLayer extends RenderLayer {
 	
 	flushBuffer(buffer) {
 		var node = buffer.node;
-		super.flushBuffer(buffer, node.gpuBufferManager)
+		let gpuBuffer = super.flushBuffer(buffer, node.gpuBufferManager);
+
+		gpuBuffer.node = node;
 
 		node.stats.triangles += buffer.nrIndices / 3;
 		node.stats.drawCallsPerFrame++;
 
-		node.bufferManager.resetBuffer(buffer);
+		if (node.bufferManager) {
+			node.bufferManager.resetBuffer(buffer);
+		}
 		this.viewer.dirty = true;
+
+		return gpuBuffer;
 	}
 
 	completelyDone() {

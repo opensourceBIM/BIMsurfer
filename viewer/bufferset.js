@@ -178,184 +178,86 @@ export default class BufferSet {
 		this.lineIndexBuffers = new Map();
 	}
 
-    // @todo: this is not used yet
-    flush(gpuBufferManager) {
-		if (this.nrIndices == 0) {
-			return;
-        }
-        
-        this.gl = gpuBufferManager.gl;
-        const viewer = gpuBufferManager.viewer;
+	copy(gl, objectId) {
+		let idx = this.geometryIdToIndex.get(objectId)[0];
+		let [offset, length] = [idx.start, idx.length];
+
+		const indices = new Uint32Array(length);
+
+		var restoreElementBinding = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+		gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, offset * 4, indices, 0, indices.length);
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, restoreElementBinding);
+
+		let [minIndex, maxIndex] = [Math.min.apply(null, indices), Math.max.apply(null, indices)];
+		let numVertices = maxIndex - minIndex + 1;
+
+		let returnDictionary = {};
+		let toCopy = ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"];
 		
-		var programInfo = viewer.programManager.getProgram({
-			picking: false,
-			instancing: false,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: this.settings.quantizeNormals,
-			quantizeVertices: this.settings.quantizeVertices,
-			quantizeColors: this.settings.quantizeColors
+		toCopy.forEach((name) => {
+			let buffer = this[name];
+			let bytes_per_elem = window[buffer.js_type].BYTES_PER_ELEMENT;
+			let gpu_data = new window[buffer.js_type](numVertices * buffer.components);
+
+			var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+			gl.getBufferSubData(gl.ARRAY_BUFFER, minIndex * bytes_per_elem * buffer.components, gpu_data, 0, gpu_data.length);
+			gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
+
+			let shortName = name.replace("Buffer", "") + "s";
+			returnDictionary[shortName] = gpu_data;
+			returnDictionary["nr" + shortName.substr(0,1).toUpperCase() + shortName.substr(1)] = gpu_data.length;
 		});
 
-		var pickProgramInfo = viewer.programManager.getProgram({
-			picking: true,
-			instancing: false,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: false,
-			quantizeVertices: this.settings.quantizeVertices,
-			quantizeColors: false
+		for (let i = 0; i < indices.length; ++i) {
+			indices[i] -= minIndex;
+		}
+
+		returnDictionary["indices"] = indices;
+		returnDictionary["nrIndices"] = indices.length;
+
+		return returnDictionary;
+	}
+
+	setColor(gl, objectId, clr) {
+		if (clr.length == 4 && this.hasTransparency != (clr[3] < 1.)) {
+			return false;
+		}
+
+		var oldColors, newColors, clrArray;
+
+		if (clr.length == 4) {
+			let factor = this.colorBuffer.js_type == Uint8Array.name ? 255. : 1.;
+			clrArray = new window[this.colorBuffer.js_type](4);
+			for (let i = 0; i < 4; ++i) {
+				clrArray[i] = clr[i] * factor;
+			}
+		} else {
+			newColors = clr;
+		}
+
+		this.geometryIdToIndex.get(objectId).forEach((idx) => {
+			let [offet, length] = [idx.color, idx.colorLength];
+			let bytes_per_elem = window[this.colorBuffer.js_type].BYTES_PER_ELEMENT;
+			
+			// Assumes there is just one index pair, this is for now always the case.
+			oldColors = new window[this.colorBuffer.js_type](length);
+
+			if (clr.length == 4) {
+				newColors = new window[this.colorBuffer.js_type](length);
+				for (let i = 0; i < length; i += 4) {
+					newColors.set(clrArray, i);
+				}
+			}
+
+			var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+			gl.getBufferSubData(gl.ARRAY_BUFFER, offet * bytes_per_elem, oldColors, 0, length);
+			gl.bufferSubData(gl.ARRAY_BUFFER, offet * bytes_per_elem, newColors, 0, length);
+			gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
 		});
-		
-		if (!this.settings.fakeLoading) {
 
-			// Positions
-			const positionBuffer = this.gl.createBuffer();
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-			this.gl.bufferData(this.gl.ARRAY_BUFFER, this.positions, this.gl.STATIC_DRAW, 0, this.positionsIndex);
-
-			// Normals
-			const normalBuffer = this.gl.createBuffer();
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-			this.gl.bufferData(this.gl.ARRAY_BUFFER, this.normals, this.gl.STATIC_DRAW, 0, this.normalsIndex);
-
-			// Colors
-			var colorBuffer;
-			if (this.colors) {
-				colorBuffer = this.gl.createBuffer();
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, this.colors, this.gl.STATIC_DRAW, 0, this.colorsIndex);
-			}
-
-			// Per-object pick vertex colors
-			var pickColorBuffer;
-			if (this.pickColors) {
-				pickColorBuffer = this.gl.createBuffer();
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
-				this.gl.bufferData(this.gl.ARRAY_BUFFER, this.pickColors, this.gl.STATIC_DRAW, 0, this.pickColorsIndex);
-			}
-
-			// Indices
-			const indexBuffer = this.gl.createBuffer();
-			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-			this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.indices, this.gl.STATIC_DRAW, 0, this.indicesIndex);
-
-			// Normal drawing VAO
-			var vao = this.gl.createVertexArray();
-			this.gl.bindVertexArray(vao);
-
-			{
-				const numComponents = 3;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-				if (this.settings.quantizeVertices) {
-					this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexPosition, numComponents, this.gl.SHORT, normalize, stride, offset);
-				} else {
-					this.gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, numComponents, this.gl.FLOAT, normalize, stride, offset);
-				}
-				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-			}
-			{
-				const numComponents = 3;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-				if (this.settings.quantizeNormals) {
-					this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.BYTE, normalize, stride, offset);
-				} else {
-					this.gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.FLOAT, normalize, stride, offset);
-				}
-				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
-			}
-			
-			if (!this.settings.useObjectColors) {
-				const numComponents = 4;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-				if (this.settings.quantizeColors) {
-					this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.UNSIGNED_BYTE, normalize, stride, offset);
-				} else {
-					this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.FLOAT, normalize, stride, offset);
-				}
-				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
-			}
-
-			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-			this.gl.bindVertexArray(null);
-
-			// Picking VAO
-
-			var vaoPick = this.gl.createVertexArray();
-			this.gl.bindVertexArray(vaoPick);
-
-			// Positions
-			{
-				const numComponents = 3;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-				if (this.settings.quantizeVertices) {
-					this.gl.vertexAttribIPointer(pickProgramInfo.attribLocations.vertexPosition, numComponents, this.gl.SHORT, normalize, stride, offset);
-				} else {
-					this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexPosition, numComponents, this.gl.FLOAT, normalize, stride, offset);
-				}
-				this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexPosition);
-			}
-
-			// Per-object pick vertex colors
-			if (this.pickColors) {
-				const numComponents = 2;
-				const type = this.gl.UNSIGNED_INT;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
-				this.gl.vertexAttribIPointer(pickProgramInfo.attribLocations.vertexPickColor, numComponents, type, normalize, stride, offset);
-				this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexPickColor);
-			}
-
-			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-			this.gl.bindVertexArray(null);
-
-			
-            this.positionBuffer = positionBuffer;
-            this.normalBuffer = normalBuffer;
-            this.indexBuffer = indexBuffer;
-            this.nrNormals = this.normalsIndex;
-            this.nrPositions = this.positionsIndex;
-            this.vao = vao;
-            this.vaoPick = vaoPick;
-            this.reuse = false;			
-			
-			if (this.settings.useObjectColors) {
-				this.color = [this.color.r, this.color.g, this.color.b, this.color.a];
-				this.colorHash = Utils.hash(JSON.stringify(this.color));
-			} else {
-				this.colorBuffer = colorBuffer;
-				this.nrColors = this.colorsIndex;
-			}
-
-			if (this.pickColors) {
-				this.pickColorBuffer = pickColorBuffer;
-			}
-			
-			gpuBufferManager.pushBuffer(this);
-			viewer.dirty = true;
-		}
-        
-        // @todo better separation of concerns here
-		gpuBufferManager.viewer.stats.inc("Primitives", "Nr primitives loaded", this.nrIndices / 3);
-		if (gpuBufferManager.progressListener != null) {
-			gpuBufferManager.progressListener(viewer.stats.get("Primitives", "Nr primitives loaded") + viewer.stats.get("Primitives", "Nr primitives hidden"));
-		}
-		gpuBufferManager.viewer.stats.inc("Data", "GPU bytes", this.bytes);
-		gpuBufferManager.viewer.stats.inc("Data", "GPU bytes total", this.bytes);
-		gpuBufferManager.viewer.stats.inc("Buffers", "Buffer groups");
+		return oldColors;
 	}
 }

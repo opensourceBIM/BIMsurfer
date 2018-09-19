@@ -19,13 +19,6 @@ export default class GpuBufferManager {
 		this.liveReusedBuffersOpaque = [];
 		this.liveReusedBuffersTransparent = [];
 	}
-
-	apply(fn) {
-		this.liveBuffersTransparent.forEach(fn);
-		this.liveBuffersOpaque.forEach(fn);
-		this.liveReusedBuffersOpaque.forEach(fn);
-		this.liveReusedBuffersTransparent.forEach(fn);
-	}
 	
 	isEmpty() {
 		return 
@@ -55,19 +48,16 @@ export default class GpuBufferManager {
 	}
 	
 	pushBuffer(buffer) {
-		if (buffer.reuse) {
-			if (buffer.hasTransparency) {
-				this.liveReusedBuffersTransparent.push(buffer);
-			} else {
-				this.liveReusedBuffersOpaque.push(buffer);
-			}
-		} else {
-			if (buffer.hasTransparency) {
-				this.liveBuffersTransparent.push(buffer);
-			} else {
-				this.liveBuffersOpaque.push(buffer);
-			}
+		this.getBuffers(buffer.hasTransparency, buffer.reuse).push(buffer);
+	}
+
+	deleteBuffer(buffer) {
+		let arr = this.getBuffers(buffer.hasTransparency, buffer.reuse);
+		let idx = arr.indexOf(buffer);
+		if (idx === -1) {
+			throw "Unable to find buffer to delete";
 		}
+		arr.splice(idx, 1);
 	}
 	
 	sortAllBuffers() {
