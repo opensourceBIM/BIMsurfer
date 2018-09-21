@@ -80,7 +80,7 @@ export default class RenderLayer {
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager) {
 		var object = {
 				id: objectId,
-				visible: type != "IfcOpeningElement" && type != "IfcSpace",
+				visible: type != "IfcOpeningElement",
 				hasTransparency: hasTransparency,
 				matrix: matrix,
                 normalMatrix: normalMatrix,
@@ -110,8 +110,14 @@ export default class RenderLayer {
 		});
 
 		this.viewer.stats.inc("Models", "Objects");
+		
+		this.postCreateObject(loaderId, aabb);
 
 		return object;
+	}
+	
+	postCreateObject(loaderId, aabb) {
+		// To be overwritten
 	}
 
 	addGeometry(loaderId, geometry, object, buffer, sizes) {
@@ -264,7 +270,7 @@ export default class RenderLayer {
 	}
 	
 	storeMissingGeometry(geometryLoader, map) {
-		var node = this.loaderToNode[geometryLoader.loaderId];
+		var node = this.loaderToNode.get(geometryLoader.loaderId);
 		for (var geometryDataId of map.keys()) {
 			var geometryInfoIds = map.get(geometryDataId);
 			for (var geometryInfoId of geometryInfoIds) {

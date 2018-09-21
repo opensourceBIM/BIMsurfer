@@ -7,9 +7,10 @@ import BufferManagerPerColor from './buffermanagerpercolor.js'
 import Utils from './utils.js'
 import TileLoader from './tileloader.js'
 import ReuseLoader from './reuseloader.js'
+import BoxRenderer from './boxrenderer.js'
 
 /*
- * A specific type of RenderLayer, which uses Tiling to achieve better render performance, but also minimizes the amount of data that needs to be loaded of the line.
+ * A specific type of RenderLayer, which uses Tiling to achieve better render performance, but also minimizes the amount of data that needs to be loaded over the line.
  * 
  */
 
@@ -19,8 +20,14 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		this.octree = new Octree(bounds, viewer.settings.maxOctreeDepth);
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
+		this.boxRenderer = new BoxRenderer(viewer, viewer.gl);
+		
+		this.sortPositionA = vec4.create();
+		this.sortPositionB = vec4.create();
+		this.sortModelView = mat4.create();
+		this.occlusionTempPos = vec3.create();
 
-		this.loaderToNode = {};
+		this.loaderToNode = new Map();
 
 		this.drawTileBorders = this.viewer.settings.drawTileBorders;
 
@@ -32,6 +39,11 @@ export default class TilingRenderLayer extends RenderLayer {
 		
 		this.show = "none";
 		this.initialLoad = "none";
+	}
+	
+	postCreateObject(loaderId, aabb) {
+		var node = this.loaderToNode.get(loaderId);
+		node.integrateMinimumBounds(aabb);
 	}
 	
 	showAll() {
@@ -60,32 +72,40 @@ export default class TilingRenderLayer extends RenderLayer {
 		});
 		return promise;
 	}
-
+	
 	cull(node) {
-		// 1. Are we always showing all objects?
+		// Are we always showing all objects?
 		if (this.show == "all") {
 			return false;
 		}
 
-		// 2. Is the complete Tile outside of the view frustum?
+		// Is the complete Tile outside of the view frustum?
 		var isect = this._frustum.intersectsWorldAABB(node.bounds);
 
 		if (isect === Frustum.OUTSIDE_FRUSTUM) {
 			return true;
 		}
 
-		// 3. In the tile too far away?
-		var cameraEye = this.viewer.camera.eye;
-		var tileCenter = node.getCenter();
-		var sizeFactor = 1 / Math.pow(2, node.level);
-		if (vec3.distance(cameraEye, tileCenter) / sizeFactor > 2000000) { // TODO use something related to the total bounding box size
-			return true;
+		if (this.settings.occlusionCulling) {
+            if (node.occluded) {
+            	return true;
+            }
+		}
+		
+		if (this.settings.distanceCulling) {
+			// Is the tile too far away?
+			var cameraEye = this.viewer.camera.eye;
+			var tileCenter = node.getCenter();
+			var sizeFactor = 1 / Math.pow(2, node.level);
+			if (vec3.distance(cameraEye, tileCenter) / sizeFactor > 2000000) { // TODO use something related to the total bounding box size
+				return true;
+			}
 		}
 
 		// Default response
 		return false;
 	}
-
+	
 	renderBuffers(transparency, reuse, visibleElements) {
 		// TODO when navigation is active (rotating, panning etc...), this would be the place to decide to for example not-render anything in this layer, or maybe apply more aggressive culling
 		// if (this.viewer.navigationActive) {
@@ -101,6 +121,10 @@ export default class TilingRenderLayer extends RenderLayer {
 		var renderingTriangles = 0;
 		var drawCalls = 0;
 
+		if (shouldUpdateVisibility) { // Saves us from initializing two times per frame
+			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
+		}
+		
 		var programInfo = this.viewer.programManager.getProgram({
 			picking: picking,
 			instancing: reuse,
@@ -112,7 +136,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		});
 
 		this.gl.useProgram(programInfo.program);
-
+		
 		if (!picking) {
 			// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
 			this.viewer.lighting.render(programInfo.uniformBlocks.LightData);
@@ -124,12 +148,26 @@ export default class TilingRenderLayer extends RenderLayer {
 		if (this.settings.quantizeVertices) {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 		}
-
-		if (shouldUpdateVisibility) { // Saves us from initializing two times per frame
-			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
-		}
-
-		this.octree.traverse((node) => {
+		
+		var tilesStartedLoading = 0;
+		
+		this.octree.list.forEach((node) => {
+			vec3.set(this.occlusionTempPos, 0, 0, 0);
+		    mat4.mul(this.sortModelView, this.viewer.camera.viewMatrix, node.matrix);
+		    vec3.transformMat4(this.occlusionTempPos, this.occlusionTempPos, this.sortModelView);
+		    node.zdepth = this.occlusionTempPos[2];
+		});
+//		var minDepth = Math.min(...this.octree.list.map((node) => {
+//			return node.zdepth;
+//		}));
+//		var maxDepth = Math.max(...this.octree.list.map((node) => {
+//			return node.zdepth;
+//		}));
+		this.octree.list.sort((a, b) => {
+			return b.zdepth - a.zdepth;
+		});
+		
+		this.octree.list.forEach((node) => {
 			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling 
 			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
 			// skip the remaining child nodes
@@ -146,7 +184,11 @@ export default class TilingRenderLayer extends RenderLayer {
 						drawCalls += node.stats.drawCallsPerFrame;
 					}
 					if (node.loadingStatus == 0) {
-						this.tileLoader.loadTile(node);
+						if (tilesStartedLoading < 10) {
+							if (this.tileLoader.loadTile(node)) {
+								tilesStartedLoading++;
+							}
+						}
 					}
 				}
 			}
@@ -158,9 +200,43 @@ export default class TilingRenderLayer extends RenderLayer {
 				}
 
 				var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
+				this.gl.beginQuery(this.gl.ANY_SAMPLES_PASSED_CONSERVATIVE, node.query);
 				this.renderFinalBuffers(buffers, programInfo, visibleElements);
+				this.gl.endQuery(this.gl.ANY_SAMPLES_PASSED_CONSERVATIVE);
+				node.queryInProgress = true;
 			}
 		});
+
+		if (this.settings.occlusionCulling && transparency && !reuse && !picking) {
+			this.boxRenderer.renderStart(this.viewer);
+			this.gl.colorMask(false, false, false, false);
+			this.gl.depthMask(false);
+			
+			this.octree.list.forEach((node) => {
+				if (node.query != null) {
+					var wasOccluded = node.occluded;
+					// Test whether a complete tile is occluded
+					if (node.queryInProgress && this.gl.getQueryParameter(node.query, this.gl.QUERY_RESULT_AVAILABLE)) {
+						var samplesPassed = this.gl.getQueryParameter(node.query, this.gl.QUERY_RESULT);
+						node.occluded = samplesPassed == 0;
+						node.queryInProgress = false;
+					}
+					if (wasOccluded) {
+						// Query is initiated here by drawing the bounding box of the tile
+						if (!node.queryInProgress) {
+							this.gl.beginQuery(this.gl.ANY_SAMPLES_PASSED_CONSERVATIVE, node.query);
+							this.boxRenderer.render(node.getMinimumBoundsMatrix());
+							this.gl.endQuery(this.gl.ANY_SAMPLES_PASSED_CONSERVATIVE);
+							node.queryInProgress = true;
+						}
+					}
+				}
+			});
+			this.boxRenderer.renderStop();
+
+			this.gl.colorMask(true, true, true, true);
+			this.gl.depthMask(true);
+		}
 
 		if (shouldUpdateVisibility) {
 			this.viewer.stats.setParameter("Drawing", "Draw calls per frame (L2)", drawCalls);
@@ -171,7 +247,11 @@ export default class TilingRenderLayer extends RenderLayer {
 		if (!picking && transparency && !reuse && this.drawTileBorders) {
 			// The lines are rendered in the transparency-phase only
 			this.lineBoxGeometry.renderStart(this.viewer);
+			
+	        this.gl.disable(this.gl.DEPTH_TEST);
+			
 			this.octree.traverse((node, level) => {
+				var width = 0.001;
 				var color = null;
 				if (node.loadingStatus == 0) {
 					// No visualisation, node is not empty (or parent node)
@@ -184,6 +264,7 @@ export default class TilingRenderLayer extends RenderLayer {
 					// Node is loaded
 					if (node.visibilityStatus == 0) {
 						color = [0, 1, 0, 1];
+						width = 0.005;
 					} else if (node.visibilityStatus == 1) {
 						color = [0, 0, 1, 1];
 					}
@@ -192,10 +273,13 @@ export default class TilingRenderLayer extends RenderLayer {
 				} else if (node.loadingStatus == 5) {
 					// Node has been tried to load, but no objects were returned
 				}
+//				var q = maxDepth - minDepth;
+//				color = [(node.zdepth - minDepth) / q, 0, 0, 1];
 				if (color != null && visibleElements.pass != 'stencil') {
-					this.lineBoxGeometry.render(color, node.getMatrix(), 0.008 / Math.pow(2, level));
+					this.lineBoxGeometry.render(color, node.getMinimumMoundsMatrix(), width);
 				}
 			});
+	        this.gl.enable(this.gl.DEPTH_TEST);
 			this.lineBoxGeometry.renderStop();
 		}
 	}
@@ -219,7 +303,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			return;
 		}
 
-		var node = this.loaderToNode[loaderId];
+		var node = this.loaderToNode.get(loaderId);
 		
 		if (node.bufferManager == null) {
 			if (this.settings.useObjectColors) {
@@ -240,20 +324,20 @@ export default class TilingRenderLayer extends RenderLayer {
 
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
 		var loader = this.getLoader(loaderId);
-		var node = this.loaderToNode[loaderId];
+		var node = this.loaderToNode.get(loaderId);
 		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, node.gpuBufferManager);
 	}
 
 	addGeometryReusable(geometry, loader, gpuBufferManager) {
 		super.addGeometryReusable(geometry, loader, gpuBufferManager);
-		var node = this.loaderToNode[loader.loaderId];
+		var node = this.loaderToNode.get(loader.loaderId);
 		node.stats.triangles += ((geometry.indices.length / 3) * (geometry.matrices.length));
 		node.stats.drawCallsPerFrame++;
 	}
 
 	done(loaderId) {
 		var loader = this.getLoader(loaderId);
-		var node = this.loaderToNode[loaderId];
+		var node = this.loaderToNode.get(loaderId);
 
 		for (var geometry of loader.geometries.values()) {
 			if (geometry.isReused) {

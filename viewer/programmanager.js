@@ -135,6 +135,19 @@ export default class ProgramManager {
 				}
 			}
 		}
+		
+		var settings = {
+			trianglePrimitives: true
+		};
+		let uniforms = [
+			"matrix",
+			"projectionMatrix",
+			"viewMatrix",
+		];
+		this.setupProgram(this.viewerBasePath + "shaders/vertex.glsl", this.viewerBasePath + "shaders/fragment.glsl", {
+			attributes: ["vertexPosition"],
+			uniforms: uniforms
+		}, this.generateSetup(settings), settings);
 
         return Promise.all(this.promises);
 	}

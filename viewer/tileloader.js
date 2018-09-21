@@ -18,7 +18,7 @@ export default class TileLoader {
 		this.roids = roids;
 		this.fieldsToInclude = fieldsToInclude;
 	
-		this.excludedTypes = ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"];
+		this.excludedTypes = ["IfcOpeningElement", "IfcAnnotation"];
 		this.executor = new Executor(64);
 		
 //		if (this.viewer.vertexQuantization) {
@@ -44,9 +44,13 @@ export default class TileLoader {
 				maximumThreshold: -1,
 				depth: this.settings.maxOctreeDepth
 			}, (list) => {
-				for (var i=0; i<list.length; i+=2) {
+				for (var i=0; i<list.length; i+=8) {
 					var tileId = list[i];
 					var nrObjects = list[i + 1];
+					var aabb = [];
+					for (var j=0; j<6; j++) {
+						aabb[j] = list[j + i + 2];
+					}
 					if (nrObjects == 0) {
 						// Should not happen
 						debugger;
@@ -56,8 +60,15 @@ export default class TileLoader {
 					this.viewer.stats.inc("Tiling", "Full");
 					var node = this.tilingRenderLayer.octree.getNodeById(tileId);
 					
+					node.setMinimumBounds(aabb);
+					
 					node.loadingStatus = 0;
 					node.nrObjects = nrObjects;
+					if (this.settings.occlusionCulling) {
+						node.query = this.viewer.gl.createQuery();
+						node.queryInProgress = false;
+						node.occluded = true;
+					}
 					node.stats = {
 						triangles: 0,
 						drawCallsPerFrame: 0
@@ -68,16 +79,16 @@ export default class TileLoader {
 		});
 		return promise;
 	}
-	
+
 	/*
 	 * Starts loading a specific tile
 	 */
 	loadTile(node, executor) {
 		if (!this.tilingRenderLayer.enabled) {
-			return;
+			return false;
 		}
 		if (node.loadingStatus != 0) {
-			return;
+			return false;
 		}
 		node.loadingStatus = 1;
 		if (executor == null) {
@@ -85,6 +96,7 @@ export default class TileLoader {
 		}
 		if (node.nrObjects == 0) {
 			node.loadingStatus = 2;
+			return false;
 			// This happens for parent nodes that don't contain any objects, but have children that do have objects
 			return;
 		}
@@ -123,7 +135,7 @@ export default class TileLoader {
 		
 		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, this.tilingRenderLayer, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, this.tilingRenderLayer.reusedGeometryCache);
 		this.tilingRenderLayer.registerLoader(geometryLoader.loaderId);
-		this.tilingRenderLayer.loaderToNode[geometryLoader.loaderId] = node;
+		this.tilingRenderLayer.loaderToNode.set(geometryLoader.loaderId, node);
 		geometryLoader.onStart = () => {
 			node.loadingStatus = 2;
 			this.viewer.stats.inc("Tiling", "Loading");
@@ -140,6 +152,8 @@ export default class TileLoader {
 			}
 			this.tilingRenderLayer.done(geometryLoader.loaderId);
 		});
+		
+		return true;
 	}
 	
 	geometryLoaderDone(geometryLoader) {

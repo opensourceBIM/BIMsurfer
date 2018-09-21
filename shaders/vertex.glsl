@@ -65,6 +65,11 @@ out mediump vec4 color;
 uniform vec4 objectColor;
 #endif
 
+
+#ifdef WITH_TRIANGLEPRIMITIVES
+uniform mat4 matrix;
+#endif
+
 #ifdef WITH_LINEPRIMITIVES
 uniform vec4 inputColor;
 uniform mat4 matrix;
@@ -138,7 +143,12 @@ void main(void) {
     color = inputColor;
 #else
 
+#ifdef WITH_TRIANGLEPRIMITIVES
+    gl_Position = projectionMatrix * viewMatrix * matrix * floatVertex;
+#else
     gl_Position = projectionMatrix * viewMatrix * floatVertex;
+#endif
+
 
 #ifdef WITH_PICKING
 #ifdef WITH_INSTANCING

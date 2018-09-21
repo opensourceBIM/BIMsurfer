@@ -77,6 +77,12 @@ export default class DefaultSettings {
 				return bbs[0];
 			};
 		}
+		if (settings.distanceCulling == null) {
+			settings.distanceCulling = false;
+		}
+		if (settings.occlusionCulling == null) {
+			settings.occlusionCulling = true;
+		}
 		if (settings.loaderSettings.tilingLayerReuse == null) {
 			settings.loaderSettings.tilingLayerReuse = true;
 		}

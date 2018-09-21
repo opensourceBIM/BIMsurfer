@@ -3,13 +3,17 @@
  */
 
 class OctreeNode {
-	constructor(parent, id, x, y, z, width, height, depth, level) {
+	constructor(root, parent, id, x, y, z, width, height, depth, level) {
 		this.parent = parent;
 		if (parent != null) {
 			if (level > this.parent.deepestLevel) {
 				this.parent.deepestLevel = level;
 			}
-		}		
+		}
+		this.root = root;
+		if (root != null) {
+			root.list.push(this);
+		}
 		this.id = id;
 		
 		this.leaf = true;
@@ -17,6 +21,8 @@ class OctreeNode {
 		this.x = x;
 		this.y = y;
 		this.z = z;
+		
+		this.minimumBounds = null;
 		
 		this.nrObjects = 0;
 		
@@ -50,6 +56,40 @@ class OctreeNode {
 		if (depth > this.largestEdge) {
 			this.largestEdge = depth;
 		}
+	}
+	
+	integrateMinimumBounds(aabb) {
+		if (this.minimumBounds == null) {
+			this.minimumBounds = [aabb[0], aabb[1], aabb[2], aabb[3], aabb[4], aabb[5]];
+		} else {
+			for (var i=0; i<3; i++) {
+				if (aabb[i] < this.minimumBounds[i]) {
+					this.minimumBounds[i] = aabb[i];
+				}
+				if (aabb[i + 3] > this.minimumBounds[i + 3]) {
+					this.minimumBounds[i + 3] = aabb[i + 3];
+				}
+			}
+		}
+	}
+	
+	setMinimumBounds(minimumBounds) {
+		this.minimumBounds = minimumBounds;
+		
+		this.minimumBoundsMatrix = mat4.create();
+		mat4.translate(this.minimumBoundsMatrix, this.minimumBoundsMatrix, [this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2]);
+		mat4.scale(this.minimumBoundsMatrix, this.minimumBoundsMatrix, [this.minimumBounds[3] - this.minimumBounds[0], this.minimumBounds[4] - this.minimumBounds[1], this.minimumBounds[5] - this.minimumBounds[2]]);
+	}
+	
+	getMinimumBoundsMatrix() {
+		return this.minimumBoundsMatrix;
+//		if (this.minimumBounds == null) {
+//			return this.matrix;
+//		}
+//		var matrix = mat4.create();
+//		mat4.translate(matrix, matrix, [this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2]);
+//		mat4.scale(matrix, matrix, [this.minimumBounds[3] - this.minimumBounds[0], this.minimumBounds[4] - this.minimumBounds[1], this.minimumBounds[5] - this.minimumBounds[2]]);
+//		return matrix;
 	}
 	
 	getBounds() {
@@ -119,14 +159,14 @@ class OctreeNode {
 			var newLevel = this.level + 1;
 			var newId = this.id * 8 + localId + 1;
 			switch (localId) {
-				case 0: quadrant = new OctreeNode(this, newId, this.x, this.y, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 1: quadrant = new OctreeNode(this, newId, this.x, this.y, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 2: quadrant = new OctreeNode(this, newId, this.x, this.y + this.height / 2, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 3: quadrant = new OctreeNode(this, newId, this.x, this.y + this.height / 2, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 4: quadrant = new OctreeNode(this, newId, this.x + this.width / 2, this.y, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 5: quadrant = new OctreeNode(this, newId, this.x + this.width / 2, this.y, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 6: quadrant = new OctreeNode(this, newId, this.x + this.width / 2, this.y + this.height / 2, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 7: quadrant = new OctreeNode(this, newId, this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 0: quadrant = new OctreeNode(this.root, this, newId, this.x, this.y, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 1: quadrant = new OctreeNode(this.root, this, newId, this.x, this.y, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 2: quadrant = new OctreeNode(this.root, this, newId, this.x, this.y + this.height / 2, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 3: quadrant = new OctreeNode(this.root, this, newId, this.x, this.y + this.height / 2, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 4: quadrant = new OctreeNode(this.root, this, newId, this.x + this.width / 2, this.y, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 5: quadrant = new OctreeNode(this.root, this, newId, this.x + this.width / 2, this.y, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 6: quadrant = new OctreeNode(this.root, this, newId, this.x + this.width / 2, this.y + this.height / 2, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 7: quadrant = new OctreeNode(this.root, this, newId, this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
 			}
 			this.quadrants[localId] = quadrant;
 		}
@@ -193,10 +233,12 @@ class OctreeNode {
 
 export default class Octree extends OctreeNode {
 	constructor(bounds, maxDepth) {
-		super(null, 0, bounds[0], bounds[1], bounds[2], bounds[3] - bounds[0], bounds[4] - bounds[1], bounds[5] - bounds[2]);
+		super(null, null, 0, bounds[0], bounds[1], bounds[2], bounds[3] - bounds[0], bounds[4] - bounds[1], bounds[5] - bounds[2]);
+		this.root = this;
 		this.maxDepth = maxDepth;
 		this.level = 0;
 		this.breathFirstList = [];
+		this.list = [this];
 	}
 	
 	extractBreathFirstList(fn) {
