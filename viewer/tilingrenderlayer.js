@@ -308,13 +308,19 @@ export default class TilingRenderLayer extends RenderLayer {
 	
 	flushBuffer(buffer) {
 		var node = buffer.node;
-		super.flushBuffer(buffer, node.gpuBufferManager)
+		let gpuBuffer = super.flushBuffer(buffer, node.gpuBufferManager);
+
+		gpuBuffer.node = node;
 
 		node.stats.triangles += buffer.nrIndices / 3;
 		node.stats.drawCallsPerFrame++;
 
-		node.bufferManager.resetBuffer(buffer);
+		if (node.bufferManager) {
+			node.bufferManager.resetBuffer(buffer);
+		}
 		this.viewer.dirty = true;
+
+		return gpuBuffer;
 	}
 
 	completelyDone() {

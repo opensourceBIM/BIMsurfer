@@ -96,12 +96,14 @@ export default class DefaultRenderLayer extends RenderLayer {
 	}
 
 	flushBuffer(buffer) {
-		super.flushBuffer(buffer, this.gpuBufferManager);
+		let gpuBuffer = super.flushBuffer(buffer, this.gpuBufferManager);
 
 		this.viewer.stats.inc("Drawing", "Draw calls per frame (L1)");
 		this.viewer.stats.inc("Drawing", "Triangles to draw (L1)", buffer.nrIndices / 3);
 
 		this.bufferManager.resetBuffer(buffer);
+
+		return gpuBuffer;
 	}
 
 	renderBuffers(transparency, reuse, visibleElements) {

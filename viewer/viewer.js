@@ -14,6 +14,14 @@ import RenderBuffer from './renderbuffer.js'
 
 var tmp_unproject = vec3.create();
 
+// When a change in color results in a different
+// transparency state, the objects needs to be hidden
+// from the original buffer and recreate in a new buffer
+// to be rendered during the correct render pass. This
+// recreated object will have it's most significant bit
+// set to 1.
+var OVERRIDE_FLAG = (1n << 63n);
+
 export default class Viewer {
 
     constructor(canvas, settings, stats, width, height) {
@@ -36,34 +44,126 @@ export default class Viewer {
 
         this.renderLayers = [];
         this.animationListeners = [];
+        this.colorRestore = [];
+        this.geometryIdToBufferSet = new Map();
 
         this.viewObjects = new Map();
 
         // Null means everything visible, otherwise Set(..., ..., ...)
         this.invisibleElements = null;
 
-        this.selectedElements = null;
+        // Elements for which the color has been overriden and transparency has
+        // changed. These elements are hidden from their original buffers and
+        // recreated in a new buffer during the correct render pass. When elements
+        // are unhidden, the overridden elements need to stay hidden.
+        this.hiddenDueToSetColor = new Map();
+        this.originalColors = new Map();
+
+        this.selectedElements = new Set();
 
         var self = this;
         window._debugViewer = this;  // HACK for console debugging
 
         document.addEventListener("keypress", (evt) => {
-            if (evt.key === 'h') {
-                if (this.selectedElements) {
-                    if (this.invisibleElements) {
-                        this.selectedElements.forEach((i) => {
-                            this.invisibleElements.add(i);
-                        });
-                    } else {
-                        this.invisibleElements = new Set(this.selectedElements);
-                    }
-                    this.selectedElements = new Set();
+            if (evt.key === 'H') {
+                this.invisibleElements = new Set();
+                // Make sure elements hidden due to setColor() stay hidden
+                for (let i of this.hiddenDueToSetColor.keys()) {
+                    this.invisibleElements.add(i);
+                };
+                if (this.invisibleElements.size == 0) {
+                    this.invisibleElements = null;
                 }
-            } else {
-                this.invisibleElements = null;
+            } else if (evt.key === 'h') {
+                this.hide(this.selectedElements);
+                this.selectedElements = new Set();
+            } else if (evt.key === 'C') {
+                this.resetColor(
+                    Array.from(this.hiddenDueToSetColor.keys()).concat(
+                        Array.from(this.originalColors.keys())
+                    )
+                );
+            } else if (evt.key === 'c' || evt.key === 'd') {
+                let R = Math.random;
+                let clr = [R(), R(), R(), R()];
+                if (evt.key === 'c') {
+                    clr[3] = 1.;
+                }
+
+                this.setColor(this.selectedElements, clr);
+                this.selectedElements = new Set();
             }
             this.drawScene();
         });
+    }
+
+    hide(elems) {
+        this.invisibleElements = this.invisibleElements || new Set();
+        elems.forEach((i) => {
+            this.invisibleElements.add(i);
+            // Hide transparently-adjusted counterpart (even though it might not exist)
+            this.invisibleElements.add(i | OVERRIDE_FLAG);
+        });
+    }
+
+    resetColor(elems) {
+        for (let objectId of elems) {
+            if (this.hiddenDueToSetColor.has(objectId)) {
+                this.invisibleElements.delete(objectId);
+                let buffer = this.hiddenDueToSetColor.get(objectId);
+                buffer.manager.deleteBuffer(buffer);
+                this.hiddenDueToSetColor.delete(objectId);
+            } else if (this.originalColors.has(objectId)) {
+                this.geometryIdToBufferSet.get(objectId).forEach((bufferSet) => {
+                    bufferSet.setColor(this.gl, objectId, this.originalColors.get(objectId));
+                });
+                this.originalColors.delete(objectId);
+            }            
+        }
+    }
+
+    setColor(elems, clr) {
+        // Reset colors first to clear any potential transparency overrides.
+        this.resetColor(elems);
+        
+        for (let objectId of elems) {
+            this.geometryIdToBufferSet.get(objectId).forEach((bufferSet) => {
+                let originalColor = bufferSet.setColor(this.gl, objectId, clr);
+                if (originalColor === false) {
+                    if (!this.invisibleElements) {
+                        this.invisibleElements = new Set();
+                    }
+
+                    let original = bufferSet.copy(this.gl, objectId);
+
+                    let clrSameType = new original.colors.constructor(4);
+                    let factor = clrSameType.constructor.name === "Uint8Array" ? 255. : 1.;
+
+                    for (let i = 0; i < 4; ++i) {
+                        clrSameType[i] = clr[i] * factor;
+                    }
+
+                    for (let i = 0; i < original.colors.length; i += 4) {
+                        original.colors.set(clrSameType, i);
+                    }
+
+                    original.hasTransparency = !bufferSet.hasTransparency;
+
+                    original.node = bufferSet.node;
+
+                    let buffer = bufferSet.owner.flushBuffer(original, false);
+
+                    // Note that this is an attribute on the bufferSet, but is
+                    // not applied to the actual webgl vertex data.
+                    buffer.objectId = objectId | OVERRIDE_FLAG;
+
+                    this.invisibleElements.add(objectId);
+                    this.hiddenDueToSetColor.set(objectId, buffer);
+                } else {
+                    this.originalColors.set(objectId, originalColor);
+                }
+            });
+        }
     }
 
     init() {
@@ -190,11 +290,11 @@ export default class Viewer {
                 if (force !== true) {
                     if (!transparency) {
                         gl.disable(gl.BLEND);
-                        gl.depthMask(true);
+                        // gl.depthMask(true);
                     } else {
                         gl.enable(gl.BLEND);
                         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-                        gl.depthMask(false);
+                        // gl.depthMask(false);
                     }
                 }
                 for (var renderLayer of this.renderLayers) {
@@ -205,7 +305,7 @@ export default class Viewer {
 
         render({without: this.invisibleElements});
 
-        if (this.selectedElements) {
+        if (this.selectedElements.size > 0) {
             gl.enable(gl.STENCIL_TEST);
             gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
             gl.stencilFunc(gl.ALWAYS, 1, 0xff);
@@ -297,7 +397,7 @@ export default class Viewer {
         
         if (viewObject) {
             if (params.select !== false) {
-                if (!params.shiftKey || !this.selectedElements) {
+                if (!params.shiftKey) {
                     this.selectedElements = new Set();
                 }
                 if (this.selectedElements.has(objectId)) {
@@ -308,7 +408,7 @@ export default class Viewer {
             }
             return {object: viewObject, coordinates: tmp_unproject};
         } else if (params.select !== false) {
-            this.selectedElements = null;
+            this.selectedElements = new Set();
         }
 
         return {object: null, coordinates: tmp_unproject};
