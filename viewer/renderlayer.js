@@ -287,7 +287,7 @@ export default class RenderLayer {
 			if (this.geometryCache.has(geometryId)) {
 				geometry = this.geometryCache.get(geometryId);
 			} else {
-				console.error("Missing geometry id");
+				console.error("Missing geometry id", geometryId);
 				return;
 			}
 		}
