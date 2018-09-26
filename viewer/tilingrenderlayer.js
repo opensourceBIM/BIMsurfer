@@ -274,10 +274,12 @@ export default class TilingRenderLayer extends RenderLayer {
 			object.add = null;
 		}
 
-		var savedBuffers = node.gpuBufferManager.combineBuffers();
-		this.viewer.stats.dec("Drawing", "Draw calls per frame (L2)", savedBuffers);
-		this.viewer.stats.dec("Buffers", "Buffer groups", savedBuffers);
-		node.stats.drawCallsPerFrame -= savedBuffers;
+		if (this.settings.autoCombineGpuBuffers) {
+			var savedBuffers = node.gpuBufferManager.combineBuffers();
+			this.viewer.stats.dec("Drawing", "Draw calls per frame (L2)", savedBuffers);
+			this.viewer.stats.dec("Buffers", "Buffer groups", savedBuffers);
+			node.stats.drawCallsPerFrame -= savedBuffers;
+		}
 
 		this.removeLoader(loaderId);
 	}

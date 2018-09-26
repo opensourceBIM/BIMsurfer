@@ -20,6 +20,7 @@ export default class Dev {
 				document.removeEventListener("keypress", this.keyPressHandler);
 				window._debugViewer = null;
 				window.tilingRenderLayer = null;
+				window.defaultRenderLayer = null;
 				this.canvas.remove();
 				this.canvas = null;
 				this.bimServerViewer.cleanup();

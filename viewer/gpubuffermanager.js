@@ -84,8 +84,8 @@ export default class GpuBufferManager {
 	 * This method will combine buffers on the GPU. It's disabled for now, not that it doesn't work, but it seems to generate quite a bit of "stuttering". Maybe we need to use a different type of buffer.
 	 */
 	combineBuffers() {
-		// Disabled for now
-		return 0;
+		// TODO this is not working currently
+		
 		for (var transparency of [false, true]) {
 			var buffers = this.getBuffers(transparency, false);
 			

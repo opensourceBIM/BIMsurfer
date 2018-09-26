@@ -72,6 +72,9 @@ export default class DefaultSettings {
 		if (settings.viewerBasePath == null) {
 			settings.viewerBasePath = "./";
 		}
+		if (settings.autoCombineGpuBuffers == null) {
+			settings.autoCombineGpuBuffers = false;
+		}
 		if (settings.regionSelector == null) {
 			settings.regionSelector = (bbs) => {
 				return bbs[0];

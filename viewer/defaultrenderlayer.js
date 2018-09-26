@@ -26,6 +26,8 @@ export default class DefaultRenderLayer extends RenderLayer {
 		}
 
 		this.gpuBufferManager = new GpuBufferManager(this.viewer);
+		
+		window.defaultRenderLayer = this;
 	}
 
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
@@ -79,7 +81,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 			// When using object colors, it makes sense to sort the buffers by color, so we can potentially skip a few uniform binds
 			// It might be beneficiary to do this sorting on-the-lfy and not just when everything is loaded
 			this.gpuBufferManager.sortAllBuffers();
-		} else {
+		} else if (this.settings.autoCombineGpuBuffers) {
 			var savedBuffers = this.gpuBufferManager.combineBuffers();
 
 			this.viewer.stats.dec("Drawing", "Draw calls per frame (L1)", savedBuffers);
