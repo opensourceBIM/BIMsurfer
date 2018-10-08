@@ -77,7 +77,7 @@ export default class DefaultSettings {
 		}
 		if (settings.regionSelector == null) {
 			settings.regionSelector = (bbs) => {
-				return bbs[0];
+				return Promise.resolve(bbs[0]);
 			};
 		}
 		if (settings.loaderSettings.tilingLayerReuse == null) {

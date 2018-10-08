@@ -104,7 +104,7 @@ export default class BimServerViewer {
 				roids: [project.lastRevisionId]
 			}, (bbs) => {
 				if (bbs.length > 1) {
-					this.settings.regionSelector().then((bb) => {
+					this.settings.regionSelector(bbs).then((bb) => {
 						this.genDensityThreshold(project.lastRevisionId, bb);
 					});
 				} else {
@@ -337,6 +337,7 @@ export default class BimServerViewer {
 			this.viewer.stats.setParameter("Loading time", "Layer 1", performance.now() - start);
 			defaultRenderLayer.completelyDone();
 			this.viewer.stats.requestUpdate();
+			this.viewer.dirty = true;
 		});
 		return executor.awaitTermination();
 	}
