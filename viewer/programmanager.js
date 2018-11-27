@@ -157,14 +157,15 @@ export default class ProgramManager {
 		return "shaders/vertex.glsl";
 	}
 
+	* g(s) {
+		for (let k of Object.keys(s).sort()) {
+			yield `${k}:${s[k]}`
+		}
+	}
+
 	stringify(settings) {
 		// tfk: don't rely on JSON.stringify() because the ordering of keys is not deterministic.
-		function* g(s) {
-			for (let k of Object.keys(s).sort()) {
-				yield `${k}:${s[k]}`
-			}
-		}
-		return Array.from(g(settings)).join(";");
+		return Array.from(this.g(settings)).join(";");
 	}
 
 	getProgram(settings) {

@@ -3,6 +3,10 @@ import Utils from './utils.js'
 import GpuBufferManager from './gpubuffermanager.js'
 import GeometryCache from './geometrycache.js'
 
+const selectionOutlineMatrix = mat4.create();
+const outlineColor = new Float32Array([1.0, 0.5, 0.0, 1.0]);
+const false_true = [false, true];
+
 export default class RenderLayer {
 	constructor(viewer, geometryDataToReuse) {
 		this.settings = viewer.settings;
@@ -621,9 +625,9 @@ export default class RenderLayer {
 			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 		} else {
 			if (buffer.computeVisibleRanges) {
-				buffer.computeVisibleRanges(visibleElements, this.gl).forEach((range) => {
+				for (var range of buffer.computeVisibleRanges(visibleElements, this.gl)) {
 					this.gl.drawElements(this.gl.TRIANGLES, range[1] - range[0], this.gl.UNSIGNED_INT, range[0] * 4);
-				});
+				}
 			} else {
 				// This is a buffer for one specific element, probably created when
 				// a call to setColor() changed the transparency state of an element.
@@ -844,11 +848,6 @@ export default class RenderLayer {
 	}
 
 	renderSelectionOutlines(ids, width, node) {
-		var matrix = mat4.identity(mat4.create());
-		var color = new Float32Array([1.0,0.5,0.0,1.0]);
-
-		var lines;
-		const false_true = [false, true];
 		let bufferManager = (node || this).gpuBufferManager;
 
 		if (!bufferManager) {
@@ -858,20 +857,22 @@ export default class RenderLayer {
 
 		let viewer = bufferManager.viewer;
 
-		for (let a of false_true) { for (let b of false_true) {
-			var buffers = (node || this).gpuBufferManager.getBuffers(a, b);
-			for (let buffer of buffers) {
-				ids.forEach((id) => {
-					if (buffer.lineIndexBuffers) {
-						let lines = buffer.lineIndexBuffers.get(id);
-						if (lines) {
-							lines.renderStart(viewer);
-							lines.render(color, matrix, width || 0.005);
-							lines.renderStop();
+		for (let a of false_true) { 
+			for (let b of false_true) {
+				var buffers = (node || this).gpuBufferManager.getBuffers(a, b);
+				for (let buffer of buffers) {
+					for (var id of ids) {
+						if (buffer.lineIndexBuffers) {
+							let lines = buffer.lineIndexBuffers.get(id);
+							if (lines) {
+								lines.renderStart(viewer);
+								lines.render(outlineColor, selectionOutlineMatrix, width || 0.005);
+								lines.renderStop();
+							}
 						}
 					}
-				});
+				}
 			}
-		}}
+		}
 	}
 }
