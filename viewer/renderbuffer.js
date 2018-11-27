@@ -38,7 +38,7 @@ export default class RenderBuffer {
 
         this.colorBuffer = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.colorBuffer);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32UI, width, height, 0, gl.RG_INTEGER, gl.UNSIGNED_INT, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8UI, width, height, 0, gl.RGBA_INTEGER, gl.UNSIGNED_BYTE, null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
@@ -104,10 +104,10 @@ export default class RenderBuffer {
     read(pickX, pickY) {
         var x = pickX;
         var y = this.canvas.height - pickY;
-        var pix = new Uint32Array(2);
+        var pix = new Uint8Array(4);
         var gl = this.gl;
         gl.readBuffer(gl.COLOR_ATTACHMENT0);
-        gl.readPixels(x, y, 1, 1, gl.RG_INTEGER, gl.UNSIGNED_INT, pix);
+        gl.readPixels(x, y, 1, 1, gl.RGBA_INTEGER, gl.UNSIGNED_BYTE, pix);
         return pix;
     }
 

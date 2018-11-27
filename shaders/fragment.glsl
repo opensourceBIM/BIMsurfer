@@ -2,8 +2,8 @@ precision mediump int;
 precision mediump float;
 
 #ifdef WITH_PICKING
-flat in mediump uvec2 color;
-layout(location = 0) out mediump uvec2 myOutputColor;
+flat in mediump uvec4 color;
+layout(location = 0) out mediump uvec4 myOutputColor;
 
 in float depth;
 layout(location = 1) out float myOutputDepth;

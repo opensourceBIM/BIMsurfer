@@ -185,7 +185,7 @@ export default class GeometryLoader {
 			}
 		} else if (geometryType == 5) {
 			// Object
-			var oid = stream.readLongAsBigInt();
+			var oid = stream.readLong();
 			var type = stream.readUTF8();
 			stream.align8();
 			var roid = stream.readLong();

@@ -62,7 +62,7 @@ export default class RenderLayer {
 			}
 		}
 		// Pick buffers
-		bytes += positions.length * 8;
+		bytes += (positions.length / 3) * 4;
 		if (indices.length < 65536 && settings.useSmallIndicesIfPossible) {
 			bytes += indices.length * 2;
 		} else {
@@ -77,22 +77,22 @@ export default class RenderLayer {
 	}
 
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager) {
+		var loader = this.getLoader(loaderId);
 		var object = {
-				id: objectId,
-				visible: type != "IfcOpeningElement" && type != "IfcSpace",
-				hasTransparency: hasTransparency,
-				matrix: matrix,
-                normalMatrix: normalMatrix,
-				scaleMatrix: scaleMatrix,
-				geometry: [],
-				roid: roid,
+			id: objectId,
+			visible: type != "IfcOpeningElement" && type != "IfcSpace",
+			hasTransparency: hasTransparency,
+			matrix: matrix,
+            normalMatrix: normalMatrix,
+			scaleMatrix: scaleMatrix,
+			geometry: [],
+			roid: roid,
 //				object: this.viewer.model.objects[oid],
-				add: (geometryId, objectId) => {
-					this.addGeometryToObject(geometryId, objectId, loader, gpuBufferManager);
-				}
+			add: (geometryId, objectId) => {
+				this.addGeometryToObject(geometryId, objectId, loader, gpuBufferManager);
+			}
 		};
 
-		var loader = this.getLoader(loaderId);
 		loader.objects.set(oid , object);
 
 		var viewObject = {
@@ -102,7 +102,7 @@ export default class RenderLayer {
 			oid: oid,
 			center: null // TODO
 		};
-		this.viewer.viewObjects.set(objectId, viewObject);
+		this.viewer.addViewObject(objectId, viewObject);
 
 		geometryIds.forEach((id) => {
 			this.addGeometryToObject(id, object.id, loader, gpuBufferManager);
@@ -219,7 +219,7 @@ export default class RenderLayer {
 			var lenObjectPickColors = (geometry.positions.length / 3);
 			for (var i=0; i<lenObjectPickColors; i++) {
 				buffer.pickColors.set(pickColor, buffer.pickColorsIndex);
-				buffer.pickColorsIndex += 2;
+				buffer.pickColorsIndex += 4;
 			}
 
 			{var li = (buffer.geometryIdToIndex.get(object.id) || []);
@@ -373,9 +373,9 @@ export default class RenderLayer {
 
 		const instancePickColorsBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancePickColorsBuffer);
-		var instancePickColors = new Uint32Array(numInstances * 2);
+		var instancePickColors = new Uint8Array(numInstances);
 		geometry.objects.forEach((object, index) => {
-			instancePickColors.set(this.viewer.getPickColor(object.id), index * 2);
+			instancePickColors.set(this.viewer.getPickColor(object.id), index);
 		});
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, instancePickColors, this.gl.STATIC_DRAW, 0, 0);
 
@@ -508,7 +508,7 @@ export default class RenderLayer {
 
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancePickColorsBuffer);
 		this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.instancePickColors);
-		this.gl.vertexAttribIPointer(pickProgramInfo.attribLocations.instancePickColors, 2, this.gl.UNSIGNED_INT, false, 0, 0);
+		this.gl.vertexAttribIPointer(pickProgramInfo.attribLocations.instancePickColors, 4, this.gl.UNSIGNED_BYTE, false, 0, 0);
 		this.gl.vertexAttribDivisor(pickProgramInfo.attribLocations.instancePickColors, 1);
 
 		// Indices
@@ -578,6 +578,7 @@ export default class RenderLayer {
 	registerLoader(loaderId) {
 		this.loaders.set(loaderId, {
 			loaderId: loaderId,
+			// ObjectID -> Object
 			objects: new Map(),
 			geometries: new Map()
 		});
@@ -766,8 +767,8 @@ export default class RenderLayer {
 
 			// Per-object pick vertex colors
 			if (buffer.pickColors) {
-				const numComponents = pickColorBuffer.components = 2;
-				const type = this.gl.UNSIGNED_INT;
+				const numComponents = pickColorBuffer.components = 4;
+				const type = this.gl.UNSIGNED_BYTE;
 				const normalize = false;
 				const stride = 0;
 				const offset = 0;

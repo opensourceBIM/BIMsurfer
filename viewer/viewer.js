@@ -20,7 +20,7 @@ var tmp_unproject = vec3.create();
 // to be rendered during the correct render pass. This
 // recreated object will have it's most significant bit
 // set to 1.
-var OVERRIDE_FLAG = (1n << 63n);
+var OVERRIDE_FLAG = (1 << 31);
 
 export default class Viewer {
 
@@ -42,11 +42,17 @@ export default class Viewer {
 
         this.bufferSetPool = new BufferSetPool(1000, this.stats);
 
+        // Picking ID (unsigned int) -> Object ID (can be anything, but usually a Number that's potentially 2^64)
+        this.pickIdToObjectId = new Map();
+        // Object ID (can be anything, but usually a Number that's potentially 2^64) -> Picking ID (unsigned int)
+        this.objectIdToPickId = new Map();
+        
         this.renderLayers = [];
         this.animationListeners = [];
         this.colorRestore = [];
         this.geometryIdToBufferSet = new Map();
 
+        // Object ID -> ViewObject
         this.viewObjects = new Map();
 
         // Null means everything visible, otherwise Set(..., ..., ...)
@@ -92,6 +98,9 @@ export default class Viewer {
 
                 this.setColor(this.selectedElements, clr);
                 this.selectedElements = new Set();
+            } else {
+            	// Don't do a drawScene for every key pressed
+            	return;
             }
             this.drawScene();
         });
@@ -358,7 +367,7 @@ export default class Viewer {
         this.renderBuffer.bind();
 
         this.gl.depthMask(true);
-        this.gl.clearBufferuiv(this.gl.COLOR, 0, new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]));
+        this.gl.clearBufferuiv(this.gl.COLOR, 0, new Uint8Array([0, 0, 0, 0]));
         
         /*
          * @todo: clearing the 2nd attachment does not work? Not a big issue as long
@@ -376,11 +385,11 @@ export default class Viewer {
                 renderLayer.render(transparency, {without: this.invisibleElements, pass: 'pick'});
         	}
         }
-
         
         let [x,y] = [Math.round(canvasPos[0]), Math.round(canvasPos[1])];
         var pickColor = this.renderBuffer.read(x, y);
-        var objectId = BigInt(pickColor[0]) + (BigInt(pickColor[1]) * 4294967296n);
+        var pickId = pickColor[0] + pickColor[1] * 256 + pickColor[2] * 65536 + pickColor[3] * 16777216;
+        var objectId = this.pickIdToObjectId.get(pickId);
         var viewObject = this.viewObjects.get(objectId);
 
         // Don't attempt to read depth if there is no object under the cursor
@@ -391,7 +400,7 @@ export default class Viewer {
         vec3.set(tmp_unproject, x / this.width * 2 - 1, - y / this.height * 2 + 1, z);
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.projection.projMatrixInverted);
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.viewMatrixInverted);
-        console.log("Picked @", tmp_unproject[0], tmp_unproject[1], tmp_unproject[2]);
+//        console.log("Picked @", tmp_unproject[0], tmp_unproject[1], tmp_unproject[2], objectId, viewObject);
 
         this.renderBuffer.unbind();
         
@@ -415,7 +424,12 @@ export default class Viewer {
     }
 
     getPickColor(objectId) { // Converts an integer to a pick color
-        return new Uint32Array([new Number(objectId & 0xFFFFFFFFn), new Number((objectId >> 32n) & 0xFFFFFFFFn)]);
+    	var pickId = this.objectIdToPickId.get(objectId);
+    	if (pickId == null) {
+    		console.error("No pickId for " + objectId);
+    	}
+    	var pickColor = new Uint8Array([pickId & 0x000000FF, (pickId & 0x0000FF00) >> 8, (pickId & 0x00FF0000) >> 16, (pickId & 0xFF000000) > 24]);
+        return pickColor;
     }
 
     setModelBounds(modelBounds) {
@@ -441,5 +455,12 @@ export default class Viewer {
 
     addAnimationListener(fn) {
         this.animationListeners.push(fn);
+    }
+    
+    addViewObject(objectId, viewObject) {
+    	var pickId = this.pickIdToObjectId.size;
+    	this.viewObjects.set(objectId, viewObject);
+    	this.objectIdToPickId.set(objectId, pickId);
+    	this.pickIdToObjectId.set(pickId, objectId);
     }
 }

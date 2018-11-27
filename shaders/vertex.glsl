@@ -44,11 +44,11 @@ in mat3 instanceNormalMatrices;
 
 #ifdef WITH_PICKING
 #ifdef WITH_INSTANCING
-in uvec2 instancePickColors;
+in uvec4 instancePickColors;
 #else
-in uvec2 vertexPickColor;
+in uvec4 vertexPickColor;
 #endif
-flat out mediump uvec2 color;
+flat out mediump uvec4 color;
 out mediump float depth;
 #else
 uniform LightData {
@@ -142,9 +142,9 @@ void main(void) {
 
 #ifdef WITH_PICKING
 #ifdef WITH_INSTANCING
-    color.rg = instancePickColors;
+    color = instancePickColors;
 #else
-    color.rg = vertexPickColor;
+    color = vertexPickColor;
 #endif
     depth = gl_Position.z / gl_Position.w;
 #else
