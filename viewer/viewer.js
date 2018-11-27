@@ -458,7 +458,7 @@ export default class Viewer {
     }
     
     addViewObject(objectId, viewObject) {
-    	var pickId = this.pickIdToObjectId.size;
+    	var pickId = this.pickIdToObjectId.size + 1;
     	this.viewObjects.set(objectId, viewObject);
     	this.objectIdToPickId.set(objectId, pickId);
     	this.pickIdToObjectId.set(pickId, objectId);
