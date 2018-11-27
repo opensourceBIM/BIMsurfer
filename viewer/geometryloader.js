@@ -172,14 +172,15 @@ export default class GeometryLoader {
 			this.readGeometry(stream, roid, croid, geometryDataId, geometryDataId, hasTransparency, reused, type, true);
 			if (this.dataToInfo.has(geometryDataId)) {
 				// There are objects that have already been loaded, that are waiting for this GeometryData
-				this.dataToInfo.get(geometryDataId).forEach((oid) => {
+				var oids = this.dataToInfo.get(geometryDataId);
+				for (var oid of oids) {
 					var ob = this.renderLayer.getObject(this.loaderId, oid);
 					if (ob == null) {
 						console.error("Object with oid not found", oid)
 					} else {
 						ob.add(geometryDataId, oid);
 					}
-				});
+				}
 				// Now we can clean it up, nobody is waiting anymore
 				this.dataToInfo.delete(geometryDataId);
 			}
