@@ -373,9 +373,9 @@ export default class RenderLayer {
 
 		const instancePickColorsBuffer = this.gl.createBuffer();
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancePickColorsBuffer);
-		var instancePickColors = new Uint8Array(numInstances);
+		var instancePickColors = new Uint8Array(numInstances * 4);
 		geometry.objects.forEach((object, index) => {
-			instancePickColors.set(this.viewer.getPickColor(object.id), index);
+			instancePickColors.set(this.viewer.getPickColor(object.id), index * 4);
 		});
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, instancePickColors, this.gl.STATIC_DRAW, 0, 0);
 
