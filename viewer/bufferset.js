@@ -8,7 +8,7 @@ export default class BufferSet {
         this.positionsIndex = 0;
         this.normals = settings.quantizeNormals ? new Int8Array(sizes.normals) : new Float32Array(sizes.normals);
         this.normalsIndex = 0;
-        this.pickColors = new Uint8Array(sizes.pickColors);
+        this.pickColors = new Uint8Array(sizes.pickColors * 4);
         this.pickColorsIndex = 0;
         this.indices = new Uint32Array(sizes.indices), // The optimal buffer size is most definitely above the Uint16 threshold, so always use Uint32Array
         this.indicesIndex = 0;
