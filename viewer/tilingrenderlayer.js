@@ -193,7 +193,7 @@ export default class TilingRenderLayer extends RenderLayer {
 					// Node has been tried to load, but no objects were returned
 				}
 				if (color != null && visibleElements.pass != 'stencil') {
-					this.lineBoxGeometry.render(color, node.getMatrix(), 0.008 / Math.pow(2, level));
+					this.lineBoxGeometry.render(color, node.getMatrix(), 0.001);
 				}
 			});
 			this.lineBoxGeometry.renderStop();
