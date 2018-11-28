@@ -39,9 +39,6 @@ export default class DefaultSettings {
 		if (settings.triangleThresholdDefaultLayer == null) {
 			settings.triangleThresholdDefaultLayer = 1000000;
 		}
-		if (settings.assumeGpuMemoryAvailable == null) {
-			settings.assumeGpuMemoryAvailable = 1000000000;
-		}
 		if (settings.defaultLayerEnabled == null) {
 			settings.defaultLayerEnabled = true;
 		}
