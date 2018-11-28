@@ -71,6 +71,8 @@ export default class ReuseLoader {
 				objects: []
 		};
 		
+		geometry.isReused = this.settings.gpuReuse;
+		
 		this.geometryCache.set(geometryId, geometry);
 		
 		geometry.isReused = geometry.reused > 1 && this.geometryDataToReuse != null && this.geometryDataToReuse.has(geometry.id);

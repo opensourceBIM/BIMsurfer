@@ -281,6 +281,8 @@ export default class TilingRenderLayer extends RenderLayer {
 			node.stats.drawCallsPerFrame -= savedBuffers;
 		}
 
+		this.viewer.dirty = true;
+		
 		this.removeLoader(loaderId);
 	}
 

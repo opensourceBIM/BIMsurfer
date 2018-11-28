@@ -19,6 +19,33 @@ export default class GeometryCache {
 		this.loading = new Map();
 	}
 
+	integrate2(geometryDataId, loader, gpuBufferManager, geometryInfoIds, geometryLoader) {
+		var info = {
+			loader: loader,
+			gpuBufferManager: gpuBufferManager,
+			geometryInfoIds: geometryInfoIds,
+			geometryLoader: geometryLoader
+		};
+		if (this.loaded.has(geometryDataId)) {
+			for (const geometryInfoId of geometryInfoIds) {
+				this.renderLayer.addGeometryToObject(geometryDataId, geometryInfoId, info.loader, info.gpuBufferManager);
+			}
+			info.geometryLoader.geometryDataIdResolved(geometryDataId);
+			return;
+		}
+		if (this.loading.has(geometryDataId)) {
+			var set = this.loading.get(geometryDataId);
+			set.add(info);
+			return;
+		}
+		var set = this.toload.get(geometryDataId);
+		if (set == null) {
+			set = new Set();
+			this.toload.set(geometryDataId, set);
+		}
+		set.add(info);
+	}
+	
 	/*
 	 * Calling this method will either:
 	 * - Store the geometryDataId as toload if it's not already loaded and also not loading
@@ -72,17 +99,19 @@ export default class GeometryCache {
 			console.error("Already loaded", geometryDataId);
 		}
 		this.loaded.set(geometryDataId, geometry);
-		var geometryInfoIds = this.loading.get(geometryDataId);
-		if (geometryInfoIds != null) {
-			for (var info of geometryInfoIds.values()) {
-				this.renderLayer.addGeometryToObject(geometryDataId, info.geometryInfoId, info.loader, info.gpuBufferManager);
+		var geometryInfos = this.loading.get(geometryDataId);
+		if (geometryInfos != null) {
+			for (var info of geometryInfos.values()) {
+				for (const geometryInfoId of info.geometryInfoIds) {
+					this.renderLayer.addGeometryToObject(geometryDataId, geometryInfoId, info.loader, info.gpuBufferManager);
+				}
 			}
-			for (var info of geometryInfoIds.values()) {
+			// TODO in a lot of cases, this is 4000x the same geomtryLoader, which after 1 invocation has already cleaned-up...
+			for (var info of geometryInfos.values()) {
 				info.geometryLoader.geometryDataIdResolved(geometryDataId);
 			}
-		}		
+		}
 		this.loading.delete(geometryDataId);
-		
 	}
 	
 	isEmpty() {

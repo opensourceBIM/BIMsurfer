@@ -269,14 +269,7 @@ export default class RenderLayer {
 		var node = this.loaderToNode[geometryLoader.loaderId];
 		for (var geometryDataId of map.keys()) {
 			var geometryInfoIds = map.get(geometryDataId);
-			for (var geometryInfoId of geometryInfoIds) {
-				this.geometryCache.integrate(geometryDataId, {
-					loader: this.getLoader(geometryLoader.loaderId),
-					gpuBufferManager: node.gpuBufferManager,
-					geometryInfoId: geometryInfoId,
-					geometryLoader: geometryLoader
-				});
-			}
+			this.geometryCache.integrate2(geometryDataId, this.getLoader(geometryLoader.loaderId), node.gpuBufferManager, geometryInfoIds, geometryLoader);
 		}
 		
 		// We need to start loading some GeometryData at some point, and add the missing pieces
