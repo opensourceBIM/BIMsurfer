@@ -21,7 +21,8 @@ export default class Settings {
 				quantizeNormals: "boolean",
 				quantizeVertices: "boolean",
 				quantizeColors: "boolean",
-				useObjectColors: "boolean"
+				useObjectColors: "boolean",
+				tilingLayerReuse: "boolean"
 			}
 		};
 		
@@ -41,7 +42,8 @@ export default class Settings {
 				quantizeNormals: true,
 				quantizeVertices: true,
 				quantizeColors: true,
-				useObjectColors: false
+				useObjectColors: false,
+				tilingLayerReuse: true
 			}
 		} : JSON.parse(settingsObject);
 		console.log("settings loaded", this.settings);
