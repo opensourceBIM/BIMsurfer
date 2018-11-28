@@ -73,7 +73,7 @@ export default class ReuseLoader {
 		
 		this.geometryCache.set(geometryId, geometry);
 		
-		geometry.isReused = geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id);
+		geometry.isReused = geometry.reused > 1 && this.geometryDataToReuse != null && this.geometryDataToReuse.has(geometry.id);
 		if (geometry.isReused) {
 			this.viewer.stats.inc("Models", "Geometries reused");
 		} else {

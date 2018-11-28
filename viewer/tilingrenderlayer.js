@@ -210,7 +210,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		};
 
 		// TODO some of this is duplicate code, also in defaultrenderlayer.js
-		if (geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id)) {
+		if (geometry.reused > 1 && this.geometryDataToReuse != null && this.geometryDataToReuse.has(geometry.id)) {
 			geometry.matrices.push(object.matrix);
 			geometry.objects.push(object);
 
@@ -312,6 +312,9 @@ export default class TilingRenderLayer extends RenderLayer {
 		var node = buffer.node;
 		let gpuBuffer = super.flushBuffer(buffer, node.gpuBufferManager);
 
+		if (gpuBuffer == null) {
+			debugger;
+		}
 		gpuBuffer.node = node;
 
 		node.stats.triangles += buffer.nrIndices / 3;

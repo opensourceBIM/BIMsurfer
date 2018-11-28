@@ -144,10 +144,6 @@ export default class BimServerViewer {
 		this.viewer.stats.setParameter("Models", "Models to load", 1);
 
 		console.log("Total triangles", nrPrimitivesBelow + nrPrimitivesAbove);
-		var estimatedNonReusedByteSize = BufferHelper.trianglesToBytes(this.settings, nrPrimitivesBelow + nrPrimitivesAbove);
-		
-		console.log("Estimated non reuse byte size", estimatedNonReusedByteSize);
-		console.log("GPU memory available", this.settings.assumeGpuMemoryAvailable);
 		
 		var requests = [
 			["ServiceInterface", "getTotalBounds", {
@@ -155,13 +151,16 @@ export default class BimServerViewer {
 			}],
 			["ServiceInterface", "getTotalUntransformedBounds", {
 				roids: [revision.oid]
-			}],
-			["ServiceInterface", "getGeometryDataToReuse", {
-				roids: [revision.oid],
-				excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"],
-				trianglesToSave: BufferHelper.bytesToTriangles(this.settings, Math.max(0, estimatedNonReusedByteSize - this.settings.assumeGpuMemoryAvailable))
 			}]
 		];
+		
+		if (this.settings.gpuReuse) {
+			requests.push(["ServiceInterface", "getGeometryDataToReuse", {
+				roids: [revision.oid],
+				excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"],
+				trianglesToSave: 0
+			}]);
+		}
 		
 		for (var croid of revision.concreteRevisions) {
 			requests.push(["ServiceInterface", "getModelBoundsUntransformedForConcreteRevision", {
@@ -185,16 +184,21 @@ export default class BimServerViewer {
 		this.bimServerApi.multiCall(requests, (responses) => {
 			var totalBounds = responses[0].result;
 			var totalBoundsUntransformed = responses[1].result;
-			this.geometryDataIdsToReuse = new Set(responses[2].result);
+			if (this.settings.gpuReuse) {
+				this.geometryDataIdsToReuse = new Set(responses[2].result);
+			} else {
+				this.geometryDataIdsToReuse = new Set(); // TODO later make this null, nicer
+			}
 //			console.log("Geometry Data IDs to reuse", this.geometryDataIdsToReuse);
 
+			var add = this.settings.gpuReuse ? 3 : 2;
 			var modelBoundsUntransformed = new Map();
-			for (var i=0; i<(responses.length - 3) / 2; i++) {
-				modelBoundsUntransformed.set(revision.concreteRevisions[i], responses[i + 3].result);
+			for (var i=0; i<(responses.length - add) / 2; i++) {
+				modelBoundsUntransformed.set(revision.concreteRevisions[i], responses[i + add].result);
 			}
 			var modelBoundsTransformed = new Map();
-			for (var i=0; i<(responses.length - 3) / 2; i++) {
-				modelBoundsTransformed.set(revision.concreteRevisions[i], responses[(responses.length - 3) / 2 + i + 3].result);
+			for (var i=0; i<(responses.length - add) / 2; i++) {
+				modelBoundsTransformed.set(revision.concreteRevisions[i], responses[(responses.length - add) / 2 + i + add].result);
 			}
 			
 			if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {

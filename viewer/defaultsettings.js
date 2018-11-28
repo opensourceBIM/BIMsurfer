@@ -18,6 +18,9 @@ export default class DefaultSettings {
 		if (settings.quantizeColors == null) {
 			settings.quantizeColors = true;
 		}
+		if (settings.gpuReuse == null) {
+			settings.gpuReuse = true;
+		}
 		if (settings.loaderSettings == null) {
 			settings.loaderSettings = {};
 		}

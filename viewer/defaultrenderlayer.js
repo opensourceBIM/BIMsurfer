@@ -37,7 +37,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 	addGeometry(loaderId, geometry, object) {
 		// TODO some of this is duplicate code, also in tilingrenderlayer.js
 
-		if (geometry.reused > 1 && this.geometryDataToReuse.has(geometry.id)) {
+		if (geometry.reused > 1 && this.geometryDataToReuse != null && this.geometryDataToReuse.has(geometry.id)) {
 			geometry.matrices.push(object.matrix);
 			geometry.objects.push(object);
 
