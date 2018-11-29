@@ -140,8 +140,8 @@ export default class TilingRenderLayer extends RenderLayer {
 					return;
 				} else {
 					node.visibilityStatus = 1;
-					renderingTiles++;
 					if (node.stats != null) {
+						renderingTiles++;
 						renderingTriangles += node.stats.triangles;
 						drawCalls += node.stats.drawCallsPerFrame;
 					}
