@@ -51,7 +51,7 @@ export default class DefaultSettings {
 		if (settings.drawTileBorders == null) {
 			settings.drawTileBorders = false;
 		}
-		if (settings.fakeLoader == null) {
+		if (settings.fakeLoading == null) {
 			settings.fakeLoading = false;
 		}
 		if (settings.autoResize == null) {
