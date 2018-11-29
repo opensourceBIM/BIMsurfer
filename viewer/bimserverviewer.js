@@ -312,7 +312,7 @@ export default class BimServerViewer {
 				densityLowerThreshold: this.densityThreshold,
 				densityUpperThreshold: -1,
 				reuseLowerThreshold: -1,
-				geometryDataToReuse: [],
+				geometryDataToReuse: Array.from(this.geometryDataIdsToReuse),
 				maxDepth: 0
 			},
 			include: {

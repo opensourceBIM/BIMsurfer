@@ -14,7 +14,7 @@ export default class TileLoader {
 		this.bimServerApi = bimServerApi;
 		this.densityThreshold = densityThreshold;
 		this.reuseLowerThreshold = reuseLowerThreshold;
-		this.geometryDataToReuse = geometryDataToReuse;
+		this.geometryDataToReuse = Array.from(geometryDataToReuse);
 		this.roids = roids;
 		this.fieldsToInclude = fieldsToInclude;
 	
@@ -103,7 +103,7 @@ export default class TileLoader {
 				densityUpperThreshold: this.densityThreshold,
 				densityLowerThreshold: -1,
 				reuseLowerThreshold: this.reuseLowerThreshold,
-				geometryDataToReuse: Array.from(this.geometryDataToReuse),
+				geometryDataToReuse: this.geometryDataToReuse,
 				maxDepth: this.settings.maxOctreeDepth
 			},
 			include: {
