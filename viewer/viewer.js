@@ -4,6 +4,7 @@ import BufferSetPool from './buffersetpool.js'
 import Camera from './camera.js'
 import CameraControl from './cameracontrol.js'
 import RenderBuffer from './renderbuffer.js'
+import SvgOverlay from './svgoverlay.js'
 
 /*
  * Main viewer class, too many responsibilities:
@@ -29,7 +30,8 @@ export default class Viewer {
         this.settings = settings;
         this.canvas = canvas;
         this.camera = new Camera(this);
-
+        this.overlay = new SvgOverlay(this.canvas, this.camera);
+        
         this.gl = this.canvas.getContext('webgl2', {stencil: true});
 
         if (!this.gl) {

@@ -27,7 +27,9 @@ export default class Camera {
 
         this._projection = this.perspective; // Currently active projection
         this._viewMatrix = mat4.create();
+        this._viewProjMatrix = mat4.create();
         this._viewMatrixInverted = mat4.create();
+        this._viewProjMatrixInverted = mat4.create();
 
         this._viewNormalMatrix = mat3.create();
 
@@ -47,6 +49,9 @@ export default class Camera {
         this._dirty = true; // Lazy-builds view matrix
 
         this._modelBounds = null;
+
+        // Until there is a proper event handler mechanism, just do it manually.
+        this.listeners = [];
     }
 
     _setDirty() {
@@ -56,14 +61,35 @@ export default class Camera {
 
     setModelBounds(bounds) {
         this._modelBounds = [];
+
+        // Store aabb calculated from points
+        let a = vec3.fromValues(+Infinity, +Infinity, +Infinity);
+        let b = vec3.fromValues(-Infinity, -Infinity, -Infinity);
+
         let zero_one = [0,1];
+
         for (let i of zero_one) {
             for (let j of zero_one) {
                 for (let k of zero_one) {
-                    this._modelBounds.push(vec3.fromValues(bounds[3*i+0], bounds[3*j+1], bounds[3*k+2]));
+                    let v = vec3.fromValues(bounds[3*i+0], bounds[3*j+1], bounds[3*k+2]);
+                    this._modelBounds.push(v);
+
+                    for (let l = 0; l < 3; ++l) {
+                        if (v[l] < a[l]) {
+                            a[l] = v[l];
+                        }
+                        if (v[l] > b[l]) {
+                            b[l] = v[l];
+                        }
+                    }
                 }
             }   
         }
+
+        vec3.add(a, a, b);
+        vec3.scale(a, a, 0.5);
+
+        this._center.set(a);
     }
 
     _build() {
@@ -102,8 +128,12 @@ export default class Camera {
             this.perspective.far = far;
 
             mat4.invert(this._viewMatrixInverted, this._viewMatrix);
+            mat4.multiply(this._viewProjMatrix, this.projMatrix, this._viewMatrix);
+            mat4.invert(this._viewProjMatrixInverted, this._viewProjMatrix);
 
             this._dirty = false;
+
+            this.listeners.forEach((fn) => { fn(); });
         }
     }
 
@@ -117,6 +147,30 @@ export default class Camera {
             this._build();
         }
         return this._viewMatrix;
+    }
+
+    /**
+     Gets the current view projection matrix.
+
+     @returns {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
+     */
+    get viewProjMatrix() {
+        if (this._dirty) {
+            this._build();
+        }
+        return this._viewProjMatrix;
+    }
+
+    /**
+     Gets the current inverted view projection matrix.
+
+     @returns {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
+     */
+    get viewProjMatrixInverted() {
+        if (this._dirty) {
+            this._build();
+        }
+        return this._viewProjMatrixInverted;
     }
 
     get viewMatrixInverted() {
@@ -208,7 +262,6 @@ export default class Camera {
      */
     set target(target) {
         this._target.set(target || [0.0, 0.0, 0.0]);
-        this._center.set(this._target);
         this._setDirty();
     }
 
@@ -222,6 +275,7 @@ export default class Camera {
 
     set center(v) {
         this._center.set(v);
+        this.listeners.forEach((fn) => { fn(); });
     }
 
     get center() {

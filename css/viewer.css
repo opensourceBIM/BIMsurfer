@@ -6,6 +6,25 @@ body {
 	font-size: medium;
 }
 
+#canvasWrapper, canvas {
+	width: 100%;
+	height: 100%;
+}
+
+#viewerOverlay {
+	pointer-events: none;
+}
+
+#viewerOverlay circle {
+	fill: white;
+	stroke: black;
+	fill-opacity: 0.4;
+}
+
+canvas {
+	display: block;
+}
+
 #glcanvas {
 }
 

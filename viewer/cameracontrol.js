@@ -105,24 +105,48 @@ export default class CameraControl {
      */
     canvasMouseDown(e) {
         this.getCanvasPosFromEvent(e, this.mousePos);
+
+        this.lastX = this.mousePos[0];
+        this.lastY = this.mousePos[1];
+
         switch (e.which) {
             case 1:
                 this.mouseDownLeft = true;
-                this.lastX = this.mousePos[0];
-                this.lastY = this.mousePos[1];
                 this.mouseDownPos.set(this.mousePos);
-                let obj = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
-                if (obj && obj.coordinates) {
-                    this.viewer.camera.center = obj.coordinates;
+                let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
+                if (picked && picked.coordinates && picked.object) {
+                    this.viewer.camera.center = picked.coordinates;
+                } else {
+                    // Check if we can 'see' the previous center. If not, pick
+                    // a new point.
+                    let center_vp = vec3.transformMat4(vec3.create(), this.viewer.camera.center, this.viewer.camera.viewProjMatrix);
+
+                    let isv = true;
+                    for (let i = 0; i < 3; ++i) {
+                        if (center_vp[i] < -1. || center_vp[i] > 1.) {
+                            isv = false;
+                            break;
+                        }
+                    }
+
+                    if (!isv) {
+                        let [x,y] = this.mousePos;
+                        vec3.set(center_vp, x / this.viewer.width * 2 - 1, - y / this.viewer.height * 2 + 1, 1.);
+                        vec3.transformMat4(center_vp, center_vp, this.camera.viewProjMatrixInverted);
+                        vec3.subtract(center_vp, center_vp, this.camera.eye);
+                        vec3.normalize(center_vp, center_vp);
+                        vec3.scale(center_vp, center_vp, this.getZoomRate() * 10.);
+                        vec3.add(center_vp, center_vp, this.camera.eye);
+                        console.log("new center", center_vp);
+                        this.viewer.camera.center = center_vp;
+                    }
                 }
                 break;
             case 2:
-            	this.mouseDownMiddle = true;
+                this.mouseDownMiddle = true;
                 break;
             case 3:
             	this.mouseDownRight = true;
-            	this.lastX = this.mousePos[0];
-            	this.lastY = this.mousePos[1];
                 break;
             default:
                 break;
@@ -136,6 +160,8 @@ export default class CameraControl {
      * @private
      */
     canvasMouseUp(e) {
+        this.camera.orbitting = false;
+        this.viewer.overlay.update();
         this.getCanvasPosFromEvent(e, this.mousePos);
         switch (e.which) {
             case 1:
@@ -146,10 +172,6 @@ export default class CameraControl {
                         shiftKey: e.shiftKey
                     });
                     if (viewObject && viewObject.object) {
-                        var aabb = viewObject.object.aabb;
-                        var center = [(aabb[0] + aabb[3]) / 2, (aabb[1] + aabb[4]) / 2, (aabb[2] + aabb[5]) / 2];
-                        // this.viewer.camera.target = center;
-
                         console.log("Picked", viewObject.object);
                     }
                     this.viewer.drawScene();
@@ -216,7 +238,8 @@ export default class CameraControl {
                 if (yDelta !== 0) {
                 	this.camera.orbitPitch(yDelta * this.mouseOrbitSensitivity * f);
                 }
-            } else if (this.mouseDownRight) { // Panning
+                this.camera.orbitting = true;
+            } else if (this.mouseDownMiddle) { // Panning
                 var f = this.getEyeLookDist() / 600;
                 this.camera.pan([xDelta * f, yDelta * this.mousePanSensitivity * f, 0.0]);
             }
