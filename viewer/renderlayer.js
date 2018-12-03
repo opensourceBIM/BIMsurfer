@@ -2,6 +2,7 @@ import BufferTransformer from './buffertransformer.js'
 import Utils from './utils.js'
 import GpuBufferManager from './gpubuffermanager.js'
 import GeometryCache from './geometrycache.js'
+import FrozenBufferSet from './frozenbufferset.js';
 
 const selectionOutlineMatrix = mat4.create();
 const outlineColor = new Float32Array([1.0, 0.5, 0.0, 1.0]);
@@ -639,29 +640,38 @@ export default class RenderLayer {
 			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 			this.gl.bindVertexArray(null);
 
-			newBuffer = {
-				positionBuffer: positionBuffer,
-				normalBuffer: normalBuffer,
-				colorBuffer: colorBuffer,
-				pickColorBuffer: pickColorBuffer,
-				indexBuffer: indexBuffer,				
-				nrIndices: buffer.nrIndices,
-				nrNormals: buffer.normalsIndex,
-				nrPositions: buffer.positionsIndex,
-				vao: vao,
-				vaoPick: vaoPick,
-				hasTransparency: buffer.hasTransparency,
-				reuse: false,
-				// @todo: prevent duplication here
-				computeVisibleRanges: buffer.computeVisibleRanges,
-				geometryIdToIndex: buffer.geometryIdToIndex,
-				visibleRanges: buffer.visibleRanges,
-				lineIndexBuffers: buffer.lineIndexBuffers,
-				setColor: buffer.setColor,
-				copy: buffer.copy,
-				owner: this,
-				manager: gpuBufferManager
-			};
+			let color, colorHash;
+
+			if (this.settings.useObjectColors) {
+				color = [buffer.color.r, buffer.color.g, buffer.color.b, buffer.color.a];
+				colorHash = Utils.hash(JSON.stringify(buffer.color));
+			}
+
+			newBuffer = new FrozenBufferSet(
+				buffer,
+				
+				positionBuffer,
+				normalBuffer,
+				colorBuffer,
+				pickColorBuffer,
+				indexBuffer,
+				
+				color,
+				colorHash,
+				
+				buffer.nrIndices,
+				buffer.normalsIndex,
+				buffer.positionsIndex,
+				buffer.colorsIndex,
+				
+				vao,
+				vaoPick,
+
+				buffer.hasTransparency,
+				false,
+				this,
+				gpuBufferManager			
+			);
 
 			if (buffer.geometryIdToIndex) {
 				for (var key of buffer.geometryIdToIndex.keys()) {
@@ -669,19 +679,7 @@ export default class RenderLayer {
 					li.push(newBuffer);
 					this.viewer.geometryIdToBufferSet.set(key, li);
 				}
-			}
-			
-			if (this.settings.useObjectColors) {
-				newBuffer.color = [buffer.color.r, buffer.color.g, buffer.color.b, buffer.color.a];
-				newBuffer.colorHash = Utils.hash(JSON.stringify(buffer.color));
-			} else {
-				newBuffer.colorBuffer = colorBuffer;
-				newBuffer.nrColors = buffer.colorsIndex;
-			}
-
-			if (buffer.pickColors) {
-				newBuffer.pickColorBuffer = pickColorBuffer;
-			}
+			}			
 			
 			gpuBufferManager.pushBuffer(newBuffer);
 			this.viewer.dirty = true;
