@@ -64,6 +64,9 @@ export default class Settings {
 				
 				var label = document.createElement("label");
 				label.innerHTML = key;
+				if (key in {quantizeNormals: 1, quantizeVertices: 1}) {
+					label.innerHTML += " (required for instancing)";
+				}
 				parent.appendChild(label);
 				var id = (keyPrefix == null ? "" : (keyPrefix + ".")) + key;
 				label.setAttribute("for", id);
