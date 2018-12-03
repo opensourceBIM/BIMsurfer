@@ -417,30 +417,47 @@ export default class RenderLayer {
 
 		this.gl.bindVertexArray(null);
 
-		var buffer = {
-				positionBuffer: positionBuffer,
-				normalBuffer: normalBuffer,
-				indexBuffer: indexBuffer,
-				nrIndices: geometry.indices.length,
-				vao: vao,
-				vaoPick: vaoPick,
-				nrProcessedMatrices: geometry.matrices.length,
-				instanceMatricesBuffer: instanceMatricesBuffer,
-                instancePickColorsBuffer: instancePickColorsBuffer,
-				roid: geometry.roid,
-				croid: geometry.croid,
-				hasTransparency: geometry.hasTransparency,
-				indexType: indexBuffer.attrib_type,
-				objects: geometry.objects,
-				reuse: true
-		};
-		
+		let color, colorHash;
+
 		if (this.settings.useObjectColors) {
-			buffer.colorBuffer = colorBuffer;
-			buffer.color = [geometry.color.r, geometry.color.g, geometry.color.b, geometry.color.a];
-			buffer.colorHash = Utils.hash(JSON.stringify(buffer.color));
+			color = [geometry.color.r, geometry.color.g, geometry.color.b, geometry.color.a];
+			colorHash = Utils.hash(JSON.stringify(buffer.color));
 		}
-		
+
+		let buffer = new FrozenBufferSet(
+			null,
+			
+			positionBuffer,
+			normalBuffer,
+			colorBuffer,
+			null,
+			indexBuffer,
+			
+			color,
+			colorHash,
+			
+			geometry.indices.length,
+			normalBuffer.N,
+			positionBuffer.N,
+			colorBuffer.N,
+			
+			vao,
+			vaoPick,
+
+			geometry.hasTransparency,
+			true,
+			this,
+			gpuBufferManager,
+			
+			geometry.objects,
+			instanceMatricesBuffer,
+			instanceNormalMatricesBuffer,
+			instancePickColorsBuffer,
+			geometry.roid,
+			geometry.croid,
+			indexBuffer.attrib_type
+		);
+
 		loader.geometries.delete(geometry.id);
 		gpuBufferManager.pushBuffer(buffer);
 
@@ -515,7 +532,10 @@ export default class RenderLayer {
 			if (this.viewer.settings.quantizeVertices) {
 				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(buffer.croid));
 			}
-			this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
+			for (var range of buffer.computeVisibleInstances(visibleElements, this.gl)) {
+				// this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
+				this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, range[0], range[1]);
+			}
 		} else {
 			if (buffer.computeVisibleRanges) {
 				for (var range of buffer.computeVisibleRanges(visibleElements, this.gl)) {

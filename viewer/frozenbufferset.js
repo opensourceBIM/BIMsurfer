@@ -7,11 +7,14 @@ export default class FrozenBufferSet extends AbstractBufferSet {
         color, colorHash,
         nrIndices, nrNormals, nrPositions, nrColors,
         vao, vaoPick,
-        hasTransparency, reuse, owner, manager)
+        hasTransparency, reuse, owner, manager,
+
+        // in case of reuse
+        objects, instanceMatricesBuffer, instanceNormalMatricesBuffer, instancePickColorsBuffer, roid, croid, indexType)
     {
         super();
 
-        this.geometryIdToIndex = originalBuffer.geometryIdToIndex;
+        this.geometryIdToIndex = originalBuffer ? originalBuffer.geometryIdToIndex : null;
         // @todo make these something like LRU caches?
         this.visibleRanges = new Map();
         this.lineIndexBuffers = new Map();
@@ -37,5 +40,14 @@ export default class FrozenBufferSet extends AbstractBufferSet {
         this.reuse = reuse;
         this.owner = owner;
         this.manager = manager;
+
+        this.objects = objects;
+        this.instanceMatricesBuffer = instanceMatricesBuffer;
+        this.instanceNormalMatricesBuffer = instanceNormalMatricesBuffer;
+        this.instancePickColorsBuffer = instancePickColorsBuffer;
+        this.roid = roid;
+        this.croid = croid;
+        this.indexType = indexType;
+        this.nrProcessedMatrices = objects ? objects.length : null;
     }
 }
