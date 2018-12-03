@@ -2,6 +2,22 @@
  * Generic utils
  */
 
+const glTypeToTypedArrayMap = new Map([
+	[WebGL2RenderingContext.BYTE, Int8Array],
+	[WebGL2RenderingContext.SHORT, Int16Array],
+	[WebGL2RenderingContext.UNSIGNED_BYTE, Uint8Array],
+	[WebGL2RenderingContext.UNSIGNED_SHORT, Uint16Array],
+	[WebGL2RenderingContext.FLOAT, Float32Array]
+]);
+
+const typedArrayToGlTypeMap = new Map([
+	["Int8Array", WebGL2RenderingContext.BYTE],
+	["Int16Array", WebGL2RenderingContext.SHORT],
+	["Uint8Array", WebGL2RenderingContext.UNSIGNED_BYTE],
+	["Uint16Array", WebGL2RenderingContext.UNSIGNED_SHORT],
+	["Float32Array", WebGL2RenderingContext.FLOAT]
+]);
+
 export default class Utils {
 	static hash(input) {
 		  var hash = 0, i, chr;
@@ -12,6 +28,14 @@ export default class Utils {
 		    hash |= 0; // Convert to 32bit integer
 		  }
 		  return hash;
+	}
+
+	static typedArrayToGlType(typedArrayType) {
+		return typedArrayToGlTypeMap.get(typedArrayType);
+	}
+
+	static glTypeToTypedArray(glType) {
+		return glTypeToTypedArrayMap.get(glType)
 	}
 	
 	/*

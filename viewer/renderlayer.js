@@ -637,6 +637,37 @@ export default class RenderLayer {
 		}
 		this.gl.bindVertexArray(null);
 	}
+
+	createBuffer(data, numElements, bufferType, components) {
+		var b = this.gl.createBuffer();
+		bufferType = bufferType || this.gl.ARRAY_BUFFER;
+		this.gl.bindBuffer(bufferType, b);
+		this.gl.bufferData(bufferType, data, this.gl.STATIC_DRAW, 0, numElements);
+		b.N = numElements;
+		b.gl_type = bufferType;
+		b.js_type = data.constructor.name;
+		b.attrib_type = Utils.typedArrayToGlType(b.js_type);
+		b.components = components || 3;
+		b.normalize = false;
+		b.stride = 0;
+		b.offset = 0;
+		return b;
+	}
+
+	createIndexBuffer(data, n) {
+		return this.createBuffer(data, n, this.gl.ELEMENT_ARRAY_BUFFER);
+	}
+
+	bindLocationPairs(locations) {
+		for (let [location, buffer] of locations) {
+			this.gl.bindBuffer(buffer.gl_type, buffer);
+			let fn = buffer.attrib_type == this.gl.FLOAT
+				? this.gl.vertexAttribPointer
+				: this.gl.vertexAttribIPointer;
+			fn.bind(this.gl)(location, buffer.components, buffer.attrib_type, buffer.normalize, buffer.stride, buffer.offset);
+			this.gl.enableVertexAttribArray(location);
+		}
+	}
 	
 	flushBuffer(buffer, gpuBufferManager) {
 		var newBuffer = null;
@@ -666,120 +697,44 @@ export default class RenderLayer {
 			quantizeColors: false
 		});
 
-		let createBuffer = (data, n, t) => {
-			var b = this.gl.createBuffer();
-			t = t || this.gl.ARRAY_BUFFER;
-			this.gl.bindBuffer(t, b);
-			this.gl.bufferData(t, data, this.gl.STATIC_DRAW, 0, n);
-			b.N = n;
-			b.gl_type = t;
-			b.js_type = data.constructor.name;
-			return b;
-		};
-
-		let createIndexBuffer = (data, n) => {
-			return createBuffer(data, n, this.gl.ELEMENT_ARRAY_BUFFER);
-		};
-		
 		if (!this.settings.fakeLoading) {
-			const positionBuffer = createBuffer(buffer.positions, buffer.positionsIndex);
-			const normalBuffer = createBuffer(buffer.normals, buffer.normalsIndex);
+			const positionBuffer = this.createBuffer(buffer.positions, buffer.positionsIndex);
+			const normalBuffer = this.createBuffer(buffer.normals, buffer.normalsIndex);
 			var colorBuffer = buffer.colors
-				? createBuffer(buffer.colors, buffer.colorsIndex)
+				? this.createBuffer(buffer.colors, buffer.colorsIndex, this.gl.ARRAY_BUFFER, 4)
 				: null;
 			// Per-object pick vertex colors
 			var pickColorBuffer = buffer.pickColors
-				? createBuffer(buffer.pickColors, buffer.pickColorsIndex)
+				? this.createBuffer(buffer.pickColors, buffer.pickColorsIndex, this.gl.ARRAY_BUFFER, 4)
 				: null;
-			const indexBuffer = createIndexBuffer(buffer.indices, buffer.indicesIndex);
+			const indexBuffer = this.createIndexBuffer(buffer.indices, buffer.indicesIndex);
 
 			// Regular drawing VAO
 			var vao = this.gl.createVertexArray();
 			this.gl.bindVertexArray(vao);
-
-			{
-				const numComponents = positionBuffer.components = 3;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-				if (this.settings.quantizeVertices) {
-					this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexPosition, numComponents, this.gl.SHORT, normalize, stride, offset);
-				} else {
-					this.gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, numComponents, this.gl.FLOAT, normalize, stride, offset);
-				}
-				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-			}
-			{
-				const numComponents = normalBuffer.components = 3;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, normalBuffer);
-				if (this.settings.quantizeNormals) {
-					this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.BYTE, normalize, stride, offset);
-				} else {
-					this.gl.vertexAttribPointer(programInfo.attribLocations.vertexNormal, numComponents, this.gl.FLOAT, normalize, stride, offset);
-				}
-				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexNormal);
-			}
-			
+			let locations = [
+				[programInfo.attribLocations.vertexPosition, positionBuffer],
+				[programInfo.attribLocations.vertexNormal, normalBuffer]
+			];
 			if (!this.settings.useObjectColors) {
-				const numComponents = colorBuffer.components = 4;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-				if (this.settings.quantizeColors) {
-					this.gl.vertexAttribIPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.UNSIGNED_BYTE, normalize, stride, offset);
-				} else {
-					this.gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, numComponents, this.gl.FLOAT, normalize, stride, offset);
-				}
-				this.gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+				locations.push([programInfo.attribLocations.vertexColor, colorBuffer]);
 			}
-
+			this.bindLocationPairs(locations);
 			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
 			this.gl.bindVertexArray(null);
 
 			// Picking VAO
-
 			var vaoPick = this.gl.createVertexArray();
 			this.gl.bindVertexArray(vaoPick);
-
-			// Positions
-			{
-				const numComponents = 3;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
-				if (this.settings.quantizeVertices) {
-					this.gl.vertexAttribIPointer(pickProgramInfo.attribLocations.vertexPosition, numComponents, this.gl.SHORT, normalize, stride, offset);
-				} else {
-					this.gl.vertexAttribPointer(pickProgramInfo.attribLocations.vertexPosition, numComponents, this.gl.FLOAT, normalize, stride, offset);
-				}
-				this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexPosition);
-			}
-
-			// Per-object pick vertex colors
+			locations = [
+				[pickProgramInfo.attribLocations.vertexPosition, positionBuffer],
+			];
 			if (buffer.pickColors) {
-				const numComponents = pickColorBuffer.components = 4;
-				const type = this.gl.UNSIGNED_BYTE;
-				const normalize = false;
-				const stride = 0;
-				const offset = 0;
-				this.gl.bindBuffer(this.gl.ARRAY_BUFFER, pickColorBuffer);
-				this.gl.vertexAttribIPointer(pickProgramInfo.attribLocations.vertexPickColor, numComponents, type, normalize, stride, offset);
-				this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.vertexPickColor);
+				locations.push([pickProgramInfo.attribLocations.vertexPickColor, pickColorBuffer]);
 			}
-
+			this.bindLocationPairs(locations);
 			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
 			this.gl.bindVertexArray(null);
-
-			// @todo: why are there some many positions +- 100 000 on the Duplex model?
-			// Ruben: If you are referring to the positionsIndex, this is in bytes, and especially when vertex quantization is off (which is is now), it will use 3 * 4 = 12 bytes per vertex
 
 			newBuffer = {
 				positionBuffer: positionBuffer,

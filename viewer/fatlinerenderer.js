@@ -22,6 +22,9 @@
  * (A,B,1)                                       (B,A,1)
  * 
  */
+
+import Utils from './utils.js'
+
 export default class FatLineRenderer {
     constructor(gl, settings) {
 		settings = settings || {};
@@ -42,13 +45,7 @@ export default class FatLineRenderer {
 			const bufType = bufferName === "indices" ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER;
 			// @todo, somehow just cannot get direction as a byte to work :(
 			const elemType = [this.quantize ? gl.SHORT : gl.FLOAT, this.quantize ? gl.SHORT : gl.FLOAT, gl.FLOAT, indexType][i];
-			const typedArrFn = (new Map([
-				[gl.BYTE, Int8Array],
-				[gl.SHORT, Int16Array],
-				[gl.UNSIGNED_BYTE, Uint8Array],
-                [gl.UNSIGNED_SHORT, Uint16Array],
-				[gl.FLOAT, Float32Array]
-			])).get(elemType);
+			const typedArrFn = Utils.glTypeToTypedArray(elemType);
 			const typedArr = new typedArrFn(this[bufferName]);
 			const numElements = bufferName === "direction" ? 1 : 3;
 			
