@@ -7,6 +7,7 @@ import FrozenBufferSet from './frozenbufferset.js';
 const selectionOutlineMatrix = mat4.create();
 const outlineColor = new Float32Array([1.0, 0.5, 0.0, 1.0]);
 const false_true = [false, true];
+const UINT32_MAX = (new Uint32Array((new Int32Array([-1])).buffer))[0];
 
 export default class RenderLayer {
 	constructor(viewer, geometryDataToReuse) {
@@ -15,6 +16,8 @@ export default class RenderLayer {
 		this.gl = viewer.gl;
 		this.geometryDataToReuse = geometryDataToReuse;
 		this.geometryCache = new GeometryCache(this);
+		this.instanceSelectionData = new Uint32Array(128);
+		this.previousInstanceVisibilityState = null;
 
 		this.loaders = new Map();
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
@@ -368,7 +371,6 @@ export default class RenderLayer {
 		this.bindLocationPairs(locations);
 
 		// Instance matrices for positions
-
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceMatricesBuffer);
 		for (let i = 0; i < 4; ++i) {
 			this.gl.enableVertexAttribArray(programInfo.attribLocations.instanceMatrices + i);
@@ -397,7 +399,6 @@ export default class RenderLayer {
 		this.bindLocationPairs(locations);
 
 		// Instance matrices for positions
-
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instanceMatricesBuffer);
 		for (let i = 0; i < 4; ++i) {
 			this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.instanceMatrices + i);
@@ -406,15 +407,12 @@ export default class RenderLayer {
 		}
 
 		// Instance pick colors
-
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, instancePickColorsBuffer);
 		this.gl.enableVertexAttribArray(pickProgramInfo.attribLocations.instancePickColors);
 		this.gl.vertexAttribIPointer(pickProgramInfo.attribLocations.instancePickColors, 4, this.gl.UNSIGNED_BYTE, false, 0, 0);
 		this.gl.vertexAttribDivisor(pickProgramInfo.attribLocations.instancePickColors, 1);
 
-		// Indices
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
 		this.gl.bindVertexArray(null);
 
 		let color, colorHash;
@@ -525,16 +523,37 @@ export default class RenderLayer {
 	}
 	
 	renderBuffer(buffer, programInfo, visibleElements) {
+		const gl = this.gl;
+		
+		// console.log(programInfo.uniformLocations);
+
 		let picking = visibleElements.pass === 'pick';
-		this.gl.bindVertexArray(picking ? buffer.vaoPick : buffer.vao);
+		gl.bindVertexArray(picking ? buffer.vaoPick : buffer.vao);
 		if (buffer.reuse) {
 			// TODO we only need to bind this again for every new roid, maybe sort by buffer.roid before iterating through the buffers?
 			if (this.viewer.settings.quantizeVertices) {
-				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(buffer.croid));
+				gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(buffer.croid));
 			}
-			for (var range of buffer.computeVisibleInstances(visibleElements, this.gl)) {
-				// this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
-				this.gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, range[0], range[1]);
+
+			let subset = buffer.computeVisibleInstances(visibleElements, this.gl);
+			if (subset.somethingVisible) {
+				if (subset.instanceIds.length > this.instanceSelectionData.length) {
+					console.error("Too many instances of a geometry are activated.");
+				} else {
+					this.instanceSelectionData.fill(UINT32_MAX);
+					this.instanceSelectionData.set(subset.instanceIds);
+
+					const instanceVisibilityState = [visibleElements.pass, subset.hidden].concat(subset.instanceIds).join(",");
+
+					if (instanceVisibilityState !== this.previousInstanceVisibilityState) {
+						// console.log("selection", visibleElements.pass, subset.hidden ? "hide" : "show", ...this.instanceSelectionData.subarray(0, subset.instanceIds.length));
+						gl.uniform1uiv(programInfo.uniformLocations.containedInstances, this.instanceSelectionData);
+						gl.uniform1ui(programInfo.uniformLocations.numContainedInstances, subset.instanceIds.length);
+						gl.uniform1ui(programInfo.uniformLocations.containedMeansHidden, subset.hidden ? 1 : 0);
+						this.previousInstanceVisibilityState = instanceVisibilityState;
+					}
+					gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
+				}
 			}
 		} else {
 			if (buffer.computeVisibleRanges) {
@@ -669,7 +688,7 @@ export default class RenderLayer {
 
 			newBuffer = new FrozenBufferSet(
 				buffer,
-				
+
 				positionBuffer,
 				normalBuffer,
 				colorBuffer,
@@ -735,7 +754,7 @@ export default class RenderLayer {
 							let lines = buffer.lineIndexBuffers.get(id);
 							if (lines) {
 								lines.renderStart(viewer);
-								lines.render(outlineColor, selectionOutlineMatrix, width || 0.005);
+								lines.render(outlineColor, lines.matrixMap.get(id) || selectionOutlineMatrix, width || 0.005);
 								lines.renderStop();
 							}
 						}

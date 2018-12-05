@@ -37,6 +37,9 @@ in vec4 vertexColor;
 
 #ifdef WITH_INSTANCING
 in mat4 instanceMatrices;
+uniform uint numContainedInstances;
+uniform uint containedInstances[128];
+uniform uint containedMeansHidden;
 #ifndef WITH_PICKING
 in mat3 instanceNormalMatrices;
 #endif
@@ -113,7 +116,6 @@ void main(void) {
 
 #ifdef WITH_LINEPRIMITIVES
     // tfk: todo: line matrix could be same as instanceMatrix?
-    color = inputColor;
     vec2 aspectVec = vec2(aspect, 1.0);
     mat4 projViewModel = projectionMatrix * viewMatrix * matrix;
     vec4 currentProjected = projViewModel * floatVertex;
@@ -139,6 +141,24 @@ void main(void) {
 #else
 
     gl_Position = projectionMatrix * viewMatrix * floatVertex;
+
+#ifdef WITH_INSTANCING
+    // Move the vertex off-screen when hidden
+
+    bool contained = false;
+
+    for (int i = 0; i < int(numContainedInstances); ++i) {
+        if ((containedInstances[i] == uint(gl_InstanceID))) {
+            contained = true;
+            break;
+        }
+    }
+
+    if (contained == (containedMeansHidden == uint(1))) {
+        gl_Position = vec4(-10., -10., -10., -10.);
+        return;
+    }
+#endif    
 
 #ifdef WITH_PICKING
 #ifdef WITH_INSTANCING

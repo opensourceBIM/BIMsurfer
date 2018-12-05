@@ -117,20 +117,31 @@ export default class AbstractBufferSet {
             }
         }
 
-        let ranges = [];
+        let ranges = {instanceIds: [], hidden: exclude, somethingVisible: null};
         this.objects.forEach((ob, i) => {
-            if (!ids || ids.has(ob.id) != exclude) {
-                ranges.push([i, i+1]);
+            if (ids !== null && ids.has(ob.id)) {
+                // @todo, for large lists of objects, this is not efficient
+                ranges.instanceIds.push(i);
             }
         });
 
-        this.joinConsecutiveRanges(ranges);
+        if (ranges.instanceIds.length == this.objects.length) {
+            ranges.instanceIds = [];
+            ranges.hidden = !ranges.hidden;
+        }
+
+        ranges.somethingVisible = ranges.hidden
+            ? ranges.instanceIds.length < this.objects.length
+            : ranges.instanceIds.length > 0;
 
         this.visibleRanges.set(ids_str, ranges);
 
-        if (!exclude && ranges.length && this.lineIndexBuffers.size === 0) {
+        if (!exclude && ranges.instanceIds.length && this.lineIndexBuffers.size === 0) {
             let lineRenderer = this.createLineRenderer(gl, 0, this.indexBuffer.N);
+            // This will result in a different dequantization matrix later on, not sure why
+            lineRenderer.croid = this.croid;
             this.objects.forEach((ob) => {
+                lineRenderer.matrixMap.set(ob.id, ob.matrix);
                 this.lineIndexBuffers.set(ob.id, lineRenderer);
             });
         }
