@@ -35,7 +35,6 @@ export default class ProgramManager {
 		if (!inputSettings.picking) {
 			if (inputSettings.useObjectColors) {
 				settings.uniforms.push("objectColor");
-				settings.uniforms.push("objectPickColor");
 			} else {
 				settings.attributes.push("vertexColor");
 			}			
