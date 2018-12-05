@@ -5,7 +5,8 @@ import Camera from './camera.js'
 import CameraControl from './cameracontrol.js'
 import RenderBuffer from './renderbuffer.js'
 import SvgOverlay from './svgoverlay.js'
-
+import FrozenBufferSet from './frozenbufferset.js'
+import RenderLayer from './renderlayer.js'
 /*
  * Main viewer class, too many responsibilities:
  * - Keep track of width/height of viewport
@@ -146,30 +147,67 @@ export default class Viewer {
                     }
 
                     let original = bufferSet.copy(this.gl, objectId);
+                    let clrSameType, newClrBuffer;
+                    if (original instanceof FrozenBufferSet) {
+                        clrSameType = new window[original.colorBuffer.js_type](4);
+                        newClrBuffer = new window[original.colorBuffer.js_type](original.colorBuffer.N);
+                        original.hasTransparency = clr[3] < 1.;
+                    } else {
+                        clrSameType = new original.colors.constructor(4);
+                        newClrBuffer = original.colors;
+                        original.hasTransparency = !bufferSet.hasTransparency;
+                    }
 
-                    let clrSameType = new original.colors.constructor(4);
                     let factor = clrSameType.constructor.name === "Uint8Array" ? 255. : 1.;
 
                     for (let i = 0; i < 4; ++i) {
                         clrSameType[i] = clr[i] * factor;
                     }
 
-                    for (let i = 0; i < original.colors.length; i += 4) {
-                        original.colors.set(clrSameType, i);
-                    }
-
-                    original.hasTransparency = !bufferSet.hasTransparency;
+                    for (let i = 0; i < newClrBuffer.length; i += 4) {
+                        newClrBuffer.set(clrSameType, i);
+                    }                     
 
                     original.node = bufferSet.node;
 
-                    let buffer = bufferSet.owner.flushBuffer(original, false);
+                    let buffer;
+
+                    if (original instanceof FrozenBufferSet) {
+                        var programInfo = this.programManager.getProgram({
+                            picking: false,
+                            instancing: true,
+                            useObjectColors: this.settings.useObjectColors,
+                            quantizeNormals: this.settings.quantizeNormals,
+                            quantizeVertices: this.settings.quantizeVertices,
+                            quantizeColors: this.settings.quantizeColors
+                        });
+                
+                        var pickProgramInfo = this.programManager.getProgram({
+                            picking: true,
+                            instancing: true,
+                            useObjectColors: this.settings.useObjectColors,
+                            quantizeNormals: false,
+                            quantizeVertices: this.settings.quantizeVertices,
+                            quantizeColors: false
+                        });
+
+                        original.colorBuffer = RenderLayer.createBuffer(this.gl, newClrBuffer, null, null, 4);
+                        original.colorBuffer.HENK = true;
+                        original.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
+                        original.manager.pushBuffer(original);
+                        buffer = original;
+                        buffer.HENK = true;
+                        bufferSet.nrProcessedMatrices = 0;                        
+                    } else {
+                        buffer = bufferSet.owner.flushBuffer(original, false);
+                    }
 
                     // Note that this is an attribute on the bufferSet, but is
                     // not applied to the actual webgl vertex data.
                     buffer.objectId = objectId | OVERRIDE_FLAG;
 
-                    this.invisibleElements.add(objectId);
-                    this.hiddenDueToSetColor.set(objectId, buffer);
+                    // this.invisibleElements.add(objectId);
+                    // this.hiddenDueToSetColor.set(objectId, buffer);
                 } else {
                     this.originalColors.set(objectId, originalColor);
                 }
