@@ -592,31 +592,31 @@ export default class RenderLayer {
 			const colorBuffer = buffer.colors;
 
 			// Regular drawing VAO
-			var vao = this.gl.createVertexArray();
-			this.gl.bindVertexArray(vao);
-			let locations = [
-				[programInfo.attribLocations.vertexPosition, positionBuffer],
-				[programInfo.attribLocations.vertexNormal, normalBuffer]
-			];
-			if (!this.settings.useObjectColors) {
-				locations.push([programInfo.attribLocations.vertexColor, colorBuffer]);
-			}
-			this.bindLocationPairs(locations);
-			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-			this.gl.bindVertexArray(null);
-
-			// Picking VAO
-			var vaoPick = this.gl.createVertexArray();
-			this.gl.bindVertexArray(vaoPick);
-			locations = [
-				[pickProgramInfo.attribLocations.vertexPosition, positionBuffer],
-			];
-			if (buffer.pickColors) {
-				locations.push([pickProgramInfo.attribLocations.vertexPickColor, pickColorBuffer]);
-			}
-			this.bindLocationPairs(locations);
-			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-			this.gl.bindVertexArray(null);
+//			var vao = this.gl.createVertexArray();
+//			this.gl.bindVertexArray(vao);
+//			let locations = [
+//				[programInfo.attribLocations.vertexPosition, positionBuffer],
+//				[programInfo.attribLocations.vertexNormal, normalBuffer]
+//			];
+//			if (!this.settings.useObjectColors) {
+//				locations.push([programInfo.attribLocations.vertexColor, colorBuffer]);
+//			}
+//			this.bindLocationPairs(locations);
+//			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+//			this.gl.bindVertexArray(null);
+//
+//			// Picking VAO
+//			var vaoPick = this.gl.createVertexArray();
+//			this.gl.bindVertexArray(vaoPick);
+//			locations = [
+//				[pickProgramInfo.attribLocations.vertexPosition, positionBuffer],
+//			];
+//			if (buffer.pickColors) {
+//				locations.push([pickProgramInfo.attribLocations.vertexPickColor, pickColorBuffer]);
+//			}
+//			this.bindLocationPairs(locations);
+//			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+//			this.gl.bindVertexArray(null);
 
 			newBuffer = new FrozenBufferSet(
 				buffer,
@@ -635,8 +635,8 @@ export default class RenderLayer {
 				buffer.positionsIndex,
 				buffer.colorsIndex,
 				
-				vao,
-				vaoPick,
+				null,
+				null,
 
 				buffer.hasTransparency,
 				false,
@@ -648,6 +648,8 @@ export default class RenderLayer {
 			newBuffer.unquantizationMatrix = buffer.unquantizationMatrix;
 
 			newBuffer.geometryIdToIndex = buffer.geometryIdToMeta;
+			
+			newBuffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
 			
 			if (buffer.geometryIdToIndex) {
 				for (var key of buffer.geometryIdToIndex.keys()) {
