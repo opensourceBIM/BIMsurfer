@@ -527,7 +527,11 @@ export default class RenderLayer {
 		this.gl.bindVertexArray(null);
 	}
 
+<<<<<<< HEAD
 	static createBuffer(gl, data, numElements, bufferType, components, srcStart, attribType, js_type) {
+=======
+	static createBuffer(gl, data, numElements, bufferType, components) {
+>>>>>>> branch 'master' of https://github.com/TNOBIM/BIMSurfer.git
 		numElements = numElements || data.length;
 		bufferType = bufferType || gl.ARRAY_BUFFER;
 		components = components || 3;
@@ -535,7 +539,11 @@ export default class RenderLayer {
 
 		var b = gl.createBuffer();
 		gl.bindBuffer(bufferType, b);
+<<<<<<< HEAD
 		gl.bufferData(bufferType, data, gl.STATIC_DRAW, srcStart, numElements);
+=======
+		gl.bufferData(bufferType, data, gl.STATIC_DRAW, 0, numElements);
+>>>>>>> branch 'master' of https://github.com/TNOBIM/BIMSurfer.git
 		
 		b.N = numElements;
 		b.gl_type = bufferType;
@@ -552,6 +560,7 @@ export default class RenderLayer {
 		return RenderLayer.createBuffer(gl, data, n, gl.ELEMENT_ARRAY_BUFFER);
 	}
 
+<<<<<<< HEAD
 	bindLocationPairs(locations) {
 		for (let [location, buffer] of locations) {
 			this.gl.bindBuffer(buffer.gl_type, buffer);
@@ -682,6 +691,8 @@ export default class RenderLayer {
 		return newBuffer;
 	}
 	
+=======
+>>>>>>> branch 'master' of https://github.com/TNOBIM/BIMSurfer.git
 	flushBuffer(buffer, gpuBufferManager) {
 		var newBuffer = null;
 

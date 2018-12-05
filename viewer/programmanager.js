@@ -28,6 +28,9 @@ export default class ProgramManager {
 		}
 		if (inputSettings.instancing) {
 			settings.attributes.push("instanceMatrices");
+			settings.uniforms.push("numContainedInstances");
+			settings.uniforms.push("containedInstances");
+			settings.uniforms.push("containedMeansHidden");
 			if (!inputSettings.picking) {
 				settings.attributes.push("instanceNormalMatrices");
 			}
@@ -35,7 +38,6 @@ export default class ProgramManager {
 		if (!inputSettings.picking) {
 			if (inputSettings.useObjectColors) {
 				settings.uniforms.push("objectColor");
-				settings.uniforms.push("objectPickColor");
 			} else {
 				settings.attributes.push("vertexColor");
 			}			
@@ -207,18 +209,18 @@ export default class ProgramManager {
 						if (setup.attributes != null) {
 							//console.log("attributes:");
 							for (var attribute of setup.attributes) {
-								programInfo.attribLocations[attribute] = this.gl.getAttribLocation(shaderProgram, attribute);
-								if (programInfo.attribLocations[attribute] == -1) {
+								let res = programInfo.attribLocations[attribute] = this.gl.getAttribLocation(shaderProgram, attribute);
+								if (res === -1) {
 									console.error("Missing attribute location", attribute, vertexShader);
 									debugger;
 								}
 							}
 						}
 						if (setup.uniforms != null) {
-							//console.log("uniforms:");
+							// @todo can also use getUniformIndices()
 							for (var uniform of setup.uniforms) {
-								programInfo.uniformLocations[uniform] = this.gl.getUniformLocation(shaderProgram, uniform);
-								if (programInfo.uniformLocations[uniform] == -1) {
+								let res = programInfo.uniformLocations[uniform] = this.gl.getUniformLocation(shaderProgram, uniform);
+								if (res === null) {
 									console.error("Missing uniform location", uniform, vertexShader);
 									debugger;
 								}
@@ -227,8 +229,8 @@ export default class ProgramManager {
 						if (setup.uniformBlocks != null) {
 							if (setup.uniformBlocks != null) {
 								for (var uniformBlock of setup.uniformBlocks) {
-									programInfo.uniformBlocks[uniformBlock] = this.gl.getUniformBlockIndex(shaderProgram, uniformBlock);
-									if (programInfo.uniformBlocks[uniformBlock] == -1) {
+									let res = programInfo.uniformBlocks[uniformBlock] = this.gl.getUniformBlockIndex(shaderProgram, uniformBlock);
+									if (res == -1) {
 										console.error("Missing uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock]);
 										debugger;
 									} else {

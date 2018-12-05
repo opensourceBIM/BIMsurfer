@@ -117,20 +117,31 @@ export default class AbstractBufferSet {
             }
         }
 
-        let ranges = [];
+        let ranges = {instanceIds: [], hidden: exclude, somethingVisible: null};
         this.objects.forEach((ob, i) => {
-            if (!ids || ids.has(ob.id) != exclude) {
-                ranges.push([i, i+1]);
+            if (ids !== null && ids.has(ob.id)) {
+                // @todo, for large lists of objects, this is not efficient
+                ranges.instanceIds.push(i);
             }
         });
 
-        this.joinConsecutiveRanges(ranges);
+        if (ranges.instanceIds.length == this.objects.length) {
+            ranges.instanceIds = [];
+            ranges.hidden = !ranges.hidden;
+        }
+
+        ranges.somethingVisible = ranges.hidden
+            ? ranges.instanceIds.length < this.objects.length
+            : ranges.instanceIds.length > 0;
 
         this.visibleRanges.set(ids_str, ranges);
 
-        if (!exclude && ranges.length && this.lineIndexBuffers.size === 0) {
+        if (!exclude && ranges.instanceIds.length && this.lineIndexBuffers.size === 0) {
             let lineRenderer = this.createLineRenderer(gl, 0, this.indexBuffer.N);
+            // This will result in a different dequantization matrix later on, not sure why
+            lineRenderer.croid = this.croid;
             this.objects.forEach((ob) => {
+                lineRenderer.matrixMap.set(ob.id, ob.matrix);
                 this.lineIndexBuffers.set(ob.id, lineRenderer);
             });
         }
@@ -212,48 +223,60 @@ export default class AbstractBufferSet {
 	}
 
 	copy(gl, objectId) {
-		let idx = this.geometryIdToIndex.get(objectId)[0];
-		let [offset, length] = [idx.start, idx.length];
+        let returnDictionary = {};
 
-		const indices = new Uint32Array(length);
+        if (this.objects) {
+            return this.shallowCopy();
+        } else {
+            let idx = this.geometryIdToIndex.get(objectId)[0];
+            let [offset, length] = [idx.start, idx.length];
 
-		var restoreElementBinding = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-		gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, offset * 4, indices, 0, indices.length);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, restoreElementBinding);
+            const indices = new Uint32Array(length);
 
-		let [minIndex, maxIndex] = [Math.min.apply(null, indices), Math.max.apply(null, indices)];
-		let numVertices = maxIndex - minIndex + 1;
+            var restoreElementBinding = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+            gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, offset * 4, indices, 0, indices.length);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, restoreElementBinding);
 
-		let returnDictionary = {};
-		let toCopy = ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"];
-		
-		toCopy.forEach((name) => {
-			let buffer = this[name];
-			let bytes_per_elem = window[buffer.js_type].BYTES_PER_ELEMENT;
-			let gpu_data = new window[buffer.js_type](numVertices * buffer.components);
+            let [minIndex, maxIndex] = [Math.min.apply(null, indices), Math.max.apply(null, indices)];
+            let numVertices = maxIndex - minIndex + 1;
 
-			var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
-			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-			gl.getBufferSubData(gl.ARRAY_BUFFER, minIndex * bytes_per_elem * buffer.components, gpu_data, 0, gpu_data.length);
-			gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
+            let toCopy = ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"];
+            
+            toCopy.forEach((name) => {
+                let buffer = this[name];
+                let bytes_per_elem = window[buffer.js_type].BYTES_PER_ELEMENT;
+                let gpu_data = new window[buffer.js_type](numVertices * buffer.components);
 
-			let shortName = name.replace("Buffer", "") + "s";
-			returnDictionary[shortName] = gpu_data;
-			returnDictionary["nr" + shortName.substr(0,1).toUpperCase() + shortName.substr(1)] = gpu_data.length;
-		});
+                var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+                gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+                gl.getBufferSubData(gl.ARRAY_BUFFER, minIndex * bytes_per_elem * buffer.components, gpu_data, 0, gpu_data.length);
+                gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
 
-		for (let i = 0; i < indices.length; ++i) {
-			indices[i] -= minIndex;
-		}
+                let shortName = name.replace("Buffer", "") + "s";
+                returnDictionary[shortName] = gpu_data;
+                returnDictionary["nr" + shortName.substr(0,1).toUpperCase() + shortName.substr(1)] = gpu_data.length;
+            });
 
-		returnDictionary["indices"] = indices;
-		returnDictionary["nrIndices"] = indices.length;
+            for (let i = 0; i < indices.length; ++i) {
+                indices[i] -= minIndex;
+            }
+
+            returnDictionary["indices"] = indices;
+            returnDictionary["nrIndices"] = indices.length;
+            
+        }
 
 		return returnDictionary;
 	}
 
 	setColor(gl, objectId, clr) {
+        // Reusing buffer sets always results in a copy
+        if (this.objects) {
+            return false;
+        }
+
+        // Switching transparency states results in a copy
 		if (clr.length == 4 && this.hasTransparency != (clr[3] < 1.)) {
 			return false;
 		}

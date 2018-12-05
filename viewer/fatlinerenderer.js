@@ -35,6 +35,8 @@ export default class FatLineRenderer {
 		this.direction = Array();
 		this.indices = Array();
 		this.quantize = settings.quantize || false;
+		this.matrixMap = new Map();
+		this.croid = null;
     }
 
     finalize() {
@@ -102,7 +104,12 @@ export default class FatLineRenderer {
 		this.gl.uniform1f(programInfo.uniformLocations.aspect, aspect);
 
 		if (this.quantize) {
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
+			if (this.croid) {
+				// This is necessary for line renderings of reused geometries.
+				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(this.croid));
+			} else {
+				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
+			}
 		}
 
 		for (const fn of this.setupFunctions) {
