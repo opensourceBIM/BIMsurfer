@@ -9,7 +9,7 @@ class OctreeNode {
 			if (level > this.parent.deepestLevel) {
 				this.parent.deepestLevel = level;
 			}
-		}		
+		}
 		this.id = id;
 		
 		this.leaf = true;
@@ -34,6 +34,10 @@ class OctreeNode {
 		mat4.scale(this.matrix, this.matrix, [this.width, this.height, this.depth]);
 		
 		this.bounds = [this.x, this.y, this.z, this.width, this.height, this.depth];
+		
+		// TODO also keep track of the minimal bounds (usually smaller than the "static" bounds of the node), which can be used for (frustum) occlusion culling
+		// TODO also keep track of the minimal bounds inc. children (useful for hyrachical culling)
+		
 		this.quadrants = [];
 		
 		this.largestFaceArea = width * height;
