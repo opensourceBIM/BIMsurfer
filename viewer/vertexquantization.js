@@ -81,6 +81,35 @@ export default class VertexQuantization {
 		this.untransformedInverseQuantizationMatrices.set(croid, Utils.toArray(inverse));
 	}
 	
+	getTransformedQuantizationMatrix(boundsUntransformed) {
+		var matrix = mat4.create();
+		var scale = 32768;
+		
+		// Scale the model to make sure all values fit within a 2-byte signed short
+		mat4.scale(matrix, matrix, vec3.fromValues(
+			scale / boundsUntransformed[3],
+			scale / boundsUntransformed[4],
+			scale / boundsUntransformed[5]
+		));
+		
+		// Move the model with its center to the origin
+		mat4.translate(matrix, matrix, vec3.fromValues(
+			-(boundsUntransformed[3] / 2 + boundsUntransformed[0]),
+			-(boundsUntransformed[4] / 2 + boundsUntransformed[1]),
+			-(boundsUntransformed[5] / 2 + boundsUntransformed[2])
+		));
+
+		return matrix;
+	}
+	
+	getTransformedInverseQuantizationMatrix(boundsUntransformed) {
+		var matrix = this.getTransformedQuantizationMatrix(boundsUntransformed);
+		var inverse = mat4.create();
+		mat4.invert(inverse, matrix);
+		
+		return inverse;
+	}
+	
 	generateMatrices(totalBounds, totalBoundsUntransformed) {
 		var matrix = mat4.create();
 		var scale = 32768;

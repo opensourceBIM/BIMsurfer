@@ -1,4 +1,5 @@
 import Executor from './executor.js'
+import Utils from './utils.js'
 import GpuBufferManager from './gpubuffermanager.js'
 import GeometryLoader from "./geometryloader.js"
 
@@ -121,7 +122,10 @@ export default class TileLoader {
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 		};
 		
-		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, this.tilingRenderLayer, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, this.tilingRenderLayer.reusedGeometryCache);
+		query.loaderSettings.vertexQuantizationMatrix = Utils.toArray(this.viewer.vertexQuantization.getTransformedQuantizationMatrix(node.bounds));
+		
+		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, this.tilingRenderLayer, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, this.tilingRenderLayer.reusedGeometryCache, node.gpuBufferManager);
+		geometryLoader.unquantizationMatrix = this.viewer.vertexQuantization.getTransformedInverseQuantizationMatrix(node.bounds);
 		this.tilingRenderLayer.registerLoader(geometryLoader.loaderId);
 		this.tilingRenderLayer.loaderToNode[geometryLoader.loaderId] = node;
 		geometryLoader.onStart = () => {

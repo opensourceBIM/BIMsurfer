@@ -310,6 +310,16 @@ export default class TilingRenderLayer extends RenderLayer {
 		});
 	}
 	
+	addCompleteBuffer(buffer, gpuBufferManager) {
+		var newBuffer = super.addCompleteBuffer(buffer, gpuBufferManager);
+		
+		var node = this.loaderToNode[buffer.loaderId];
+		node.stats.triangles += buffer.nrIndices / 3;
+		node.stats.drawCallsPerFrame++;
+		
+		return newBuffer;
+	}
+	
 	flushBuffer(buffer) {
 		var node = buffer.node;
 		let gpuBuffer = super.flushBuffer(buffer, node.gpuBufferManager);

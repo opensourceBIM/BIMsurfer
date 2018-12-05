@@ -1,5 +1,6 @@
 import DataInputStream from "./datainputstream.js"
 import DefaultColors from "./defaultcolors.js"
+import RenderLayer from "./renderlayer.js"
 
 /*
  * GeometryLoader loads data from a BIMserver
@@ -7,7 +8,7 @@ import DefaultColors from "./defaultcolors.js"
 
 export default class GeometryLoader {
 
-	constructor(loaderId, bimServerApi, renderLayer, roids, loaderSettings, vertexQuantizationMatrices, stats, settings, query, geometryCache) {
+	constructor(loaderId, bimServerApi, renderLayer, roids, loaderSettings, vertexQuantizationMatrices, stats, settings, query, geometryCache, gpuBufferManager) {
 		this.renderLayer = renderLayer;
 		this.settings = settings;
 		
@@ -26,7 +27,12 @@ export default class GeometryLoader {
 		this.prepareReceived = false;
 		this.geometryIds = new Map();
 		this.dataToInfo = new Map();
+		
+		this.gpuBufferManager = gpuBufferManager;
 
+		this.createdTransparentObjects = new Map(); // object id -> object info
+		this.createdOpaqueObjects = new Map(); // object id -> object info
+		
 		this.promise = new Promise((resolve, reject) => {
 			this.resolve = resolve;
 		});
@@ -89,20 +95,19 @@ export default class GeometryLoader {
 	}
 	
 	binaryDataListener(data) {
+		this.stats.inc("Network", "Bytes OTL", data.byteLength);
 		var stream = new DataInputStream(data);
 		var channel = stream.readLong();
 
 		while (this.processMessage(stream)) {
 			
 		}
-		
-		this.stats.inc("Network", "Bytes OTL", stream.pos);
 	}
 
 	readEnd(data) {
 		if (this.dataToInfo.size > 0) {
 			// We need to tell the renderlayer that not all data has been loaded
-			this.renderLayer.storeMissingGeometry(this, this.dataToInfo);
+//			this.renderLayer.storeMissingGeometry(this, this.dataToInfo);
 		}
 //		console.log(this.dataToInfo);
 
@@ -188,6 +193,7 @@ export default class GeometryLoader {
 			// Object
 			var oid = stream.readLong();
 			var type = stream.readUTF8();
+			var nrColors = stream.readInt();
 			stream.align8();
 			var roid = stream.readLong();
 			var geometryInfoOid = stream.readLong();
@@ -196,6 +202,15 @@ export default class GeometryLoader {
 			var matrix = stream.readDoubleArray(16);
 			var geometryDataOid = stream.readLong();
 			var geometryDataOidFound = geometryDataOid;
+			if (hasTransparency) {
+				this.createdTransparentObjects.set(oid, {
+					nrColors: nrColors
+				});
+			} else {
+				this.createdOpaqueObjects.set(oid, {
+					nrColors: nrColors
+				});
+			}
 			if (!this.geometryIds.has(geometryDataOid)) {
 				if (this.geometryCache != null && this.geometryCache.has(geometryDataOid)) {
 					// We know it's cached
@@ -212,12 +227,94 @@ export default class GeometryLoader {
 				}
 			}
 			this.createObject(roid, oid, oid, geometryDataOidFound == null ? [] : [geometryDataOidFound], matrix, hasTransparency, type, objectBounds);
+		} else if (geometryType == 7) {
+			this.processPreparedBuffer(stream, true);
+		} else if (geometryType == 8) {
+			this.processPreparedBuffer(stream, false);
+			// For now this will trigger the loading to be completed
+			this.dataToInfo.clear();
 		} else {
 			console.error("Unsupported geometry type: " + geometryType);
 			return;
 		}
 
 		this.state.nrObjectsRead++;
+	}
+	
+	processPreparedBuffer(stream, hasTransparancy) {
+		var preparedBuffer = {};
+
+		// This is always the last message (before end), so we know all objects have been created
+		preparedBuffer.nrObjects = stream.readInt();
+		preparedBuffer.nrIndices = stream.readInt();
+		preparedBuffer.positionsIndex = stream.readInt();
+		preparedBuffer.normalsIndex = stream.readInt();
+		preparedBuffer.colorsIndex = stream.readInt();
+		preparedBuffer.indices = this.renderLayer.createBuffer(stream.dataView, preparedBuffer.nrIndices * 4, this.renderLayer.gl.ELEMENT_ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.UNSIGNED_INT, "Uint32Array");
+		stream.pos += preparedBuffer.nrIndices * 4;
+		preparedBuffer.geometryIdToIndex = new Map();
+		preparedBuffer.geometryIdToMeta = new Map();
+		for (var i=0; i<preparedBuffer.nrObjects; i++) {
+			var oid = stream.readLong();
+			var startIndex = stream.readInt();
+			var nrIndices = stream.readInt();
+			var startColor = stream.readInt();
+			var nrColors = stream.readInt();
+			preparedBuffer.geometryIdToIndex.set(oid, startIndex);
+			preparedBuffer.geometryIdToMeta.set(oid, [{
+				start: startIndex,
+				length: nrIndices,
+				color: startColor,
+				colorLength: nrColors
+			}]);
+		}
+		preparedBuffer.vertices = this.renderLayer.createBuffer(stream.dataView, preparedBuffer.positionsIndex * 2, this.renderLayer.gl.ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.SHORT, "Int16Array");
+		stream.pos += preparedBuffer.positionsIndex * 2;
+		preparedBuffer.normals = this.renderLayer.createBuffer(stream.dataView, preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.BYTE, "Int8Array");
+		stream.pos += preparedBuffer.normalsIndex;
+		preparedBuffer.colors = this.renderLayer.createBuffer(stream.dataView, preparedBuffer.colorsIndex, this.renderLayer.gl.ARRAY_BUFFER, 4, stream.pos, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
+		stream.pos += preparedBuffer.colorsIndex;
+		
+		if (preparedBuffer.nrIndices == 0) {
+			return;
+		}
+		
+		preparedBuffer.loaderId = this.loaderId;
+		preparedBuffer.hasTransparency = hasTransparancy;
+		
+		var pickColors = new Uint8Array(preparedBuffer.colorsIndex);
+		pickColors.i = 0;
+
+		var x = 0;
+		var createdObjects = null;
+		if (hasTransparancy) {
+			createdObjects = this.createdTransparentObjects;
+		} else {
+			createdObjects = this.createdOpaqueObjects;
+		}
+		
+		for (var [oid, objectInfo] of createdObjects) {
+			var pickColor = this.renderLayer.viewer.getPickColor(oid);
+			var lenObjectPickColors = objectInfo.nrColors / 4;
+			for (var i=0; i<lenObjectPickColors; i++) {
+				pickColors.set(pickColor, pickColors.i);
+				pickColors.i += 4;
+			}
+		}
+		
+		preparedBuffer.pickColors = this.renderLayer.createBuffer(pickColors, pickColors.i, this.renderLayer.gl.ARRAY_BUFFER, 4);
+		preparedBuffer.bytes = RenderLayer.calculateBytesUsed(this.settings, preparedBuffer.positionsIndex, preparedBuffer.colorsIndex, preparedBuffer.nrIndices, preparedBuffer.normalsIndex);
+		
+		preparedBuffer.unquantizationMatrix = this.unquantizationMatrix;
+		var newBuffer = this.renderLayer.addCompleteBuffer(preparedBuffer, this.gpuBufferManager);
+		
+//		for (var [oid, objectInfo] of createdObjects) {
+//			var li = (newBuffer.geometryIdToIndex.get(oid) || []);
+//			li.push(mapping.get(oid));
+//			newBuffer.geometryIdToIndex.set(oid, li);
+//		}
+		
+		stream.align8();
 	}
 
 	readGeometry(stream, roid, croid, geometryId, geometryDataOid, hasTransparency, reused, type, useIntForIndices) {

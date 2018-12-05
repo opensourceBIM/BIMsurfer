@@ -97,6 +97,15 @@ export default class DefaultRenderLayer extends RenderLayer {
 		}
 	}
 
+	addCompleteBuffer(buffer, gpuBufferManager) {
+		var newBuffer = super.addCompleteBuffer(buffer, gpuBufferManager);
+		
+		this.viewer.stats.inc("Drawing", "Draw calls per frame (L1)");
+		this.viewer.stats.inc("Drawing", "Triangles to draw (L1)", buffer.nrIndices / 3);
+		
+		return newBuffer;
+	}
+	
 	flushBuffer(buffer) {
 		let gpuBuffer = super.flushBuffer(buffer, this.gpuBufferManager);
 

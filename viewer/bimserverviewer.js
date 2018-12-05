@@ -226,13 +226,22 @@ export default class BimServerViewer {
 			
 			// TODO This is very BIMserver specific, clutters the code, should move somewhere else (maybe GeometryLoader)
 			var fieldsToInclude = ["indices"];
+			fieldsToInclude.push("color");
 			if (this.settings.loaderSettings.quantizeNormals) {
-				fieldsToInclude.push("normalsQuantized");
+				if (this.settings.loaderSettings.prepareBuffers) {
+					fieldsToInclude.push("normals");
+				} else {
+					fieldsToInclude.push("normalsQuantized");
+				}
 			} else {
 				fieldsToInclude.push("normals");
 			}
 			if (this.settings.loaderSettings.quantizeVertices) {
-				fieldsToInclude.push("verticesQuantized");
+				if (this.settings.loaderSettings.prepareBuffers) {
+					fieldsToInclude.push("vertices");
+				} else {
+					fieldsToInclude.push("verticesQuantized");
+				}
 			} else {
 				fieldsToInclude.push("vertices");
 			}
@@ -330,7 +339,10 @@ export default class BimServerViewer {
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 		};
 
-		var geometryLoader = new GeometryLoader(0, this.bimServerApi, defaultRenderLayer, [revision.oid], this.settings.loaderSettings, null, this.stats, this.settings, query);
+		query.loaderSettings.vertexQuantizationMatrix = this.viewer.vertexQuantization.getTransformedVertexQuantizationMatrix();
+		
+		var geometryLoader = new GeometryLoader(0, this.bimServerApi, defaultRenderLayer, [revision.oid], this.settings.loaderSettings, null, this.stats, this.settings, query, null, defaultRenderLayer.gpuBufferManager);
+		geometryLoader.unquantizationMatrix = this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix();
 		defaultRenderLayer.registerLoader(geometryLoader.loaderId);
 		executor.add(geometryLoader).then(() => {
 			defaultRenderLayer.done(geometryLoader.loaderId);
