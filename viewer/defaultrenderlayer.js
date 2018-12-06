@@ -34,9 +34,13 @@ export default class DefaultRenderLayer extends RenderLayer {
 		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, this.gpuBufferManager);
 	}
 
+	addGeometryReusable(geometry, loader, gpuBufferManager) {
+		super.addGeometryReusable(geometry, loader, gpuBufferManager);
+		this.viewer.stats.inc("Drawing", "Draw calls per frame (L1)");
+	}
+	
 	addGeometry(loaderId, geometry, object) {
 		// TODO some of this is duplicate code, also in tilingrenderlayer.js
-
 		if (geometry.reused > 1 && this.geometryDataToReuse != null && this.geometryDataToReuse.has(geometry.id)) {
 			geometry.matrices.push(object.matrix);
 			geometry.objects.push(object);
