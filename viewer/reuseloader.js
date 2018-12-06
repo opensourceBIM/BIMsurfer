@@ -38,6 +38,10 @@ export default class ReuseLoader {
 			},
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 		};
+		
+		// The returned data (GeometryData) objects should be processed as normal, not as a preparedBuffer
+		query.loaderSettings.prepareBuffers = false;
+
 		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, this, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, null);
 		var p = geometryLoader.start();
 		p.then(() => {
