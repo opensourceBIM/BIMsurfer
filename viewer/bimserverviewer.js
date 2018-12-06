@@ -226,10 +226,11 @@ export default class BimServerViewer {
 			
 			// TODO This is very BIMserver specific, clutters the code, should move somewhere else (maybe GeometryLoader)
 			var fieldsToInclude = ["indices"];
-			fieldsToInclude.push("color");
+			fieldsToInclude.push("colorPack");
 			if (this.settings.loaderSettings.quantizeNormals) {
 				if (this.settings.loaderSettings.prepareBuffers) {
 					fieldsToInclude.push("normals");
+					fieldsToInclude.push("normalsQuantized");
 				} else {
 					fieldsToInclude.push("normalsQuantized");
 				}
@@ -239,6 +240,7 @@ export default class BimServerViewer {
 			if (this.settings.loaderSettings.quantizeVertices) {
 				if (this.settings.loaderSettings.prepareBuffers) {
 					fieldsToInclude.push("vertices");
+					fieldsToInclude.push("verticesQuantized");
 				} else {
 					fieldsToInclude.push("verticesQuantized");
 				}
@@ -338,7 +340,7 @@ export default class BimServerViewer {
 			},
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 		};
-
+		
 		query.loaderSettings.vertexQuantizationMatrix = this.viewer.vertexQuantization.getTransformedVertexQuantizationMatrix();
 		
 		var geometryLoader = new GeometryLoader(0, this.bimServerApi, defaultRenderLayer, [revision.oid], this.settings.loaderSettings, null, this.stats, this.settings, query, null, defaultRenderLayer.gpuBufferManager);
