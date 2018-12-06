@@ -536,7 +536,6 @@ export default class RenderLayer {
 		var b = gl.createBuffer();
 		gl.bindBuffer(bufferType, b);
 		gl.bufferData(bufferType, data, gl.STATIC_DRAW, srcStart, numElements);
-		gl.bufferData(bufferType, data, gl.STATIC_DRAW, 0, numElements);
 		
 		b.N = numElements;
 		b.gl_type = bufferType;
@@ -591,33 +590,6 @@ export default class RenderLayer {
 			const indexBuffer = buffer.indices;
 			const colorBuffer = buffer.colors;
 
-			// Regular drawing VAO
-//			var vao = this.gl.createVertexArray();
-//			this.gl.bindVertexArray(vao);
-//			let locations = [
-//				[programInfo.attribLocations.vertexPosition, positionBuffer],
-//				[programInfo.attribLocations.vertexNormal, normalBuffer]
-//			];
-//			if (!this.settings.useObjectColors) {
-//				locations.push([programInfo.attribLocations.vertexColor, colorBuffer]);
-//			}
-//			this.bindLocationPairs(locations);
-//			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-//			this.gl.bindVertexArray(null);
-//
-//			// Picking VAO
-//			var vaoPick = this.gl.createVertexArray();
-//			this.gl.bindVertexArray(vaoPick);
-//			locations = [
-//				[pickProgramInfo.attribLocations.vertexPosition, positionBuffer],
-//			];
-//			if (buffer.pickColors) {
-//				locations.push([pickProgramInfo.attribLocations.vertexPickColor, pickColorBuffer]);
-//			}
-//			this.bindLocationPairs(locations);
-//			this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-//			this.gl.bindVertexArray(null);
-
 			newBuffer = new FrozenBufferSet(
 				buffer,
 				
@@ -644,7 +616,6 @@ export default class RenderLayer {
 				gpuBufferManager			
 			);
 			
-			newBuffer.type = "precomputed";
 			newBuffer.unquantizationMatrix = buffer.unquantizationMatrix;
 
 			newBuffer.geometryIdToIndex = buffer.geometryIdToMeta;
