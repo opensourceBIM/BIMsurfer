@@ -24,6 +24,9 @@ export default class Settings {
 				useObjectColors: "boolean",
 				tilingLayerReuse: "boolean",
 				prepareBuffers: "boolean"
+			},
+			realtimeSettings: {
+				drawTileBorders: "boolean"
 			}
 		};
 		
@@ -46,6 +49,9 @@ export default class Settings {
 				useObjectColors: false,
 				tilingLayerReuse: true,
 				prepareBuffer: false
+			},
+			realtimeSettings: {
+				drawTileBorders: true
 			}
 		} : JSON.parse(settingsObject);
 		console.log("settings loaded", this.settings);
@@ -53,7 +59,6 @@ export default class Settings {
 	}
 	
 	saveSettings() {
-		console.log("save", this.settings);
 		localStorage.setItem("settings", JSON.stringify(this.settings));
 	}
 	
@@ -111,6 +116,9 @@ export default class Settings {
 						settings[key] = parseInt(el.value);
 					}
 					this.saveSettings();
+					if (this[key] != null) {
+						this[key](el.checked);
+					}
 				});
 				
 				div.appendChild(input);
@@ -137,5 +145,10 @@ export default class Settings {
 				this.processSettings(container, value, (keyPrefix == null ? "" : (keyPrefix + ".")) + key, settings);
 			}
 		}
+	}
+	
+	drawTileBorders(value) {
+		window.tilingRenderLayer.drawTileBorders = value;
+		window.bimServerViewer.viewer.dirty = true;
 	}
 }

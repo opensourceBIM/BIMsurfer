@@ -48,9 +48,6 @@ export default class DefaultSettings {
 		if (settings.maxOctreeDepth == null) {
 			settings.maxOctreeDepth = 5;
 		}
-		if (settings.drawTileBorders == null) {
-			settings.drawTileBorders = false;
-		}
 		if (settings.fakeLoading == null) {
 			settings.fakeLoading = false;
 		}
@@ -84,7 +81,7 @@ export default class DefaultSettings {
 			settings.loaderSettings.tilingLayerReuse = true;
 		}
 		if (settings.loaderSettings.reuseThreshold == null) {
-			settings.loaderSettings.reuseThreshold = 1000;
+			settings.loaderSettings.reuseThreshold = 25000;
 		}
 		return settings;
 	}
