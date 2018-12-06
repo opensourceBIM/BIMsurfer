@@ -243,7 +243,7 @@ export default class GeometryLoader {
 	
 	processPreparedBuffer(stream, hasTransparancy) {
 		var preparedBuffer = {};
-
+		
 		// This is always the last message (before end), so we know all objects have been created
 		preparedBuffer.nrObjects = stream.readInt();
 		preparedBuffer.nrIndices = stream.readInt();
@@ -285,7 +285,6 @@ export default class GeometryLoader {
 		var pickColors = new Uint8Array(preparedBuffer.colorsIndex);
 		pickColors.i = 0;
 
-		var x = 0;
 		var createdObjects = null;
 		if (hasTransparancy) {
 			createdObjects = this.createdTransparentObjects;
@@ -307,12 +306,6 @@ export default class GeometryLoader {
 		
 		preparedBuffer.unquantizationMatrix = this.unquantizationMatrix;
 		var newBuffer = this.renderLayer.addCompleteBuffer(preparedBuffer, this.gpuBufferManager);
-		
-//		for (var [oid, objectInfo] of createdObjects) {
-//			var li = (newBuffer.geometryIdToIndex.get(oid) || []);
-//			li.push(mapping.get(oid));
-//			newBuffer.geometryIdToIndex.set(oid, li);
-//		}
 		
 		stream.align8();
 	}
