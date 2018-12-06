@@ -33,7 +33,6 @@ export default class Dev {
 		this.settings = JSON.parse(JSON.stringify(this.settingsView.settings));
 		this.settings.viewerBasePath = "../";
 		this.settings.drawTileBorders = true;
-//		this.settings.loaderSettings.prepareBuffers = true;
 		
 		this.api = new BimServerClient("http://localhost:8080");
 //		this.api = new BimServerClient("https://epic.logic-labs.nl");

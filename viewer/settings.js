@@ -22,7 +22,8 @@ export default class Settings {
 				quantizeVertices: "boolean",
 				quantizeColors: "boolean",
 				useObjectColors: "boolean",
-				tilingLayerReuse: "boolean"
+				tilingLayerReuse: "boolean",
+				prepareBuffers: "boolean"
 			}
 		};
 		
@@ -43,7 +44,8 @@ export default class Settings {
 				quantizeVertices: true,
 				quantizeColors: true,
 				useObjectColors: false,
-				tilingLayerReuse: true
+				tilingLayerReuse: true,
+				prepareBuffer: false
 			}
 		} : JSON.parse(settingsObject);
 		console.log("settings loaded", this.settings);
