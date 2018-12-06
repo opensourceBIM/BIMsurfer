@@ -19,7 +19,7 @@ export default class Settings {
 			maxOctreeDepth: "number",
 			loaderSettings: {
 				quantizeNormals: "boolean",
-				quantizeVertices: "boolean",
+				quantizeVertices: "boolean", 
 				quantizeColors: "boolean",
 				useObjectColors: "boolean",
 				tilingLayerReuse: "boolean",
@@ -73,6 +73,9 @@ export default class Settings {
 				label.innerHTML = key;
 				if (key in {quantizeNormals: 1, quantizeVertices: 1}) {
 					label.innerHTML += " (required for instancing)";
+				}
+				if (key == "tilingLayerReuse") {
+					label.innerHTML += " (requires gpuReuse)";
 				}
 				parent.appendChild(label);
 				var id = (keyPrefix == null ? "" : (keyPrefix + ".")) + key;
