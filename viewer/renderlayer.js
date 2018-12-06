@@ -10,6 +10,7 @@ const false_true = [false, true];
 const UINT32_MAX = (new Uint32Array((new Int32Array([-1])).buffer))[0];
 
 export default class RenderLayer {
+	
 	constructor(viewer, geometryDataToReuse) {
 		this.settings = viewer.settings;
 		this.viewer = viewer;
@@ -412,7 +413,6 @@ export default class RenderLayer {
 			geometry.bytes + 
 			geometry.matrices.length * 16 * 4 + // vertex matrices
 			geometry.matrices.length * 9 * 4; // normal matrices
-		this.viewer.stats.inc("Drawing", "Draw calls per frame (L1)");
 		this.viewer.stats.inc("Data", "GPU bytes reuse", toadd);
 		this.viewer.stats.inc("Data", "GPU bytes total", toadd);
 
@@ -640,7 +640,8 @@ export default class RenderLayer {
 		}
 		this.viewer.stats.inc("Data", "GPU bytes", buffer.bytes);
 		this.viewer.stats.inc("Data", "GPU bytes total", buffer.bytes);
-		this.viewer.stats.inc("Buffers", "Buffer groups");
+
+		this.viewer.stats.inc("Models", "Geometries", buffer.nrObjects);
 
 		return newBuffer;
 	}
