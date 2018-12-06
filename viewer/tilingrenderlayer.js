@@ -22,7 +22,7 @@ export default class TilingRenderLayer extends RenderLayer {
 
 		this.loaderToNode = {};
 
-		this.drawTileBorders = this.viewer.settings.drawTileBorders;
+		this.drawTileBorders = this.viewer.settings.realtimeSettings.drawTileBorders;
 
 		this._frustum = new Frustum();
 		
@@ -249,6 +249,8 @@ export default class TilingRenderLayer extends RenderLayer {
 		var node = this.loaderToNode[loader.loaderId];
 		node.stats.triangles += ((geometry.indices.length / 3) * (geometry.matrices.length));
 		node.stats.drawCallsPerFrame++;
+		
+		this.viewer.stats.inc("Drawing", "Draw calls per frame (L2)");
 	}
 
 	done(loaderId) {
