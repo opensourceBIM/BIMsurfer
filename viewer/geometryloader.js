@@ -138,7 +138,7 @@ export default class GeometryLoader {
 
 		this.protocolVersion = data.readByte();
 
-		if (this.protocolVersion != 16) {
+		if (this.protocolVersion != 17) {
 			console.error("Unimplemented version");
 			return false;
 		}
