@@ -265,6 +265,7 @@ export default class GeometryLoader {
 		
 		var nrColors = preparedBuffer.positionsIndex * 4 / 3;
 		var colors = new Uint8Array(nrColors);
+		var colors32 = new Uint32Array(colors.buffer);
 		var createdObjects = null;
 		if (hasTransparancy) {
 			createdObjects = this.createdTransparentObjects;
@@ -291,33 +292,28 @@ export default class GeometryLoader {
 			}]);
 			
 			var colorPackSize = stream.readInt();
-			var totalCount = 0;
 			var type = createdObjects.get(oid).type;
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
 				var defaultColor = DefaultColors[type];
-				var color = new Uint8Array(4);
-				color[0] = defaultColor.r * 255;
-				color[1] = defaultColor.g * 255;
-				color[2] = defaultColor.b * 255;
-				color[3] = defaultColor.a * 255;
-				for (var q=0; q<nrObjectColors; q += 4) {
-					colors.set(color, currentColorIndex);
-					currentColorIndex += 4;
-					totalCount += 4;
+				if (defaultColor.asInt == null) {
+					// Cache the integer version
+					var color = new Uint8Array(4);
+					color[0] = defaultColor.r * 255;
+					color[1] = defaultColor.g * 255;
+					color[2] = defaultColor.b * 255;
+					color[3] = defaultColor.a * 255;
+					defaultColor.asInt = color[0] + color[1] * 256 + color[2] * 65536 + color[3] * 16777216;
 				}
+				colors32.fill(defaultColor.asInt, currentColorIndex / 4, (currentColorIndex + nrObjectColors) / 4);
+				currentColorIndex += nrObjectColors;
 			}
 			for (var j=0; j<colorPackSize; j++) {
 				var count = stream.readInt();
-				totalCount += count;
 				var color = stream.readUnsignedByteArray(4);
-				for (var q=0; q<count; q += 4) {
-					colors.set(color, currentColorIndex);
-					currentColorIndex += 4;
-				}
-			}
-			if (totalCount != nrObjectColors) {
-				console.error(totalCount, nrObjectColors);
+				var color32 = color[0] + color[1] * 256 + color[2] * 65536 + color[3] * 16777216;
+				colors32.fill(color32, (currentColorIndex / 4), (currentColorIndex + count) / 4);
+				currentColorIndex += count;
 			}
 			preparedBuffer.geometryIdToIndex.set(oid, startIndex);
 		}
@@ -339,16 +335,16 @@ export default class GeometryLoader {
 		preparedBuffer.hasTransparency = hasTransparancy;
 		
 		var pickColors = new Uint8Array(preparedBuffer.positionsIndex * 4);
+		var pickColors32 = new Uint32Array(pickColors.buffer);
 		pickColors.i = 0;
 
 		for (var [oid, objectInfo] of createdObjects) {
 			if (tmpOids.has(oid)) {
 				var pickColor = this.renderLayer.viewer.getPickColor(oid);
-				var lenObjectPickColors = objectInfo.nrColors / 4;
-				for (var i=0; i<lenObjectPickColors; i++) {
-					pickColors.set(pickColor, pickColors.i);
-					pickColors.i += 4;
-				}
+				var color32 = pickColor[0] + pickColor[1] * 256 + pickColor[2] * 256 * 256 + pickColor[3] * 256 * 256 * 256;
+				var lenObjectPickColors = objectInfo.nrColors;
+				pickColors32.fill(color32, pickColors.i / 4, (pickColors.i + lenObjectPickColors) / 4);
+				pickColors.i += lenObjectPickColors;
 			}
 		}
 		
