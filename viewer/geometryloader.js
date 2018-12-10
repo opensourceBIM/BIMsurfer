@@ -296,6 +296,9 @@ export default class GeometryLoader {
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
 				var defaultColor = DefaultColors[type];
+				if (defaultColor == null) {
+					defaultColor = DefaultColors.DEFAULT;
+				}
 				if (defaultColor.asInt == null) {
 					// Cache the integer version
 					var color = new Uint8Array(4);
