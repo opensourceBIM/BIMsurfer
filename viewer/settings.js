@@ -26,7 +26,8 @@ export default class Settings {
 				prepareBuffers: "boolean"
 			},
 			realtimeSettings: {
-				drawTileBorders: "boolean"
+				drawTileBorders: "boolean",
+				loadAllTiles: "button"
 			}
 		};
 		
@@ -81,7 +82,13 @@ export default class Settings {
 				var id = (keyPrefix == null ? "" : (keyPrefix + ".")) + key;
 				label.setAttribute("for", id);
 				
-				var input = document.createElement("input");
+				if (value == "button") {
+					var input = document.createElement("button");
+					label.hidden = true;
+					input.innerHTML = key;
+				} else {
+					var input = document.createElement("input");
+				}
 				if (value == "boolean") {
 					input.setAttribute("type", "checkbox");
 				}
@@ -105,6 +112,13 @@ export default class Settings {
 				input.id = id;
 				input.setAttribute("key", key);
 				input.setAttribute("valuetype", value);
+				if (value == "button") {
+					input.addEventListener("click", () => {
+						if (this[key] != null) {
+							this[key]();
+						}
+					});
+				}
 				input.addEventListener("change", (event) => {
 					var el = event.target;
 					var key = el.getAttribute("key");
@@ -150,8 +164,20 @@ export default class Settings {
 		}
 	}
 	
+	loadAllTiles() {
+		if (window.tilingRenderLayer != null) {
+			window.tilingRenderLayer.tileLoader.loadAll();
+		} else {
+			alert("No tiling layer");
+		}
+	}
+	
 	drawTileBorders(value) {
-		window.tilingRenderLayer.drawTileBorders = value;
-		window.bimServerViewer.viewer.dirty = true;
+		if (window.tilingRenderLayer != null) {
+			window.tilingRenderLayer.drawTileBorders = value;
+			window.bimServerViewer.viewer.dirty = true;
+		} else {
+			alert("No tiling layer");
+		}
 	}
 }
