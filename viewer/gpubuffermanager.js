@@ -21,11 +21,13 @@ export default class GpuBufferManager {
 	}
 	
 	isEmpty() {
-		return 
+		// This variable is required because of bug in Firefox
+		var isEmpty =
 			(this.liveBuffersOpaque == null || this.liveBuffersOpaque.length == 0) && 
 			(this.liveBuffersTransparent == null || this.liveBuffersTransparent.length == 0) &&
 			(this.liveReusedBuffersOpaque == null || this.liveReusedBuffersOpaque.length == 0) &&
 			(this.liveReusedBuffersTransparent == null || this.liveReusedBuffersTransparent.length == 0);
+		return isEmpty;
 	}
 	
 	/* 
