@@ -17,7 +17,7 @@ export default class TilingRenderLayer extends RenderLayer {
 	constructor(viewer, geometryDataToReuse, bounds) {
 		super(viewer, geometryDataToReuse);
 
-		this.octree = new Octree(bounds, viewer.settings.maxOctreeDepth);
+		this.octree = new Octree(viewer, bounds, viewer.settings.maxOctreeDepth);
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
 
 		this.loaderToNode = {};
@@ -241,7 +241,7 @@ export default class TilingRenderLayer extends RenderLayer {
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
 		var loader = this.getLoader(loaderId);
 		var node = this.loaderToNode[loaderId];
-		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, node.gpuBufferManager);
+		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, node.gpuBufferManager, node);
 	}
 
 	addGeometryReusable(geometry, loader, gpuBufferManager) {

@@ -122,10 +122,13 @@ export default class TileLoader {
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 		};
 		
-		query.loaderSettings.vertexQuantizationMatrix = Utils.toArray(this.viewer.vertexQuantization.getTransformedQuantizationMatrix(node.bounds));
+		query.loaderSettings.vertexQuantizationMatrix = this.tilingRenderLayer.viewer.vertexQuantization.getTransformedVertexQuantizationMatrix();
 		
 		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, this.tilingRenderLayer, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, this.tilingRenderLayer.reusedGeometryCache, node.gpuBufferManager);
-		geometryLoader.unquantizationMatrix = this.viewer.vertexQuantization.getTransformedInverseQuantizationMatrix(node.bounds);
+		
+		// We now use the total model bounds for the quantization since the prebuilt buffers already applied the transformation, thus no problems are expected for strange bounds
+//		geometryLoader.unquantizationMatrix = this.tilingRenderLayer.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix();
+		
 		this.tilingRenderLayer.registerLoader(geometryLoader.loaderId);
 		this.tilingRenderLayer.loaderToNode[geometryLoader.loaderId] = node;
 		geometryLoader.onStart = () => {

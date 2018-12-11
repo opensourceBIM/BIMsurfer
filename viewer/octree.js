@@ -1,9 +1,12 @@
+import Utils from './utils.js'
+
 /*
  * Octree implementation targeted towards being used in the TilingLayer, could possibly be retrofitted to be a generic Octree to be used in other contexts
  */
 
 class OctreeNode {
-	constructor(parent, id, x, y, z, width, height, depth, level) {
+	constructor(viewer, parent, id, x, y, z, width, height, depth, level) {
+		this.viewer = viewer;
 		this.parent = parent;
 		if (parent != null) {
 			if (level > this.parent.deepestLevel) {
@@ -39,6 +42,9 @@ class OctreeNode {
 		// TODO also keep track of the minimal bounds inc. children (useful for hyrachical culling)
 		
 		this.quadrants = [];
+		
+		this.vertexQuantizationMatrix = Utils.toArray(this.viewer.vertexQuantization.getTransformedQuantizationMatrix(this.bounds));
+		this.vertexUnquantizationMatrix = Utils.toArray(this.viewer.vertexQuantization.getTransformedInverseQuantizationMatrix(this.bounds));
 		
 		this.largestFaceArea = width * height;
 		if (width * depth > this.largestFaceArea) {
@@ -123,14 +129,14 @@ class OctreeNode {
 			var newLevel = this.level + 1;
 			var newId = this.id * 8 + localId + 1;
 			switch (localId) {
-				case 0: quadrant = new OctreeNode(this, newId, this.x, this.y, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 1: quadrant = new OctreeNode(this, newId, this.x, this.y, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 2: quadrant = new OctreeNode(this, newId, this.x, this.y + this.height / 2, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 3: quadrant = new OctreeNode(this, newId, this.x, this.y + this.height / 2, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 4: quadrant = new OctreeNode(this, newId, this.x + this.width / 2, this.y, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 5: quadrant = new OctreeNode(this, newId, this.x + this.width / 2, this.y, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 6: quadrant = new OctreeNode(this, newId, this.x + this.width / 2, this.y + this.height / 2, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
-				case 7: quadrant = new OctreeNode(this, newId, this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 0: quadrant = new OctreeNode(this.viewer, this, newId, this.x, this.y, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 1: quadrant = new OctreeNode(this.viewer, this, newId, this.x, this.y, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 2: quadrant = new OctreeNode(this.viewer, this, newId, this.x, this.y + this.height / 2, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 3: quadrant = new OctreeNode(this.viewer, this, newId, this.x, this.y + this.height / 2, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 4: quadrant = new OctreeNode(this.viewer, this, newId, this.x + this.width / 2, this.y, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 5: quadrant = new OctreeNode(this.viewer, this, newId, this.x + this.width / 2, this.y, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 6: quadrant = new OctreeNode(this.viewer, this, newId, this.x + this.width / 2, this.y + this.height / 2, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
+				case 7: quadrant = new OctreeNode(this.viewer, this, newId, this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel); break;
 			}
 			this.quadrants[localId] = quadrant;
 		}
@@ -196,8 +202,8 @@ class OctreeNode {
 }
 
 export default class Octree extends OctreeNode {
-	constructor(bounds, maxDepth) {
-		super(null, 0, bounds[0], bounds[1], bounds[2], bounds[3] - bounds[0], bounds[4] - bounds[1], bounds[5] - bounds[2]);
+	constructor(viewer, bounds, maxDepth) {
+		super(viewer, null, 0, bounds[0], bounds[1], bounds[2], bounds[3] - bounds[0], bounds[4] - bounds[1], bounds[5] - bounds[2]);
 		this.maxDepth = maxDepth;
 		this.level = 0;
 		this.breathFirstList = [];
