@@ -85,7 +85,7 @@ export default class RenderLayer {
 		return bytes;
 	}
 
-	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager) {
+	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager, node) {
 		var loader = this.getLoader(loaderId);
 		var object = {
 			id: objectId,
@@ -109,7 +109,8 @@ export default class RenderLayer {
 			aabb: aabb,
 			objectId: objectId,
 			oid: oid,
-			center: null // TODO
+			center: null, // TODO
+			node: node
 		};
 		this.viewer.addViewObject(objectId, viewObject);
 
