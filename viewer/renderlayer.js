@@ -705,7 +705,6 @@ export default class RenderLayer {
 	}
 
 	renderSelectionOutlines(ids, width, node) {
-		return;
 		let bufferManager = (node || this).gpuBufferManager;
 
 		if (!bufferManager) {
