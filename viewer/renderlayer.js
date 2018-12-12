@@ -433,6 +433,13 @@ export default class RenderLayer {
 		console.log("Not implemented in this layer");
 	}
 	
+	/*
+	 * Prepare the rendering pass, this is called only once for each frame
+	 */	
+	prepareRender() {
+		
+	}
+	
 	render(transparency, visibleElements) {
 		this.renderBuffers(transparency, false, visibleElements);
 		this.renderBuffers(transparency, true, visibleElements);
@@ -722,7 +729,7 @@ export default class RenderLayer {
 						if (buffer.lineIndexBuffers) {
 							let lines = buffer.lineIndexBuffers.get(id);
 							if (lines) {
-								// TODO Ruben: renderStart in doing a lot of redundant stuff, I even see gl.bufferData() calls in there
+								// TODO Ruben: renderStart is doing a lot of redundant stuff, I even see gl.bufferData() calls in there
 								lines.renderStart(viewer);
 								lines.render(outlineColor, lines.matrixMap.get(id) || selectionOutlineMatrix, width || 0.005);
 								lines.renderStop();

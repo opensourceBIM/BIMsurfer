@@ -319,6 +319,10 @@ export default class Viewer {
                 this.cameraSet = true;
             }
         }
+        
+        for (var renderLayer of this.renderLayers) {
+            renderLayer.prepareRender();
+        }
 
         let render = (elems, force) => {
             for (var transparency of [false, true]) {
@@ -338,7 +342,7 @@ export default class Viewer {
             }
         }
 
-        render({without: this.invisibleElements});
+        render({without: this.invisibleElements}, false);
 
         if (this.selectedElements.size > 0) {
             gl.enable(gl.STENCIL_TEST);
@@ -349,7 +353,7 @@ export default class Viewer {
             gl.disable(gl.DEPTH_TEST);
             gl.colorMask(false, false, false, false);
             
-            render({with: this.selectedElements, pass: 'stencil'}, true);
+            render({with: this.selectedElements, pass: 'stencil'});
 
             gl.stencilFunc(gl.NOTEQUAL, 1, 0xff);
             gl.stencilMask(0x00);

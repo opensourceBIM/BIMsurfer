@@ -52,6 +52,8 @@ export default class TilingRenderLayer extends RenderLayer {
 		var promise = new Promise((resolve, reject) => {
 			var init = this.tileLoader.initialize().then(() => {
 				this.enabled = true;
+				// Ugly way of triggering an octree-visibility update
+				this.lastViewMatrix = null;
 				if (this.initialLoad == "all") {
 					return this.tileLoader.loadAll(progressListener);
 				}
@@ -86,6 +88,40 @@ export default class TilingRenderLayer extends RenderLayer {
 		return false;
 	}
 	
+	prepareRender() {
+		// This only needs to be recalculated if the camera has changed, so we keep track of the last view matrix
+		if (this.lastViewMatrix == null || this.octree.size != this.lastOctreeSize || !mat4.equals(this.lastViewMatrix, this.viewer.camera.viewMatrix)) {
+			this.lastViewMatrix = mat4.clone(this.viewer.camera.viewMatrix);
+
+			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
+
+			var renderingTiles = 0;
+			var renderingTriangles = 0;
+			var drawCalls = 0;
+			
+			this.octree.traverseBreathFirst((node) => {
+				if (this.cull(node)) {
+					node.visibilityStatus = 0;
+					return false;
+				} else {
+					node.visibilityStatus = 1;
+					if (node.stats != null) {
+						renderingTiles++;
+						renderingTriangles += node.stats.triangles;
+						drawCalls += node.stats.drawCallsPerFrame;
+					}
+					if (node.loadingStatus == 0) {
+						this.tileLoader.loadTile(node);
+					}
+				}
+			});
+			
+			this.viewer.stats.setParameter("Drawing", "Draw calls per frame (L2)", drawCalls);
+			this.viewer.stats.setParameter("Drawing", "Triangles to draw (L2)", renderingTriangles);
+			this.viewer.stats.setParameter("Tiling", "Rendering", renderingTiles);
+		}
+	}
+	
 	renderBuffers(transparency, reuse, visibleElements) {
 		// TODO when navigation is active (rotating, panning etc...), this would be the place to decide to for example not-render anything in this layer, or maybe apply more aggressive culling
 		// if (this.viewer.navigationActive) {
@@ -93,13 +129,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		// }
 		
 		// TODO would be nicer if this was passed as an integer argument, indicating the iteration count of this frame
-		var firstRunOfFrame = !transparency && !reuse;
 		let picking = visibleElements.pass === 'pick';
-		let shouldUpdateVisibility = firstRunOfFrame && !picking;
-
-		var renderingTiles = 0;
-		var renderingTriangles = 0;
-		var drawCalls = 0;
 
 		var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(reuse, picking));
 
@@ -117,28 +147,6 @@ export default class TilingRenderLayer extends RenderLayer {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 		}
 
-		if (shouldUpdateVisibility) { // Saves us from initializing two times per frame
-			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
-		}
-
-		if (shouldUpdateVisibility) {
-			this.octree.traverseBreathFirst((node) => {
-				if (this.cull(node)) {
-					node.visibilityStatus = 0;
-//					return false;
-				} else {
-					node.visibilityStatus = 1;
-					if (node.stats != null) {
-						renderingTiles++;
-						renderingTriangles += node.stats.triangles;
-						drawCalls += node.stats.drawCallsPerFrame;
-					}
-					if (node.loadingStatus == 0) {
-						this.tileLoader.loadTile(node);
-					}
-				}
-			});
-		}
 		this.octree.traverse((node) => {
 			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling 
 			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
@@ -154,12 +162,7 @@ export default class TilingRenderLayer extends RenderLayer {
 			}
 		});
 
-		if (shouldUpdateVisibility) {
-			this.viewer.stats.setParameter("Drawing", "Draw calls per frame (L2)", drawCalls);
-			this.viewer.stats.setParameter("Drawing", "Triangles to draw (L2)", renderingTriangles);
-			this.viewer.stats.setParameter("Tiling", "Rendering", renderingTiles);
-		}
-
+		// TODO this is still called twice now, also for selection...
 		if (!picking && transparency && !reuse && this.drawTileBorders) {
 			// The lines are rendered in the transparency-phase only
 			this.lineBoxGeometry.renderStart(this.viewer);
