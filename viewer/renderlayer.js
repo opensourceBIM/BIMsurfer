@@ -124,6 +124,8 @@ export default class RenderLayer {
 	}
 
 	addGeometry(loaderId, geometry, object, buffer, sizes) {
+		var viewObject = this.viewer.getViewObject(object.id);
+		viewObject.buffer = buffer;
 		var loaderQuantizeNormals = this.settings.loaderSettings.quantizeNormals;
 		var quantizeNormals = this.settings.quantizeNormals;
 
@@ -703,6 +705,7 @@ export default class RenderLayer {
 	}
 
 	renderSelectionOutlines(ids, width, node) {
+		return;
 		let bufferManager = (node || this).gpuBufferManager;
 
 		if (!bufferManager) {
@@ -712,17 +715,18 @@ export default class RenderLayer {
 
 		let viewer = bufferManager.viewer;
 
-		for (let a of false_true) { 
-			for (let b of false_true) {
-				var buffers = (node || this).gpuBufferManager.getBuffers(a, b);
+		for (let transparency of false_true) { 
+			for (let reuse of false_true) {
+				var buffers = (node || this).gpuBufferManager.getBuffers(transparency, reuse);
 				for (let buffer of buffers) {
 					for (var id of ids) {
 						if (buffer.lineIndexBuffers) {
 							let lines = buffer.lineIndexBuffers.get(id);
 							if (lines) {
-								lines.renderStart(viewer);
-								lines.render(outlineColor, lines.matrixMap.get(id) || selectionOutlineMatrix, width || 0.005);
-								lines.renderStop();
+								// TODO Ruben: renderStart in doing a lot of redundant stuff, I even see gl.bufferData() calls in there
+//								lines.renderStart(viewer);
+//								lines.render(outlineColor, lines.matrixMap.get(id) || selectionOutlineMatrix, width || 0.005);
+//								lines.renderStop();
 							}
 						}
 					}

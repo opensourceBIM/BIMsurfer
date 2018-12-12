@@ -482,6 +482,10 @@ export default class Viewer {
         this.animationListeners.push(fn);
     }
     
+    getViewObject(objectId) {
+    	return this.viewObjects.get(objectId);
+    }
+    
     addViewObject(objectId, viewObject) {
     	var pickId = this.pickIdToObjectId.size + 1;
     	this.viewObjects.set(objectId, viewObject);

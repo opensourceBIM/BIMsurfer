@@ -299,9 +299,12 @@ export default class TilingRenderLayer extends RenderLayer {
 	}
 
 	renderSelectionOutlines(ids, width) {
-		this.octree.traverse((node) => {
-			super.renderSelectionOutlines(ids, width, node);
-		});
+		for (var oid of ids) {
+			// TODO this is already much more efficient than iterating over all octree nodes, but can be made more efficient for large selections by first 
+			// organizing the oid's per node
+			var viewObject = this.viewer.getViewObject(oid);
+			super.renderSelectionOutlines(ids, width, viewObject.node);
+		}
 	}
 	
 	addCompleteBuffer(buffer, gpuBufferManager) {
