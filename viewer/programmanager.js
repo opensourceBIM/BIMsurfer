@@ -194,7 +194,7 @@ export default class ProgramManager {
 	}
 
 	setupProgram(vertexShader, fragmentShader, defaultSetup, specificSetup, key) {
-		console.log("setupProgram", key, this.keyToJson(key));
+//		console.log("setupProgram", key, this.keyToJson(key));
 		var p = new Promise((resolve, reject) => {
 			this.loadShaderFile(vertexShader).then((vsSource) => {
 				this.loadShaderFile(fragmentShader).then((fsSource) => {

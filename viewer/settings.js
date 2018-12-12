@@ -55,7 +55,7 @@ export default class Settings {
 				drawTileBorders: true
 			}
 		} : JSON.parse(settingsObject);
-		console.log("settings loaded", this.settings);
+//		console.log("settings loaded", this.settings);
 		this.processSettings(element, settingsDefinition, null, this.settings);
 	}
 	

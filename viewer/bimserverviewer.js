@@ -125,7 +125,7 @@ export default class BimServerViewer {
 			var nrPrimitivesBelow = densityAtThreshold.trianglesBelow;
 			var nrPrimitivesAbove = densityAtThreshold.trianglesAbove;
 			
-			console.log(nrPrimitivesBelow, nrPrimitivesAbove);
+//			console.log(nrPrimitivesBelow, nrPrimitivesAbove);
 			
 			this.bimServerApi.call("ServiceInterface", "getRevision", {
 				roid: roid
@@ -143,7 +143,7 @@ export default class BimServerViewer {
 
 		this.viewer.stats.setParameter("Models", "Models to load", 1);
 
-		console.log("Total triangles", nrPrimitivesBelow + nrPrimitivesAbove);
+//		console.log("Total triangles", nrPrimitivesBelow + nrPrimitivesAbove);
 		
 		var requests = [
 			["ServiceInterface", "getTotalBounds", {
