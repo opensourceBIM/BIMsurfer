@@ -100,6 +100,10 @@ export default class TilingRenderLayer extends RenderLayer {
 			var drawCalls = 0;
 			
 			this.octree.traverseBreathFirst((node) => {
+				if (node.parent != null && node.parent.visibilityStatus == 0) {
+					node.visibilityStatus = 0;
+					return false;
+				}
 				if (this.cull(node)) {
 					node.visibilityStatus = 0;
 					return false;
@@ -159,11 +163,13 @@ export default class TilingRenderLayer extends RenderLayer {
 				}
 				var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
 				this.renderFinalBuffers(buffers, programInfo, visibleElements);
+			} else {
+				return false;
 			}
 		});
 
 		// TODO this is still called twice now, also for selection...
-		if (!picking && transparency && !reuse && this.drawTileBorders) {
+		if (this.drawTileBorders && !picking && transparency && !reuse) {
 			// The lines are rendered in the transparency-phase only
 			this.lineBoxGeometry.renderStart(this.viewer);
 			this.octree.traverse((node, level) => {

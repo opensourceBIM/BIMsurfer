@@ -64,6 +64,8 @@ export default class TileLoader {
 						drawCallsPerFrame: 0
 					};
 				}
+				this.tilingRenderLayer.octree.prepareLevelLists();
+
 				resolve();
 			});
 		});

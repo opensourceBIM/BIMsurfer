@@ -70,10 +70,7 @@ class OctreeNode {
 		return this.matrix;
 	}
 
-	traverseBreathFirstInternal(fn, level, toSkip) {
-		if (toSkip != null && toSkip.has(this.id)) {
-			return;
-		}
+	traverseBreathFirstInternal(fn, level) {
 		if (this.level == level) {
 			var result = fn(this);
 			if (result === false && toSkip != null) {
@@ -86,21 +83,27 @@ class OctreeNode {
 		}
 		for (var node of this.quadrants) {
 			if (node != null) {
-				node.traverseBreathFirstInternal(fn, level, toSkip);
+				node.traverseBreathFirstInternal(fn, level);
 			}
 		}
 	}
 	
 	traverseBreathFirst(fn) {
-		var toSkip = null;
+		if (this.levelLists == null) {
+			return;
+		}
 		for (var l=0; l<=this.maxDepth; l++) {
-			this.traverseBreathFirstInternal(fn, l, toSkip);
+			for (var node of this.levelLists[l]) {
+				fn(node);
+			}
 		}
 	}
 	
 	traverse(fn, onlyLeafs, level) {
-		if (this.leaf == true || !onlyLeafs) {
-			fn(this, level || 0);
+		if (!onlyLeafs || this.leaf == true) {
+			if (fn(this, level || 0) === false) {
+				return;
+			}
 		}
 		if (this.quadrants == null) {
 			return;
@@ -166,6 +169,20 @@ class OctreeNode {
 		return node;
 	}
 	
+	prepareLevelListsInternal(level, levelList) {
+		if (this.level == level) {
+			levelList.push(this);
+		}
+		if (this.level >= level) {
+			return;
+		}
+		for (var node of this.quadrants) {
+			if (node != null) {
+				node.prepareLevelListsInternal(level, levelList);
+			}
+		}
+	}
+	
 	prepareBreathFirstInternal(breathFirstList, fn, level) {
 		if (this.level == level) {
 			if (fn(this)) {
@@ -205,6 +222,7 @@ export default class Octree extends OctreeNode {
 	constructor(viewer, bounds, maxDepth) {
 		super(viewer, null, 0, bounds[0], bounds[1], bounds[2], bounds[3] - bounds[0], bounds[4] - bounds[1], bounds[5] - bounds[2]);
 		this.maxDepth = maxDepth;
+		this.actualMaxLevel;
 		this.level = 0;
 		this.breathFirstList = [];
 	}
@@ -225,6 +243,14 @@ export default class Octree extends OctreeNode {
 	traverseBreathFirstCached(fn) {
 		for (var node of this.breathFirstList) {
 			fn(node);
+		}
+	}
+	
+	prepareLevelLists() {
+		this.levelLists = [];
+		for (var l=0; l<=this.maxDepth; l++) {
+			this.levelLists[l] = [];
+			this.prepareLevelListsInternal(l, this.levelLists[l]);
 		}
 	}
 }
