@@ -22,7 +22,7 @@ var tmp_unproject = vec3.create();
 // to be rendered during the correct render pass. This
 // recreated object will have it's most significant bit
 // set to 1.
-var OVERRIDE_FLAG = (1 << 31);
+const OVERRIDE_FLAG = (1 << 31);
 
 export default class Viewer {
 
@@ -45,10 +45,11 @@ export default class Viewer {
 
         this.bufferSetPool = new BufferSetPool(1000, this.stats);
 
-        // Picking ID (unsigned int) -> Object ID (can be anything, but usually a Number that's potentially 2^64)
-        this.pickIdToObjectId = new Map();
-        // Object ID (can be anything, but usually a Number that's potentially 2^64) -> Picking ID (unsigned int)
-        this.objectIdToPickId = new Map();
+        this.pickIdCounter = 1;
+        
+        // Picking ID (unsigned int) -> ViewObject
+        // This is an array now since the picking ids form a continues array
+        this.pickIdToViewObject = [];
         
         this.renderLayers = [];
         this.animationListeners = [];
@@ -414,8 +415,7 @@ export default class Viewer {
         let [x,y] = [Math.round(canvasPos[0]), Math.round(canvasPos[1])];
         var pickColor = this.renderBuffer.read(x, y);
         var pickId = pickColor[0] + pickColor[1] * 256 + pickColor[2] * 65536 + pickColor[3] * 16777216;
-        var objectId = this.pickIdToObjectId.get(pickId);
-        var viewObject = this.viewObjects.get(objectId);
+        var viewObject = this.pickIdToViewObject[pickId];
 
         // Don't attempt to read depth if there is no object under the cursor
         // Note that the default depth of 1. corresponds to the far plane, which
@@ -430,6 +430,7 @@ export default class Viewer {
         this.renderBuffer.unbind();
         
         if (viewObject) {
+        	var objectId = viewObject.objectId;
             if (params.select !== false) {
                 if (!params.shiftKey) {
                     this.selectedElements = new Set();
@@ -449,10 +450,11 @@ export default class Viewer {
     }
 
     getPickColor(objectId) { // Converts an integer to a pick color
-    	var pickId = this.objectIdToPickId.get(objectId);
-    	if (pickId == null) {
-    		console.error("No pickId for " + objectId);
+    	var viewObject = this.viewObjects.get(objectId);
+    	if (viewObject == null) {
+    		console.error("No viewObject found for " + objectId);
     	}
+    	var pickId = viewObject.pickId;
     	var pickColor = new Uint8Array([pickId & 0x000000FF, (pickId & 0x0000FF00) >> 8, (pickId & 0x00FF0000) >> 16, (pickId & 0xFF000000) > 24]);
         return pickColor;
     }
@@ -487,9 +489,8 @@ export default class Viewer {
     }
     
     addViewObject(objectId, viewObject) {
-    	var pickId = this.pickIdToObjectId.size + 1;
+    	viewObject.pickId = this.pickIdCounter++;
     	this.viewObjects.set(objectId, viewObject);
-    	this.objectIdToPickId.set(objectId, pickId);
-    	this.pickIdToObjectId.set(pickId, objectId);
+    	this.pickIdToViewObject[viewObject.pickId] = viewObject;
     }
 }
