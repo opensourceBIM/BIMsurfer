@@ -724,9 +724,9 @@ export default class RenderLayer {
 							let lines = buffer.lineIndexBuffers.get(id);
 							if (lines) {
 								// TODO Ruben: renderStart in doing a lot of redundant stuff, I even see gl.bufferData() calls in there
-//								lines.renderStart(viewer);
-//								lines.render(outlineColor, lines.matrixMap.get(id) || selectionOutlineMatrix, width || 0.005);
-//								lines.renderStop();
+								lines.renderStart(viewer);
+								lines.render(outlineColor, lines.matrixMap.get(id) || selectionOutlineMatrix, width || 0.005);
+								lines.renderStop();
 							}
 						}
 					}
