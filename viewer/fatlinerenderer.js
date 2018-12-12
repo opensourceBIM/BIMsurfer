@@ -24,9 +24,13 @@
  */
 
 import Utils from './utils.js'
+import ProgramManager from './programmanager.js'
+import {VERTEX_QUANTIZATION} from './programmanager.js'
+import {LINE_PRIMITIVES} from './programmanager.js'
 
 export default class FatLineRenderer {
-    constructor(gl, settings) {
+    constructor(viewer, gl, settings) {
+    	this.viewer = viewer;
 		settings = settings || {};
 		this.idx = 0;
         this.gl = gl;
@@ -92,12 +96,13 @@ export default class FatLineRenderer {
     
     // To minimize GPU calls, renderStart and renderStop can (and have to be) used in order to batch-draw a lot of boxes
 	renderStart(viewer) {
-        var programInfo = this.programInfo = this.programInfo || viewer.programManager.getProgram({
-			quantizeVertices: this.quantize,
-			linePrimitives: true
-		});
+		var key = 0;
+		key |= (this.quantize ? VERTEX_QUANTIZATION : 0);
+		key |= LINE_PRIMITIVES;
+		var programInfo = this.programInfo = this.programInfo || this.viewer.programManager.getProgram(key);
+
 		this.gl.useProgram(programInfo.program);
-		
+
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, viewer.camera.projMatrix);
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, viewer.camera.viewMatrix);
 		const aspect = viewer.width / viewer.height;

@@ -11,7 +11,8 @@ import BufferSet from './bufferset.js';
  */
 
 export default class BufferManager {
-	constructor(settings, renderer, bufferSetPool) {
+	constructor(viewer, settings, renderer, bufferSetPool) {
+		this.viewer = viewer;
 		this.settings = settings;
 		this.renderer = renderer;
 		this.bufferSetPool = bufferSetPool;
@@ -99,7 +100,7 @@ export default class BufferManager {
 	 * Default implementation to create a buffer, subclasses can add other buffers
 	 */
 	createBufferSet(hasTransparency, color, sizes) {
-		return new BufferSet(this.settings, hasTransparency, color, sizes)
+		return new BufferSet(this.viewer, this.settings, hasTransparency, color, sizes)
 	}
 	
 	createBufferSetPooled(hasTransparency, color, sizes) {

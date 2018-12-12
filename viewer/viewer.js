@@ -173,23 +173,8 @@ export default class Viewer {
                     let buffer;
 
                     if (original instanceof FrozenBufferSet) {
-                        var programInfo = this.programManager.getProgram({
-                            picking: false,
-                            instancing: true,
-                            useObjectColors: this.settings.useObjectColors,
-                            quantizeNormals: this.settings.quantizeNormals,
-                            quantizeVertices: this.settings.quantizeVertices,
-                            quantizeColors: this.settings.quantizeColors
-                        });
-                
-                        var pickProgramInfo = this.programManager.getProgram({
-                            picking: true,
-                            instancing: true,
-                            useObjectColors: this.settings.useObjectColors,
-                            quantizeNormals: false,
-                            quantizeVertices: this.settings.quantizeVertices,
-                            quantizeColors: false
-                        });
+            			var programInfo = this.programManager.getProgram(this.programManager.createKey(true, false));
+                        var pickProgramInfo = this.programManager.getProgram(this.programManager.createKey(true, true));
 
                         original.colorBuffer = RenderLayer.createBuffer(this.gl, newClrBuffer, null, null, 4);
                         original.colorBuffer.HENK = true;
@@ -231,7 +216,7 @@ export default class Viewer {
 
             this.cameraControl = new CameraControl(this);
             this.lighting = new Lighting(this);
-            this.programManager = new ProgramManager(this.gl, this.settings.viewerBasePath);
+            this.programManager = new ProgramManager(this.gl, this.settings.viewerBasePath, this.settings);
 
             this.programManager.load().then(() => {
                 // this.gl.enable(this.gl.CULL_FACE);

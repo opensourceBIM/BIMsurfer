@@ -85,7 +85,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		// Default response
 		return false;
 	}
-
+	
 	renderBuffers(transparency, reuse, visibleElements) {
 		// TODO when navigation is active (rotating, panning etc...), this would be the place to decide to for example not-render anything in this layer, or maybe apply more aggressive culling
 		// if (this.viewer.navigationActive) {
@@ -101,15 +101,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		var renderingTriangles = 0;
 		var drawCalls = 0;
 
-		var programInfo = this.viewer.programManager.getProgram({
-			picking: picking,
-			instancing: reuse,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeVertices: this.settings.quantizeVertices,
-			// next two are always false in case of picking
-			quantizeNormals: !picking && this.settings.quantizeNormals,
-			quantizeColors: !picking && this.settings.quantizeColors
-		});
+		var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(reuse, picking));
 
 		this.gl.useProgram(programInfo.program);
 
@@ -129,15 +121,11 @@ export default class TilingRenderLayer extends RenderLayer {
 			this._frustum.init(this.viewer.camera.viewMatrix, this.viewer.camera.projMatrix);
 		}
 
-		this.octree.traverse((node) => {
-			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling 
-			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
-			// skip the remaining child nodes
-
-			if (shouldUpdateVisibility) {
+		if (shouldUpdateVisibility) {
+			this.octree.traverseBreathFirst((node) => {
 				if (this.cull(node)) {
 					node.visibilityStatus = 0;
-					return;
+//					return false;
 				} else {
 					node.visibilityStatus = 1;
 					if (node.stats != null) {
@@ -149,14 +137,18 @@ export default class TilingRenderLayer extends RenderLayer {
 						this.tileLoader.loadTile(node);
 					}
 				}
-			}
-
+			});
+		}
+		this.octree.traverse((node) => {
+			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling 
+			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
+			// skip the remaining child nodes
+			
 			if (node.visibilityStatus == 1) {
 				if (node.gpuBufferManager == null) {
 					// Not initialized yet
 					return;
 				}
-
 				var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
 				this.renderFinalBuffers(buffers, programInfo, visibleElements);
 			}
@@ -223,9 +215,9 @@ export default class TilingRenderLayer extends RenderLayer {
 		
 		if (node.bufferManager == null) {
 			if (this.settings.useObjectColors) {
-				node.bufferManager = new BufferManagerPerColor(this.viewer.settings, this, this.viewer.bufferSetPool);
+				node.bufferManager = new BufferManagerPerColor(this.viewer, this.viewer.settings, this, this.viewer.bufferSetPool);
 			} else {
-				node.bufferManager = new BufferManagerTransparencyOnly(this.viewer.settings, this, this.viewer.bufferSetPool);
+				node.bufferManager = new BufferManagerTransparencyOnly(this.viewer, this.viewer.settings, this, this.viewer.bufferSetPool);
 			}
 		}
 		var buffer = node.bufferManager.getBufferSet(geometry.hasTransparency, geometry.color, sizes);

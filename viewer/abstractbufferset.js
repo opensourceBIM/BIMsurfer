@@ -2,9 +2,10 @@ import FatLineRenderer from './fatlinerenderer.js'
 
 export default class AbstractBufferSet {
     
-    constructor() {
+    constructor(viewer) {
+    	this.viewer = viewer;
         this.geometryIdToIndex = new Map();
-    };
+    }
 
     joinConsecutiveRanges(ranges) {
         while (true) {
@@ -52,7 +53,7 @@ export default class AbstractBufferSet {
     }
 
     createLineRenderer(gl, a, b) {
-        const lineRenderer = new FatLineRenderer(gl, {
+        const lineRenderer = new FatLineRenderer(this.viewer, gl, {
             quantize: this.positionBuffer.js_type !== Float32Array.name
         });
 

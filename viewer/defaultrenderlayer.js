@@ -20,9 +20,9 @@ export default class DefaultRenderLayer extends RenderLayer {
 		super(viewer, geometryDataToReuse);
 
 		if (this.settings.useObjectColors) {
-			this.bufferManager = new BufferManagerPerColor(this.settings, this, this.viewer.bufferSetPool);
+			this.bufferManager = new BufferManagerPerColor(this.viewer, this.settings, this, this.viewer.bufferSetPool);
 		} else {
-			this.bufferManager = new BufferManagerTransparencyOnly(this.settings, this, this.viewer.bufferSetPool);
+			this.bufferManager = new BufferManagerTransparencyOnly(this.viewer, this.settings, this, this.viewer.bufferSetPool);
 		}
 
 		this.gpuBufferManager = new GpuBufferManager(this.viewer);
@@ -126,15 +126,7 @@ export default class DefaultRenderLayer extends RenderLayer {
 		if (buffers.length > 0) {
 			let picking = visibleElements.pass === 'pick';
 
-			var programInfo = this.viewer.programManager.getProgram({
-				picking: picking,
-				instancing: reuse,
-				useObjectColors: this.settings.useObjectColors,
-				quantizeVertices: this.settings.quantizeVertices,
-				// next two are always false in case of picking
-				quantizeNormals: !picking && this.settings.quantizeNormals,
-				quantizeColors: !picking && this.settings.quantizeColors
-			});
+			var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(reuse, picking));
 			this.gl.useProgram(programInfo.program);
 			// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
 

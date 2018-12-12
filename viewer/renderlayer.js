@@ -312,23 +312,8 @@ export default class RenderLayer {
 	}
 	
 	addGeometryReusable(geometry, loader, gpuBufferManager) {
-		var programInfo = this.viewer.programManager.getProgram({
-			picking: false,
-			instancing: true,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: this.settings.quantizeNormals,
-			quantizeVertices: this.settings.quantizeVertices,
-			quantizeColors: this.settings.quantizeColors
-		});
-
-		var pickProgramInfo = this.viewer.programManager.getProgram({
-			picking: true,
-			instancing: true,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: false,
-			quantizeVertices: this.settings.quantizeVertices,
-			quantizeColors: false
-		});
+		var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(true, false));
+        var pickProgramInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(true, true));
 
 		const numInstances = geometry.objects.length;
 
@@ -363,6 +348,7 @@ export default class RenderLayer {
 		}
 
 		let buffer = new FrozenBufferSet(
+			this.viewer,
 			null,
 			
 			positionBuffer,
@@ -566,23 +552,8 @@ export default class RenderLayer {
 			return newBuffer;
 		}
 		
-		var programInfo = this.viewer.programManager.getProgram({
-			picking: false,
-			instancing: false,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: this.settings.quantizeNormals,
-			quantizeVertices: this.settings.quantizeVertices,
-			quantizeColors: this.settings.quantizeColors
-		});
-
-		var pickProgramInfo = this.viewer.programManager.getProgram({
-			picking: true,
-			instancing: false,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: false,
-			quantizeVertices: this.settings.quantizeVertices,
-			quantizeColors: false
-		});
+		var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(false, false));
+        var pickProgramInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(false, true));
 
 		if (!this.settings.fakeLoading) {
 			const positionBuffer = buffer.vertices;
@@ -592,6 +563,7 @@ export default class RenderLayer {
 			const colorBuffer = buffer.colors;
 
 			newBuffer = new FrozenBufferSet(
+				this.viewer,
 				buffer,
 				
 				positionBuffer,
@@ -649,7 +621,6 @@ export default class RenderLayer {
 	
 	flushBuffer(buffer, gpuBufferManager) {
 		var newBuffer = null;
-
 		if (buffer == null) {
 			return newBuffer;
 		}
@@ -657,23 +628,8 @@ export default class RenderLayer {
 			return newBuffer;
 		}
 		
-		var programInfo = this.viewer.programManager.getProgram({
-			picking: false,
-			instancing: false,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: this.settings.quantizeNormals,
-			quantizeVertices: this.settings.quantizeVertices,
-			quantizeColors: this.settings.quantizeColors
-		});
-
-		var pickProgramInfo = this.viewer.programManager.getProgram({
-			picking: true,
-			instancing: false,
-			useObjectColors: this.settings.useObjectColors,
-			quantizeNormals: false,
-			quantizeVertices: this.settings.quantizeVertices,
-			quantizeColors: false
-		});
+		var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(false, false));
+		var pickProgramInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(false, true));
 
 		if (!this.settings.fakeLoading) {
 			const positionBuffer = RenderLayer.createBuffer(this.gl, buffer.positions, buffer.positionsIndex);
@@ -695,6 +651,7 @@ export default class RenderLayer {
 			}
 
 			newBuffer = new FrozenBufferSet(
+				this.viewer,
 				buffer,
 
 				positionBuffer,

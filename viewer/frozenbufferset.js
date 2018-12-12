@@ -2,6 +2,7 @@ import AbstractBufferSet from "./abstractbufferset.js";
 
 export default class FrozenBufferSet extends AbstractBufferSet {
     constructor(
+    	viewer,
         originalBuffer,
         positionBuffer, normalBuffer, colorBuffer, pickColorBuffer, indexBuffer,				
         color, colorHash,
@@ -12,7 +13,7 @@ export default class FrozenBufferSet extends AbstractBufferSet {
         // in case of reuse
         objects, instanceMatricesBuffer, instanceNormalMatricesBuffer, instancePickColorsBuffer, roid, croid, indexType)
     {
-        super();
+        super(viewer);
 
         this.geometryIdToIndex = originalBuffer ? originalBuffer.geometryIdToIndex : null;
         // @todo make these something like LRU caches?
@@ -53,6 +54,7 @@ export default class FrozenBufferSet extends AbstractBufferSet {
 
     shallowCopy() {
         let b = new FrozenBufferSet(
+        	this.viewer,
             null,
             // multiply
             this.positionBuffer,

@@ -2,50 +2,61 @@
  * Keeps track of all the programs and positions
  */
 
+
+export const OBJECT_COLORS = 1;
+export const VERTEX_QUANTIZATION = 2;
+export const NORMAL_QUANTIZATION = 4;
+export const COLOR_QUANTIZATION = 8;
+export const REUSE = 16;
+export const PICKING = 32;
+export const LINE_PRIMITIVES = 64;
+
 export default class ProgramManager {
-	constructor(gl, viewerBasePath) {
+	
+	constructor(gl, viewerBasePath, settings) {
 		this.gl = gl;
 		this.viewerBasePath = viewerBasePath;
+		this.settings = settings;
 		this.loadedFiles = new Map();
-		this.programs = {};
+		this.programs = [];
 		this.promises = [];
 	}
 
-	generateSetup(inputSettings) {
+	generateSetup(key) {
 		var settings = {
 			attributes: [],
 			uniforms: []
 		};
-		if (inputSettings.linePrimitives === true) {
-			return settings;
+		if (key & LINE_PRIMITIVES) {
+			return key;
 		}
-		if (inputSettings.picking) {
-			if (inputSettings.instancing) {
+		if (key & PICKING) {
+			if (key & REUSE) {
 				settings.attributes.push("instancePickColors");
 			} else {
 				settings.attributes.push("vertexPickColor");
 			}
 		}
-		if (inputSettings.instancing) {
+		if (key & REUSE) {
 			settings.attributes.push("instanceMatrices");
 			settings.uniforms.push("numContainedInstances");
 			settings.uniforms.push("containedInstances");
 			settings.uniforms.push("containedMeansHidden");
-			if (!inputSettings.picking) {
+			if (!(key & PICKING)) {
 				settings.attributes.push("instanceNormalMatrices");
 			}
 		}
-		if (!inputSettings.picking) {
-			if (inputSettings.useObjectColors) {
+		if (!(key & PICKING)) {
+			if (key & OBJECT_COLORS) {
 				settings.uniforms.push("objectColor");
 			} else {
 				settings.attributes.push("vertexColor");
 			}			
 		}
-		if (inputSettings.quantizeNormals) {
+		if (key & NORMAL_QUANTIZATION) {
 			// Has no effect on locations
 		}
-		if (inputSettings.quantizeVertices) {
+		if (key & VERTEX_QUANTIZATION) {
 			settings.uniforms.push("vertexQuantizationMatrix");
 		}
 		return settings;
@@ -78,31 +89,19 @@ export default class ProgramManager {
 			]
 		};
 
-		// These 4 loops basically generate all 16 drawing combinations
 		{
 			let picking = false;
 			for (var instancing of [true, false]) {
-				for (var useObjectColors of [true, false]) {
-					for (var quantizeNormals of [true, false]) {
-						for (var quantizeVertices of [true, false]) {
-							if (useObjectColors) {
-								this.generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, false);
-							} else {
-								for (var quantizeColors of [true, false]) {
-									this.generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
-								}
-							}
-						}
-					}
-				}
+				var key = this.createKey(instancing, picking);
+				this.generateShaders(defaultSetup, key);
 			}
 		}
 
-		for (var quantizeVertices of [true, false]) {
-			var settings = {
-				quantizeVertices: quantizeVertices,
-				linePrimitives: true
-			};
+		// Line primitives
+
+		// Some line renderer do not use quantization (which is actually better for low-triangle-counts)
+		// Others do (outline fore example potentialy draws a lot, also it's faster to copy if the regular geometry is already quantized)
+		for (var quantization of [true, false]) {
 			let lineUniforms = [
 				"matrix",
 				"inputColor",
@@ -111,89 +110,95 @@ export default class ProgramManager {
 				"aspect",
 				"thickness"
 			];
-			if (quantizeVertices) {
+			var key = LINE_PRIMITIVES;
+			if (quantization) {
 				lineUniforms.push("vertexQuantizationMatrix");
+				key |= VERTEX_QUANTIZATION;
 			}
+			
 			this.setupProgram(this.viewerBasePath + "shaders/vertex.glsl", this.viewerBasePath + "shaders/fragment.glsl", {
 				attributes: ["vertexPosition", "nextVertexPosition", "direction"],
 				uniforms: lineUniforms
-			}, this.generateSetup(settings), settings);
+			}, this.generateSetup(key), key);
 		}
 
-        //  Picking shaders - 8 combinations
+        //  Picking shaders
 		{
 			let picking = true;
-			let quantizeColors = false;
-			let quantizeNormals = false;
 			for (var instancing of [true, false]) {
-				for (var useObjectColors of [true, false]) {
-					for (var quantizeVertices of [true, false]) {
-						if (useObjectColors) {
-							this.generateShaders(defaultSetupForPicking, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
-						} else {
-							this.generateShaders(defaultSetupForPicking, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors);
-						}
-					}
-				}
+				var key = this.createKey(instancing, picking);
+				this.generateShaders(defaultSetupForPicking, key);
 			}
 		}
 
         return Promise.all(this.promises);
 	}
 	
-	generateShaders(defaultSetup, settings, picking, instancing, useObjectColors, quantizeNormals, quantizeVertices, quantizeColors) {
-		var settings = {
-			picking: picking,
-			instancing: instancing,
-			useObjectColors: useObjectColors,
-			quantizeNormals: quantizeNormals,
-			quantizeVertices: quantizeVertices,
-			quantizeColors: quantizeColors
-		};
-		var vertexShaderName = this.getVertexShaderName(settings);
+	generateShaders(defaultSetup, key) {
+		var vertexShaderName = this.getVertexShaderName();
 		var fragShaderName = "shaders/fragment.glsl";
-		this.setupProgram(this.viewerBasePath + vertexShaderName, this.viewerBasePath + fragShaderName, defaultSetup, this.generateSetup(settings), settings);
+		this.setupProgram(this.viewerBasePath + vertexShaderName, this.viewerBasePath + fragShaderName, defaultSetup, this.generateSetup(key), key);
 	}
 
-	getVertexShaderName(settings) {
+	getVertexShaderName() {
 		return "shaders/vertex.glsl";
 	}
 
-	* g(s) {
-		for (let k of Object.keys(s).sort()) {
-			yield `${k}:${s[k]}`
+	createKey(reuse, picking) {
+		var key = 0;
+		key |= (this.settings.useObjectColors ? OBJECT_COLORS : 0);
+		key |= (this.settings.quantizeVertices ? VERTEX_QUANTIZATION : 0);
+		key |= ((!picking && this.settings.quantizeNormals) ? NORMAL_QUANTIZATION : 0);
+		key |= ((!picking && this.settings.quantizeColors) ? COLOR_QUANTIZATION : 0);
+		key |= (reuse ? REUSE : 0);
+		key |= (picking ? PICKING : 0);
+		return key;
+	}
+	
+	// Only used for debugging
+	keyToJson(key) {
+		return {
+			useObjectColors: (key & OBJECT_COLORS) ? true : false,
+			quantizeVertices: (key & VERTEX_QUANTIZATION) ? true : false,
+			quantizeNormals: (key & NORMAL_QUANTIZATION) ? true : false,
+			quantizeColors: (key & COLOR_QUANTIZATION) ? true : false,
+			reuse: (key & REUSE) ? true : false,
+			picking: (key & PICKING) ? true : false,
+			linePrimitives: (key & LINE_PRIMITIVES) ? true : false
+		};
+	}
+	
+	getProgram(key) {
+//		console.log("getProgram", key, this.keyToJson(key));
+		var program = this.programs[key];
+		if (program != null) {
+			return program;
 		}
+		console.error("Program not found", key);
+//		this.programNames = this.programNames || {};
+//		var vertexShaderName = this.getVertexShaderName(key);
+//		if (!this.programNames[vertexShaderName]) {
+//			console.log("getProgram(..) -> " + vertexShaderName);
+//			this.programNames[vertexShaderName] = true;
+//		}
+//
+//		program = this.programs[key];
+//		if (program == null) {
+//			console.error("Program not found", key);
+//		}
+//		return program;
 	}
 
-	stringify(settings) {
-		// tfk: don't rely on JSON.stringify() because the ordering of keys is not deterministic.
-		return Array.from(this.g(settings)).join(";");
+	setProgram(key, program) {
+		this.programs[key] = program;
 	}
 
-	getProgram(settings) {
-		this.programNames = this.programNames || {};
-		var vertexShaderName = this.getVertexShaderName(settings);
-		if (!this.programNames[vertexShaderName]) {
-			console.log("getProgram(..) -> " + vertexShaderName);
-			this.programNames[vertexShaderName] = true;
-		}
-
-		var program = this.programs[this.stringify(settings)];
-		if (program == null) {
-			console.error("Program not found", settings);
-		}
-		return program;
-	}
-
-	setProgram(settings, program) {
-		this.programs[this.stringify(settings)] = program;
-	}
-
-	setupProgram(vertexShader, fragmentShader, defaultSetup, specificSetup, settings) {
+	setupProgram(vertexShader, fragmentShader, defaultSetup, specificSetup, key) {
+		console.log("setupProgram", key, this.keyToJson(key));
 		var p = new Promise((resolve, reject) => {
 			this.loadShaderFile(vertexShader).then((vsSource) => {
 				this.loadShaderFile(fragmentShader).then((fsSource) => {
-					var shaderProgram = this.initShaderProgram(this.gl, vertexShader, vsSource, fragmentShader, fsSource, settings);
+					var shaderProgram = this.initShaderProgram(this.gl, vertexShader, vsSource, fragmentShader, fsSource, key);
 
 					var programInfo = {
 						program: shaderProgram,
@@ -211,7 +216,7 @@ export default class ProgramManager {
 							for (var attribute of setup.attributes) {
 								let res = programInfo.attribLocations[attribute] = this.gl.getAttribLocation(shaderProgram, attribute);
 								if (res === -1) {
-									console.error("Missing attribute location", attribute, vertexShader);
+									console.error("Missing attribute location", attribute, vertexShader, this.keyToJson(key));
 									debugger;
 								}
 							}
@@ -221,7 +226,7 @@ export default class ProgramManager {
 							for (var uniform of setup.uniforms) {
 								let res = programInfo.uniformLocations[uniform] = this.gl.getUniformLocation(shaderProgram, uniform);
 								if (res === null) {
-									console.error("Missing uniform location", uniform, vertexShader);
+									console.error("Missing uniform location", uniform, vertexShader, this.keyToJson(key));
 									debugger;
 								}
 							}
@@ -231,7 +236,7 @@ export default class ProgramManager {
 								for (var uniformBlock of setup.uniformBlocks) {
 									let res = programInfo.uniformBlocks[uniformBlock] = this.gl.getUniformBlockIndex(shaderProgram, uniformBlock);
 									if (res == -1) {
-										console.error("Missing uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock]);
+										console.error("Missing uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock], this.keyToJson(key));
 										debugger;
 									} else {
 										this.gl.uniformBlockBinding(shaderProgram, programInfo.uniformBlocks[uniformBlock], 0);
@@ -244,7 +249,7 @@ export default class ProgramManager {
 					programInfo.vertexShaderFile = vertexShader;
 					programInfo.fragmentShaderFile = fragmentShader;
 
-					this.setProgram(settings, programInfo);
+					this.setProgram(key, programInfo);
 
 					resolve(programInfo);
 				});
@@ -272,9 +277,9 @@ export default class ProgramManager {
 		return promise;
 	}
 
-	initShaderProgram(gl, vsName, vsSource, fsName, fsSource, settings) {
-		const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vsName, vsSource, settings);
-		const fragmentShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fsName, fsSource, settings);
+	initShaderProgram(gl, vsName, vsSource, fsName, fsSource, key) {
+		const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vsName, vsSource, key);
+		const fragmentShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fsName, fsSource, key);
 
 		const shaderProgram = gl.createProgram();
 		gl.attachShader(shaderProgram, vertexShader);
@@ -289,13 +294,31 @@ export default class ProgramManager {
 		return shaderProgram;
 	}
 
-	loadShader(gl, type, name, source, options) {
+	loadShader(gl, type, name, source, key) {
 		var fullSource = "#version 300 es\n\n";
-		for (const opt in (options || {})) {
-			if(options[opt] === true) {
-				fullSource += `#define WITH_${opt.toUpperCase()}\n`;
-			}
+		// TODO would be nice to be able to access the constants generically, or use some sort of enum?
+		if (key & OBJECT_COLORS) {
+			fullSource += `#define WITH_USEOBJECTCOLORS\n`;
 		}
+		if (key & VERTEX_QUANTIZATION) {
+			fullSource += `#define WITH_QUANTIZEVERTICES\n`;
+		}
+		if (key & NORMAL_QUANTIZATION) {
+			fullSource += `#define WITH_QUANTIZENORMALS\n`;
+		}
+		if (key & COLOR_QUANTIZATION) {
+			fullSource += `#define WITH_QUANTIZECOLORS\n`;
+		}
+		if (key & REUSE) {
+			fullSource += `#define WITH_INSTANCING\n`;
+		}
+		if (key & PICKING) {
+			fullSource += `#define WITH_PICKING\n`;
+		}
+		if (key & LINE_PRIMITIVES) {
+			fullSource += `#define WITH_LINEPRIMITIVES\n`;
+		}
+		
 		fullSource += "\n" + source;
 		const shader = gl.createShader(type);
 		gl.shaderSource(shader, fullSource);

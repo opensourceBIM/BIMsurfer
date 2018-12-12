@@ -5,8 +5,8 @@ import BufferManager from './buffermanager.js'
  * 
  */
 export default class BufferManagerPerColor extends BufferManager {
-	constructor(settings, renderer, bufferSetPool) {
-		super(settings, renderer, bufferSetPool);
+	constructor(viewer, settings, renderer, bufferSetPool) {
+		super(viewer, settings, renderer, bufferSetPool);
 	}
 
 	/*

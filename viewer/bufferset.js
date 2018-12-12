@@ -2,8 +2,8 @@ import AbstractBufferSet from "./abstractbufferset.js";
 
 export default class BufferSet extends AbstractBufferSet {
     
-    constructor(settings, hasTransparency, color, sizes) {
-		super();
+    constructor(viewer, settings, hasTransparency, color, sizes) {
+		super(viewer);
 
         this.settings = settings;
         this.positions = settings.quantizeVertices ? new Int16Array(sizes.vertices) : new Float32Array(sizes.vertices);

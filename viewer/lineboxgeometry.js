@@ -3,9 +3,8 @@ import FatLineRenderer from './fatlinerenderer.js'
 // Simple (reusable) class to draw a linebox
 export default class LineBoxGeometry extends FatLineRenderer {
 	constructor(viewer, gl) {
-		super(gl);
+		super(viewer, gl, {quantize: false});
 		this.gl = gl;
-		this.viewer = viewer;
 		
 		var a = [-0.5, 0.5, -0.5];
 		var b = [0.5, 0.5, -0.5];
