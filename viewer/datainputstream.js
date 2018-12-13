@@ -125,6 +125,12 @@ export default class DataInputStream {
 		return result;
 	}
 
+	readDoubleArrayCopy(length) {
+		var result = Float64Array.from(new Float64Array(this.arrayBuffer, this.pos, length));
+		this.pos += length * 8;
+		return result;
+	}
+
 	readIntArray2(length) {
 		var results = [];
 		for (var i=0; i<length; i++) {

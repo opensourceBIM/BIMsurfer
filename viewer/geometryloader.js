@@ -30,8 +30,10 @@ export default class GeometryLoader {
 		
 		this.gpuBufferManager = gpuBufferManager;
 
-		this.createdTransparentObjects = new Map(); // object id -> object info
-		this.createdOpaqueObjects = new Map(); // object id -> object info
+		if (query.loaderSettings.prepareBuffers) {
+			this.createdTransparentObjects = new Map(); // object id -> object info
+			this.createdOpaqueObjects = new Map(); // object id -> object info
+		}
 		
 		this.promise = new Promise((resolve, reject) => {
 			this.resolve = resolve;
@@ -199,8 +201,11 @@ export default class GeometryLoader {
 			var roid = stream.readLong();
 			var geometryInfoOid = stream.readLong();
 			var hasTransparency = stream.readLong() == 1;
-			var objectBounds = stream.readDoubleArray(6);
-			var matrix = stream.readDoubleArray(16);
+
+			// Making copies here because otherwise we are potentially referring to very big buffers for as long as the viewer lives
+			var objectBounds = stream.readDoubleArrayCopy(6);
+			var matrix = stream.readDoubleArrayCopy(16);
+			
 			var geometryDataOid = stream.readLong();
 			var geometryDataOidFound = geometryDataOid;
 			if (inPreparedBuffer) {
@@ -236,7 +241,34 @@ export default class GeometryLoader {
 				geometryDataOidFound = null;
 			}
 			
-			this.createObject(roid, oid, oid, geometryDataOidFound == null ? [] : [geometryDataOidFound], matrix, hasTransparency, type, objectBounds);
+			this.createObject(roid, oid, oid, geometryDataOidFound == null ? [] : [geometryDataOidFound], matrix, hasTransparency, type, objectBounds, inPreparedBuffer);
+		} else if (geometryType == 9) {
+			// Minimal object
+			var oid = stream.readLong();
+			var type = stream.readUTF8();
+			var nrColors = stream.readInt();
+			var roid = stream.readLong();
+			var geometryInfoOid = stream.readLong();
+			var hasTransparency = stream.readLong() == 1;
+			
+			stream.align8();
+			var objectBounds = stream.readDoubleArrayCopy(6);
+
+			var geometryDataOid = stream.readLong();
+			var geometryDataOidFound = geometryDataOid;
+			if (hasTransparency) {
+				this.createdTransparentObjects.set(oid, {
+					nrColors: nrColors,
+					type: type
+				});
+			} else {
+				this.createdOpaqueObjects.set(oid, {
+					nrColors: nrColors,
+					type: type
+				});
+			}
+			
+			this.createObject(roid, oid, oid, [], null, hasTransparency, type, objectBounds, true);
 		} else if (geometryType == 7) {
 			this.processPreparedBuffer(stream, true);
 		} else if (geometryType == 8) {
@@ -448,39 +480,41 @@ export default class GeometryLoader {
 		return color;
 	}
 
-	createObject(roid, oid, objectId, geometryIds, matrix, hasTransparency, type, aabb) {
+	createObject(roid, oid, objectId, geometryIds, matrix, hasTransparency, type, aabb, inCompleteBuffer) {
 		if (this.state.mode == 0) {
 			console.log("Mode is still 0, should be 1");
 			return;
 		}
-		if (this.multiplierToMm < 0.99 || this.multiplierToMm > 1.01) {
-			// We need to change the matrix because the operations in the matrix
-			// are based on the original geometry (e.a. not scaled to the right
-			// unit: mm)
-			var scaleMatrix = mat4.create();
-			mat4.scale(scaleMatrix, scaleMatrix, [this.multiplierToMm, this.multiplierToMm, this.multiplierToMm]);
-			var invertedScaleMatrix = mat4.create();
-			mat4.invert(invertedScaleMatrix, scaleMatrix);
-
-			var totalMatrix = mat4.create();
-			// Read from bottom to top
-
-			// 3. Apply the scaling again
-			mat4.multiply(totalMatrix, totalMatrix, scaleMatrix);
-
-			// 2. Apply the matrix
-			mat4.multiply(totalMatrix, totalMatrix, matrix);
-
-			// 1. Server has already scaled the vertices, scale it back to the
-			// original values
-			mat4.multiply(totalMatrix, totalMatrix, invertedScaleMatrix);
-
-			matrix = totalMatrix;
+		if (!inCompleteBuffer) {
+			if (this.multiplierToMm < 0.99 || this.multiplierToMm > 1.01) {
+				// We need to change the matrix because the operations in the matrix
+				// are based on the original geometry (e.a. not scaled to the right
+				// unit: mm)
+				var scaleMatrix = mat4.create();
+				mat4.scale(scaleMatrix, scaleMatrix, [this.multiplierToMm, this.multiplierToMm, this.multiplierToMm]);
+				var invertedScaleMatrix = mat4.create();
+				mat4.invert(invertedScaleMatrix, scaleMatrix);
+				
+				var totalMatrix = mat4.create();
+				// Read from bottom to top
+				
+				// 3. Apply the scaling again
+				mat4.multiply(totalMatrix, totalMatrix, scaleMatrix);
+				
+				// 2. Apply the matrix
+				mat4.multiply(totalMatrix, totalMatrix, matrix);
+				
+				// 1. Server has already scaled the vertices, scale it back to the
+				// original values
+				mat4.multiply(totalMatrix, totalMatrix, invertedScaleMatrix);
+				
+				matrix = totalMatrix;
+			}
+			var normalMatrix = mat3.create();
+			mat3.fromMat4(normalMatrix, matrix);
+			mat3.invert(normalMatrix, normalMatrix);
+			mat3.transpose(normalMatrix, normalMatrix);
 		}
-		var normalMatrix = mat3.create();
-		mat3.fromMat4(normalMatrix, matrix);
-		mat3.invert(normalMatrix, normalMatrix);
-		mat3.transpose(normalMatrix, normalMatrix);
 		this.renderLayer.createObject(this.loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb);
 	}
 }
