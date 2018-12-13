@@ -38,6 +38,12 @@ class OctreeNode {
 		
 		this.bounds = [this.x, this.y, this.z, this.width, this.height, this.depth];
 		
+		var minVector = vec3.create();
+		var maxVector = vec3.create();
+		vec3.set(minVector, this.bounds[0], this.bounds[1], this.bounds[2]);
+		vec3.set(maxVector, this.bounds[0] + this.bounds[3], this.bounds[1] + this.bounds[4], this.bounds[2] + this.bounds[5]);
+		this.boundsVectors = [minVector, maxVector];
+		
 		// TODO also keep track of the minimal bounds (usually smaller than the "static" bounds of the node), which can be used for (frustum) occlusion culling
 		// TODO also keep track of the minimal bounds inc. children (useful for hyrachical culling)
 		
