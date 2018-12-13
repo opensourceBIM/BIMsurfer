@@ -150,14 +150,18 @@ export default class Stats {
 						element.id = fullKey;
 						groupElement.appendChild(element);
 					}
+					var newStringValue = value;
 					if (value == null) {
-						element.innerHTML = key + ": 0";
+						newStringValue = key + ": 0";
 					} else {
 						if (typeof value == "number") {
-							element.innerHTML = key + ": " + this.numberWithCommas(value);
+							newStringValue = key + ": " + this.numberWithCommas(value);
 						} else {
-							element.innerHTML = key + ": " + value;
+							newStringValue = key + ": " + value;
 						}
+					}
+					if (newStringValue != element.textContent) {
+						element.textContent  = newStringValue;
 					}
 				}
 			}

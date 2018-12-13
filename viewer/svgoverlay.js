@@ -26,7 +26,10 @@ export default class SvgOverlay {
     }
 
     update() {
-        this._orbitCenter.setAttribute("visibility", this.camera.orbitting ? "visible" : "hidden");
+    	if (this.camera.orbitting != this.lastOrbitting) {
+    		this._orbitCenter.setAttribute("visibility", this.camera.orbitting ? "visible" : "hidden");
+    		this.lastOrbitting = this.camera.orbitting
+    	}
         if (this.camera.orbitting) {
             vec3.transformMat4(tmp, this.camera.center, this.camera.viewProjMatrix);
             this._orbitCenter.setAttribute("cx", +tmp[0] * this.w + this.w);
