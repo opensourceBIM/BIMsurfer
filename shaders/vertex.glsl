@@ -1,5 +1,5 @@
-precision mediump int;
-precision mediump float;
+precision lowp int;
+precision lowp float;
 
 #ifdef WITH_QUANTIZEVERTICES
 uniform mat4 vertexQuantizationMatrix;
@@ -51,8 +51,8 @@ in uvec4 instancePickColors;
 #else
 in uvec4 vertexPickColor;
 #endif
-flat out mediump uvec4 color;
-out mediump float depth;
+flat out uvec4 color;
+out float depth;
 #else
 uniform LightData {
 	vec3 dir;
@@ -61,7 +61,7 @@ uniform LightData {
 	float intensity;
 } lightData;
 
-out mediump vec4 color;
+out vec4 color;
 #endif
 
 #ifdef WITH_USEOBJECTCOLORS
