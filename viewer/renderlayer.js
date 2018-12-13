@@ -522,8 +522,8 @@ export default class RenderLayer {
 				}
 			}
 		}
-		// Disabled as we will bind a new one right away, every call has overhead
-		// this.gl.bindVertexArray(null);
+		// Enabled, this kind of doubles the amount of GPU calls during rendering, but disabled resulted in errors, somehow some old buffers keep being used if we don't do this
+		this.gl.bindVertexArray(null);
 	}
 
 	static createBuffer(gl, data, numElements, bufferType, components, srcStart, attribType, js_type) {
