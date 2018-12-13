@@ -109,7 +109,6 @@ export default class RenderLayer {
 			aabb: aabb,
 			objectId: objectId,
 			oid: oid,
-			center: null, // TODO
 			node: node
 		};
 		this.viewer.addViewObject(objectId, viewObject);
@@ -124,8 +123,6 @@ export default class RenderLayer {
 	}
 
 	addGeometry(loaderId, geometry, object, buffer, sizes) {
-		var viewObject = this.viewer.getViewObject(object.id);
-		viewObject.buffer = buffer;
 		var loaderQuantizeNormals = this.settings.loaderSettings.quantizeNormals;
 		var quantizeNormals = this.settings.quantizeNormals;
 
