@@ -15,6 +15,7 @@ const typedArrayToGlTypeMap = new Map([
 	["Int16Array", WebGL2RenderingContext.SHORT],
 	["Uint8Array", WebGL2RenderingContext.UNSIGNED_BYTE],
 	["Uint16Array", WebGL2RenderingContext.UNSIGNED_SHORT],
+	["Uint32Array", WebGL2RenderingContext.UNSIGNED_INT],
 	["Float32Array", WebGL2RenderingContext.FLOAT]
 ]);
 
