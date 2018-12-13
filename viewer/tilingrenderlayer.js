@@ -70,7 +70,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		}
 
 		// 2. Is the complete Tile outside of the view frustum?
-		var isect = this._frustum.intersectsWorldAABB(node.bounds);
+		var isect = this._frustum.intersectsWorldAABB(node.boundsVectors);
 
 		if (isect === Frustum.OUTSIDE_FRUSTUM) {
 			return true;
@@ -80,7 +80,7 @@ export default class TilingRenderLayer extends RenderLayer {
 		var cameraEye = this.viewer.camera.eye;
 		var tileCenter = node.getCenter();
 		var sizeFactor = 1 / Math.pow(2, node.level);
-		if (vec3.distance(cameraEye, tileCenter) / sizeFactor > 2000000) { // TODO use something related to the total bounding box size
+		if (vec3.distance(cameraEye, tileCenter) / sizeFactor > 5000000) { // TODO use something related to the total bounding box size
 			return true;
 		}
 
