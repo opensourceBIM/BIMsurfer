@@ -442,7 +442,9 @@ export default class RenderLayer {
 	
 	render(transparency, visibleElements) {
 		this.renderBuffers(transparency, false, visibleElements);
-		this.renderBuffers(transparency, true, visibleElements);
+		if (this.settings.gpuReuse) {
+			this.renderBuffers(transparency, true, visibleElements);
+		}
 	}
 	
 	renderFinalBuffers(buffers, programInfo, visibleElements) {
@@ -520,7 +522,8 @@ export default class RenderLayer {
 				}
 			}
 		}
-		this.gl.bindVertexArray(null);
+		// Disabled as we will bind a new one right away, every call has overhead
+		// this.gl.bindVertexArray(null);
 	}
 
 	static createBuffer(gl, data, numElements, bufferType, components, srcStart, attribType, js_type) {
