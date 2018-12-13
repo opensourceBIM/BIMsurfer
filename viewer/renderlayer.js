@@ -499,7 +499,6 @@ export default class RenderLayer {
 						gl.uniform1ui(programInfo.uniformLocations.containedMeansHidden, subset.hidden ? 1 : 0);
 						this.previousInstanceVisibilityState = instanceVisibilityState;
 					}
-					
 					gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
 				}
 			}
@@ -686,7 +685,7 @@ export default class RenderLayer {
 				buffer.hasTransparency,
 				false,
 				this,
-				gpuBufferManager			
+				gpuBufferManager
 			);
 
 			newBuffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
