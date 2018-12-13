@@ -303,7 +303,9 @@ export default class Viewer {
         gl.depthFunc(gl.LEQUAL);
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
-        gl.disable(gl.BLEND);
+        
+        // Disabled, seems redundant
+//        gl.disable(gl.BLEND);
 
         if (this.modelBounds != null) {
             if (!this.cameraSet) { // HACK to look at model origin as soon as available
@@ -327,13 +329,13 @@ export default class Viewer {
         let render = (elems, force) => {
             for (var transparency of [false, true]) {
                 if (force !== true) {
-                    if (!transparency) {
-                        gl.disable(gl.BLEND);
-                        // gl.depthMask(true);
+                    if (transparency) {
+                    	gl.enable(gl.BLEND);
+                    	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+                    	// gl.depthMask(false);
                     } else {
-                        gl.enable(gl.BLEND);
-                        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-                        // gl.depthMask(false);
+                    	gl.disable(gl.BLEND);
+                    	// gl.depthMask(true);
                     }
                 }
                 for (var renderLayer of this.renderLayers) {
