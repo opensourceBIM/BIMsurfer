@@ -72,7 +72,7 @@ export default class Viewer {
         this.selectedElements = new Set();
 
         var self = this;
-        window._debugViewer = this;  // HACK for console debugging
+//        window._debugViewer = this;  // HACK for console debugging
 
         document.addEventListener("keypress", (evt) => {
             if (evt.key === 'H') {
