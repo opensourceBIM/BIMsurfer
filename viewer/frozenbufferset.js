@@ -42,14 +42,16 @@ export default class FrozenBufferSet extends AbstractBufferSet {
         this.owner = owner;
         this.manager = manager;
 
-        this.objects = objects;
-        this.instanceMatricesBuffer = instanceMatricesBuffer;
-        this.instanceNormalMatricesBuffer = instanceNormalMatricesBuffer;
-        this.instancePickColorsBuffer = instancePickColorsBuffer;
-        this.roid = roid;
-        this.croid = croid;
-        this.indexType = indexType;
-        this.nrProcessedMatrices = objects ? objects.length : null;
+        if (reuse) {
+        	this.objects = objects;
+        	this.instanceMatricesBuffer = instanceMatricesBuffer;
+        	this.instanceNormalMatricesBuffer = instanceNormalMatricesBuffer;
+        	this.instancePickColorsBuffer = instancePickColorsBuffer;
+        	this.roid = roid;
+        	this.croid = croid;
+        	this.indexType = indexType;
+        	this.nrProcessedMatrices = objects ? objects.length : null;
+        }
     }
 
     shallowCopy() {
