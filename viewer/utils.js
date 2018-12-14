@@ -74,6 +74,38 @@ export default class Utils {
 		return b;
 	}
 
+	static createEmptyBuffer(gl, numElements, bufferType, components, attribType, js_type) {
+		bufferType = bufferType || gl.ARRAY_BUFFER;
+		components = components || 3;
+		
+		var b = gl.createBuffer();
+		gl.bindBuffer(bufferType, b);
+
+		b.N = numElements;
+		b.gl_type = bufferType;
+		b.js_type = js_type ? js_type : data.constructor.name;
+		b.attrib_type = attribType ? attribType : Utils.typedArrayToGlType(b.js_type);
+		b.components = components;
+		b.normalize = false;
+		b.stride = 0;
+		b.offset = 0;
+		b.writePosition = 0;
+		
+		// According to the documentation, this should work, but unfortunately, we need to create a useless CPU-side typed array
+//		gl.bufferData(bufferType, null, gl.STATIC_DRAW, 0, numElements);
+		var typedArrFn = Utils.glTypeToTypedArray(b.attrib_type);
+		var uselessArray = new typedArrFn(numElements);
+		gl.bufferData(bufferType, uselessArray, gl.STATIC_DRAW, 0, numElements);
+
+		return b;
+	}
+	
+	static updateBuffer(gl, targetGlBuffer, sourceBuffer, pos, count) {
+		gl.bindBuffer(targetGlBuffer.gl_type, targetGlBuffer);
+		gl.bufferSubData(targetGlBuffer.gl_type, targetGlBuffer.writePosition, sourceBuffer, pos, count);
+		targetGlBuffer.writePosition += count;
+	}
+	
 	static createIndexBuffer(gl, data, n) {
 		return Utils.createBuffer(gl, data, n, gl.ELEMENT_ARRAY_BUFFER);
 	}
