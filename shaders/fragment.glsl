@@ -1,5 +1,5 @@
-precision lowp int;
-precision lowp float;
+precision mediump int;
+precision mediump float;
 
 #ifdef WITH_PICKING
 flat in uvec4 color;

@@ -57,7 +57,7 @@ export default class AbstractBufferSet {
             quantize: this.positionBuffer.js_type !== Float32Array.name
         });
 
-        const positions = new window[this.positionBuffer.js_type](this.nrPositions);
+        const positions = new window[this.positionBuffer.js_type](this.positionBuffer.N);
         const indices = new window[this.indexBuffer.js_type](b-a);
         
         // @todo: get only part of positions [min(indices), max(indices)]
@@ -182,7 +182,11 @@ export default class AbstractBufferSet {
             }
         };
 
-		const id_ranges = Array.from(_(this.geometryIdToIndex)).sort();
+        const id_ranges = this.geometryIdToIndex
+            ? Array.from(_(this.geometryIdToIndex)).sort()
+            // If we don't have this mapping, we're dealing with a dedicated
+            // non-instanced bufferset for one particular overriden object
+            : [[this.objectId & 0x8FFFFFFF, [0, this.nrIndices]]];
 		const ranges = id_ranges.map((arr) => {return arr[1];});
 
 		this.joinConsecutiveRanges(ranges);
@@ -227,7 +231,7 @@ export default class AbstractBufferSet {
         let returnDictionary = {};
 
         if (this.objects) {
-            return this.shallowCopy();
+            return this.copyEmpty();
         } else {
             let idx = this.geometryIdToIndex.get(objectId)[0];
             let [offset, length] = [idx.start, idx.length];

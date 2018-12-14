@@ -327,6 +327,16 @@ export default class GeometryLoader {
 		if (this.preparedBuffer.nrIndices == 0) {
 			return;
 		}
+		// This is always the last message (before end), so we know all objects have been created
+		preparedBuffer.nrObjects = stream.readInt();
+		preparedBuffer.nrIndices = stream.readInt();
+		preparedBuffer.positionsIndex = stream.readInt();
+		preparedBuffer.normalsIndex = stream.readInt();
+		preparedBuffer.colorsIndex = stream.readInt();
+		preparedBuffer.indices = Utils.createBuffer(this.renderLayer.gl, stream.dataView, preparedBuffer.nrIndices * 4, this.renderLayer.gl.ELEMENT_ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.UNSIGNED_INT, "Uint32Array");
+		stream.pos += preparedBuffer.nrIndices * 4;
+		preparedBuffer.geometryIdToIndex = new Map();
+		preparedBuffer.geometryIdToMeta = new Map();
 		
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.indices, stream.dataView, stream.pos, totalNrIndices * 4);
 		stream.pos += totalNrIndices * 4;
@@ -414,6 +424,11 @@ export default class GeometryLoader {
 		}
 		
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.pickColors, pickColors, 0, pickColors.i);
+		preparedBuffer.bytes = RenderLayer.calculateBytesUsed(this.settings, preparedBuffer.positionsIndex, nrColors, preparedBuffer.nrIndices, preparedBuffer.normalsIndex);
+		
+		preparedBuffer.unquantizationMatrix = this.unquantizationMatrix;
+		var newBuffer = this.renderLayer.addCompleteBuffer(preparedBuffer, this.gpuBufferManager);
+
 		stream.align8();
 		
 		this.preparedBuffer.nrObjectsRead += nrObjects;
