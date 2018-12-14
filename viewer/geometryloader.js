@@ -114,6 +114,7 @@ export default class GeometryLoader {
 //		console.log(this.dataToInfo);
 
 //		this.viewer.loadingDone();
+		
 		this.bimServerApi.callWithWebsocket("ServiceInterface", "cleanupLongAction", {topicId: this.topicId});
 		this.bimServerApi.clearBinaryDataListener(this.topicId);
 		if (this.dataToInfo.size == 0) {
@@ -273,6 +274,10 @@ export default class GeometryLoader {
 			this.processPreparedBuffer(stream, true);
 		} else if (geometryType == 8) {
 			this.processPreparedBuffer(stream, false);
+		} else if (geometryType == 10) {
+			this.processPreparedBufferInit(stream, true);
+		} else if (geometryType == 11) {
+			this.processPreparedBufferInit(stream, false);
 		} else {
 			console.error("Unsupported geometry type: " + geometryType);
 			return;
@@ -280,25 +285,57 @@ export default class GeometryLoader {
 
 		this.state.nrObjectsRead++;
 	}
+
+	processPreparedBufferInit(stream, hasTransparancy) {
+		this.preparedBuffer = {};
+
+		this.preparedBuffer.nrObjects = stream.readInt();
+		this.preparedBuffer.nrIndices = stream.readInt();
+		this.preparedBuffer.positionsIndex = stream.readInt();
+		this.preparedBuffer.normalsIndex = stream.readInt();
+		this.preparedBuffer.colorsIndex = stream.readInt();
+		this.preparedBuffer.nrObjectsRead = 0;
+		
+		this.preparedBuffer.nrColors = this.preparedBuffer.positionsIndex * 4 / 3;
+
+		this.preparedBuffer.indices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrIndices * 4, this.renderLayer.gl.ELEMENT_ARRAY_BUFFER, 3, WebGL2RenderingContext.UNSIGNED_INT, "Uint32Array");
+		this.preparedBuffer.colors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
+		this.preparedBuffer.vertices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.positionsIndex * 2, this.renderLayer.gl.ARRAY_BUFFER, 3, WebGL2RenderingContext.SHORT, "Int16Array");
+		this.preparedBuffer.normals = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, WebGL2RenderingContext.BYTE, "Int8Array");
+		this.preparedBuffer.pickColors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
+
+		this.preparedBuffer.geometryIdToIndex = new Map();
+		this.preparedBuffer.geometryIdToMeta = new Map();
+
+		this.preparedBuffer.loaderId = this.loaderId;
+		this.preparedBuffer.hasTransparency = hasTransparancy;
+		
+		this.preparedBuffer.unquantizationMatrix = this.unquantizationMatrix;
+
+		this.preparedBuffer.bytes = RenderLayer.calculateBytesUsed(this.settings, this.preparedBuffer.positionsIndex, this.preparedBuffer.nrColors, this.preparedBuffer.nrIndices, this.preparedBuffer.normalsIndex);
+		
+		stream.align8();
+	}
 	
 	processPreparedBuffer(stream, hasTransparancy) {
-		var preparedBuffer = {};
+		const nrObjects = stream.readInt();
+		const totalNrIndices = stream.readInt();
+		const positionsIndex = stream.readInt();
+		const normalsIndex = stream.readInt();
+		const colorsIndex = stream.readInt();
 		
-		// This is always the last message (before end), so we know all objects have been created
-		preparedBuffer.nrObjects = stream.readInt();
-		preparedBuffer.nrIndices = stream.readInt();
-		preparedBuffer.positionsIndex = stream.readInt();
-		preparedBuffer.normalsIndex = stream.readInt();
-		preparedBuffer.colorsIndex = stream.readInt();
-		preparedBuffer.indices = RenderLayer.createBuffer(this.renderLayer.gl, stream.dataView, preparedBuffer.nrIndices * 4, this.renderLayer.gl.ELEMENT_ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.UNSIGNED_INT, "Uint32Array");
-		stream.pos += preparedBuffer.nrIndices * 4;
-		preparedBuffer.geometryIdToIndex = new Map();
-		preparedBuffer.geometryIdToMeta = new Map();
+		if (this.preparedBuffer.nrIndices == 0) {
+			return;
+		}
 		
-		var nrColors = preparedBuffer.positionsIndex * 4 / 3;
+		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.indices, stream.dataView, stream.pos, totalNrIndices * 4);
+		stream.pos += totalNrIndices * 4;
+		
+		var nrColors = positionsIndex * 4 / 3;
 		var colors = new Uint8Array(nrColors);
 		var colors32 = new Uint32Array(colors.buffer);
 		var createdObjects = null;
+		
 		if (hasTransparancy) {
 			createdObjects = this.createdTransparentObjects;
 		} else {
@@ -307,7 +344,7 @@ export default class GeometryLoader {
 		
 		var currentColorIndex = 0;
 		var tmpOids = new Set();
-		for (var i=0; i<preparedBuffer.nrObjects; i++) {
+		for (var i=0; i<nrObjects; i++) {
 			var oid = stream.readLong();
 			tmpOids.add(oid);
 			var startIndex = stream.readInt();
@@ -316,7 +353,7 @@ export default class GeometryLoader {
 			
 			var nrObjectColors = nrVertices / 3 * 4;
 
-			preparedBuffer.geometryIdToMeta.set(oid, [{
+			this.preparedBuffer.geometryIdToMeta.set(oid, [{
 				start: startIndex,
 				length: nrIndices,
 				color: currentColorIndex,
@@ -350,26 +387,19 @@ export default class GeometryLoader {
 				colors32.fill(color32, (currentColorIndex / 4), (currentColorIndex + count) / 4);
 				currentColorIndex += count;
 			}
-			preparedBuffer.geometryIdToIndex.set(oid, startIndex);
+			this.preparedBuffer.geometryIdToIndex.set(oid, startIndex);
 		}
 		if (currentColorIndex != nrColors) {
 			console.error(currentColorIndex, nrColors);
 		}
-		preparedBuffer.colors = RenderLayer.createBuffer(this.renderLayer.gl, colors, nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4);
+		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.colors, colors, 0, nrColors);
 
-		preparedBuffer.vertices = RenderLayer.createBuffer(this.renderLayer.gl, stream.dataView, preparedBuffer.positionsIndex * 2, this.renderLayer.gl.ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.SHORT, "Int16Array");
-		stream.pos += preparedBuffer.positionsIndex * 2;
-		preparedBuffer.normals = RenderLayer.createBuffer(this.renderLayer.gl, stream.dataView, preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.BYTE, "Int8Array");
-		stream.pos += preparedBuffer.normalsIndex;
+		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, stream.dataView, stream.pos, positionsIndex * 2);
+		stream.pos += positionsIndex * 2;
+		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.normals, stream.dataView, stream.pos, normalsIndex);
+		stream.pos += normalsIndex;
 		
-		if (preparedBuffer.nrIndices == 0) {
-			return;
-		}
-		
-		preparedBuffer.loaderId = this.loaderId;
-		preparedBuffer.hasTransparency = hasTransparancy;
-		
-		var pickColors = new Uint8Array(preparedBuffer.positionsIndex * 4);
+		var pickColors = new Uint8Array(positionsIndex * 4);
 		var pickColors32 = new Uint32Array(pickColors.buffer);
 		pickColors.i = 0;
 
@@ -383,13 +413,13 @@ export default class GeometryLoader {
 			}
 		}
 		
-		preparedBuffer.pickColors = RenderLayer.createBuffer(this.renderLayer.gl, pickColors, pickColors.i, this.renderLayer.gl.ARRAY_BUFFER, 4);
-		preparedBuffer.bytes = RenderLayer.calculateBytesUsed(this.settings, preparedBuffer.positionsIndex, nrColors, preparedBuffer.nrIndices, preparedBuffer.normalsIndex);
-		
-		preparedBuffer.unquantizationMatrix = this.unquantizationMatrix;
-		var newBuffer = this.renderLayer.addCompleteBuffer(preparedBuffer, this.gpuBufferManager);
-		
+		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.pickColors, pickColors, 0, pickColors.i);
 		stream.align8();
+		
+		this.preparedBuffer.nrObjectsRead += nrObjects;
+		if (this.preparedBuffer.nrObjects == this.preparedBuffer.nrObjectsRead) {
+			var newBuffer = this.renderLayer.addCompleteBuffer(this.preparedBuffer, this.gpuBufferManager);
+		}
 	}
 
 	readGeometry(stream, roid, croid, geometryId, geometryDataOid, hasTransparency, reused, type, useIntForIndices) {

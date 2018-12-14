@@ -1,6 +1,5 @@
 import BufferTransformer from './buffertransformer.js'
 import Utils from './utils.js'
-import GpuBufferManager from './gpubuffermanager.js'
 import GeometryCache from './geometrycache.js'
 import FrozenBufferSet from './frozenbufferset.js';
 
@@ -316,29 +315,13 @@ export default class RenderLayer {
 
 		const numInstances = geometry.objects.length;
 
-		const positionBuffer = RenderLayer.createBuffer(this.gl, this.bufferTransformer.convertVertices(geometry.croid, geometry.positions));
-		const normalBuffer = RenderLayer.createBuffer(this.gl, this.bufferTransformer.convertNormals(geometry.normals));
+		const positionBuffer = Utils.createBuffer(this.gl, this.bufferTransformer.convertVertices(geometry.croid, geometry.positions));
+		const normalBuffer = Utils.createBuffer(this.gl, this.bufferTransformer.convertNormals(geometry.normals));
 		const colorBuffer = geometry.colors != null
-			? RenderLayer.createBuffer(this.gl, geometry.colors, null, this.gl.ARRAY_BUFFER, 4)
+			? Utils.createBuffer(this.gl, geometry.colors, null, this.gl.ARRAY_BUFFER, 4)
 			: null;
-		const indexBuffer = RenderLayer.createIndexBuffer(this.gl, this.bufferTransformer.convertIndices(geometry.indices, geometry.positions.length));
+		const indexBuffer = Utils.createIndexBuffer(this.gl, this.bufferTransformer.convertIndices(geometry.indices, geometry.positions.length));
 		
-		// Draw, pick instances and normal matrices, pick colors
-
-		var instanceMatrices = new Float32Array(numInstances * 16);
-		var instanceNormalMatrices = new Float32Array(numInstances * 9);
-		var instancePickColors = new Uint8Array(numInstances * 4);
-		
-		geometry.objects.forEach((object, index) => {
-			instanceMatrices.set(object.matrix, index * 16);
-			instanceNormalMatrices.set(object.normalMatrix, index * 9);
-			instancePickColors.set(this.viewer.getPickColor(object.id), index * 4);
-		});
-		
-		const instanceMatricesBuffer = RenderLayer.createBuffer(this.gl, instanceMatrices, null, null, 16);
-		const instanceNormalMatricesBuffer = RenderLayer.createBuffer(this.gl, instanceNormalMatrices, null, null, 9);
-		const instancePickColorsBuffer = RenderLayer.createBuffer(this.gl, instancePickColors, null, null, 4);
-
 		let color, colorHash;
 
 		if (this.settings.useObjectColors) {
@@ -371,16 +354,12 @@ export default class RenderLayer {
 			true,
 			this,
 			gpuBufferManager,
-			
-			geometry.objects,
-			instanceMatricesBuffer,
-			instanceNormalMatricesBuffer,
-			instancePickColorsBuffer,
+
 			geometry.roid,
-			geometry.croid,
-			indexBuffer.attrib_type
+			geometry.croid
 		);
 
+		buffer.setObjects(this.gl, geometry.objects);
 		buffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
 
 		geometry.objects.forEach((obj) => {
@@ -500,11 +479,7 @@ export default class RenderLayer {
 				}
 			}
 		} else {
-			if (buffer.computeVisibleRanges) {
-				for (var range of buffer.computeVisibleRanges(visibleElements, this.gl)) {
-					this.gl.drawElements(this.gl.TRIANGLES, range[1] - range[0], this.gl.UNSIGNED_INT, range[0] * 4);
-				}
-			} else {
+			if (buffer.objectId) {
 				// This is a buffer for one specific element, probably created when
 				// a call to setColor() changed the transparency state of an element.
 				let include = true;
@@ -515,37 +490,17 @@ export default class RenderLayer {
 				}
 				if (include) {
 					this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
+				}				
+			} else {
+				// These are the conventional buffersets
+				for (var range of buffer.computeVisibleRanges(visibleElements, this.gl)) {
+					this.gl.drawElements(this.gl.TRIANGLES, range[1] - range[0], this.gl.UNSIGNED_INT, range[0] * 4);
 				}
 			}
 		}
 		// Enabled, this kind of doubles the amount of GPU calls during rendering, but disabled resulted in errors, somehow some old buffers keep being used if we don't do this
 		this.gl.bindVertexArray(null);
-	}
-
-	static createBuffer(gl, data, numElements, bufferType, components, srcStart, attribType, js_type) {
-		numElements = numElements || data.length;
-		bufferType = bufferType || gl.ARRAY_BUFFER;
-		components = components || 3;
-		srcStart = srcStart || 0;
-
-		var b = gl.createBuffer();
-		gl.bindBuffer(bufferType, b);
-		gl.bufferData(bufferType, data, gl.STATIC_DRAW, srcStart, numElements);
-		
-		b.N = numElements;
-		b.gl_type = bufferType;
-		b.js_type = js_type ? js_type : data.constructor.name;
-		b.attrib_type = attribType ? attribType : Utils.typedArrayToGlType(b.js_type);
-		b.components = components;
-		b.normalize = false;
-		b.stride = 0;
-		b.offset = 0;
-		return b;
-	}
-
-	static createIndexBuffer(gl, data, n) {
-		return RenderLayer.createBuffer(gl, data, n, gl.ELEMENT_ARRAY_BUFFER);
-	}
+	}	
 
 	/**
 	 * Add a buffer that is already prepared
@@ -640,16 +595,16 @@ export default class RenderLayer {
 		var pickProgramInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(false, true));
 
 		if (!this.settings.fakeLoading) {
-			const positionBuffer = RenderLayer.createBuffer(this.gl, buffer.positions, buffer.positionsIndex);
-			const normalBuffer = RenderLayer.createBuffer(this.gl, buffer.normals, buffer.normalsIndex);
+			const positionBuffer = Utils.createBuffer(this.gl, buffer.positions, buffer.positionsIndex);
+			const normalBuffer = Utils.createBuffer(this.gl, buffer.normals, buffer.normalsIndex);
 			var colorBuffer = buffer.colors
-				? RenderLayer.createBuffer(this.gl, buffer.colors, buffer.colorsIndex, this.gl.ARRAY_BUFFER, 4)
+				? Utils.createBuffer(this.gl, buffer.colors, buffer.colorsIndex, this.gl.ARRAY_BUFFER, 4)
 				: null;
 			// Per-object pick vertex colors
 			var pickColorBuffer = buffer.pickColors
-				? RenderLayer.createBuffer(this.gl, buffer.pickColors, buffer.pickColorsIndex, this.gl.ARRAY_BUFFER, 4)
+				? Utils.createBuffer(this.gl, buffer.pickColors, buffer.pickColorsIndex, this.gl.ARRAY_BUFFER, 4)
 				: null;
-			const indexBuffer = RenderLayer.createIndexBuffer(this.gl, buffer.indices, buffer.indicesIndex);
+			const indexBuffer = Utils.createIndexBuffer(this.gl, buffer.indices, buffer.indicesIndex);
 
 			let color, colorHash;
 
