@@ -217,7 +217,7 @@ export default class Viewer {
 
             this.cameraControl = new CameraControl(this);
             this.lighting = new Lighting(this);
-            this.programManager = new ProgramManager(this.gl, this.settings.viewerBasePath, this.settings);
+            this.programManager = new ProgramManager(this.gl, this.settings);
 
             this.programManager.load().then(() => {
                 // this.gl.enable(this.gl.CULL_FACE);

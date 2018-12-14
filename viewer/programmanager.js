@@ -13,9 +13,9 @@ export const LINE_PRIMITIVES = 64;
 
 export default class ProgramManager {
 	
-	constructor(gl, viewerBasePath, settings) {
+	constructor(gl, settings) {
 		this.gl = gl;
-		this.viewerBasePath = viewerBasePath;
+		this.viewerBasePath = settings.viewerBasePath;
 		this.settings = settings;
 		this.loadedFiles = new Map();
 		this.programs = [];
