@@ -52,4 +52,29 @@ export default class Utils {
 		}
 		return result;
 	}
+
+	static createBuffer(gl, data, numElements, bufferType, components, srcStart, attribType, js_type) {
+		numElements = numElements || data.length;
+		bufferType = bufferType || gl.ARRAY_BUFFER;
+		components = components || 3;
+		srcStart = srcStart || 0;
+
+		var b = gl.createBuffer();
+		gl.bindBuffer(bufferType, b);
+		gl.bufferData(bufferType, data, gl.STATIC_DRAW, srcStart, numElements);
+		
+		b.N = numElements;
+		b.gl_type = bufferType;
+		b.js_type = js_type ? js_type : data.constructor.name;
+		b.attrib_type = attribType ? attribType : Utils.typedArrayToGlType(b.js_type);
+		b.components = components;
+		b.normalize = false;
+		b.stride = 0;
+		b.offset = 0;
+		return b;
+	}
+
+	static createIndexBuffer(gl, data, n) {
+		return Utils.createBuffer(gl, data, n, gl.ELEMENT_ARRAY_BUFFER);
+	}
 }

@@ -1,4 +1,5 @@
 import AbstractBufferSet from "./abstractbufferset.js";
+import Utils from "./utils.js"
 
 export default class FrozenBufferSet extends AbstractBufferSet {
     constructor(
@@ -8,10 +9,10 @@ export default class FrozenBufferSet extends AbstractBufferSet {
         color, colorHash,
         nrIndices, nrNormals, nrPositions, nrColors,
         vao, vaoPick,
-        hasTransparency, reuse, owner, manager,
+        hasTransparency, reuse, owner, manager, 
 
-        // in case of reuse
-        objects, instanceMatricesBuffer, instanceNormalMatricesBuffer, instancePickColorsBuffer, roid, croid, indexType)
+        // only in case of reuse
+        roid, croid)
     {
         super(viewer);
 
@@ -41,20 +42,51 @@ export default class FrozenBufferSet extends AbstractBufferSet {
         this.reuse = reuse;
         this.owner = owner;
         this.manager = manager;
+        
+        this.roid = roid;
+        this.croid = croid;
+        this.indexType = indexBuffer.attrib_type;
 
-        if (reuse) {
-        	this.objects = objects;
-        	this.instanceMatricesBuffer = instanceMatricesBuffer;
-        	this.instanceNormalMatricesBuffer = instanceNormalMatricesBuffer;
-        	this.instancePickColorsBuffer = instancePickColorsBuffer;
-        	this.roid = roid;
-        	this.croid = croid;
-        	this.indexType = indexType;
-        	this.nrProcessedMatrices = objects ? objects.length : null;
+        this.instanceMatricesBuffer = null;
+        this.instanceNormalMatricesBuffer = null;
+        this.instancePickColorsBuffer = null;
+    }
+
+    // Sets reuse instances
+    setObjects(gl, objects) {
+        this.objects = objects;
+        this.reuse = true;
+        
+        const N = this.nrProcessedMatrices = objects.length;
+
+        var instanceMatrices = new Float32Array(N * 16);
+        var instanceNormalMatrices = new Float32Array(N * 9);
+        var instancePickColors = new Uint8Array(N * 4);
+
+        objects.forEach((object, index) => {
+            instanceMatrices.set(object.matrix, index * 16);
+            instanceNormalMatrices.set(object.normalMatrix, index * 9);
+            instancePickColors.set(this.viewer.getPickColor(object.id), index * 4);
+        });
+        
+        if (this.instanceMatricesBuffer === null) {
+            this.instanceMatricesBuffer = Utils.createBuffer(gl, instanceMatrices, null, null, 16);
+            this.instanceNormalMatricesBuffer = Utils.createBuffer(gl, instanceNormalMatrices, null, null, 9);
+            this.instancePickColorsBuffer = Utils.createBuffer(gl, instancePickColors, null, null, 4);
+        } else {
+            let arrays = [instanceMatrices, instanceNormalMatrices, instancePickColors];
+            let buffers = [this.instanceMatricesBuffer, this.instanceNormalMatricesBuffer, this.instancePickColorsBuffer];
+            var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+            arrays.forEach(function(a, idx) {
+                let b = buffers[idx];
+                gl.bindBuffer(gl.ARRAY_BUFFER, b);
+                gl.bufferData(gl.ARRAY_BUFFER, a, gl.STATIC_DRAW, 0);             
+            });
+            gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
         }
     }
 
-    shallowCopy() {
+    copyEmpty() {
         let b = new FrozenBufferSet(
         	this.viewer,
             null,
@@ -82,13 +114,8 @@ export default class FrozenBufferSet extends AbstractBufferSet {
             this.owner,
             this.manager,
 
-            this.objects,
-            this.instanceMatricesBuffer,
-            this.instanceNormalMatricesBuffer,
-            this.instancePickColorsBuffer,
             this.roid,
-            this.croid,
-            this.indexType
+            this.croid
         );
         return b;
     }

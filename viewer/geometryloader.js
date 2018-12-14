@@ -290,7 +290,7 @@ export default class GeometryLoader {
 		preparedBuffer.positionsIndex = stream.readInt();
 		preparedBuffer.normalsIndex = stream.readInt();
 		preparedBuffer.colorsIndex = stream.readInt();
-		preparedBuffer.indices = RenderLayer.createBuffer(this.renderLayer.gl, stream.dataView, preparedBuffer.nrIndices * 4, this.renderLayer.gl.ELEMENT_ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.UNSIGNED_INT, "Uint32Array");
+		preparedBuffer.indices = Utils.createBuffer(this.renderLayer.gl, stream.dataView, preparedBuffer.nrIndices * 4, this.renderLayer.gl.ELEMENT_ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.UNSIGNED_INT, "Uint32Array");
 		stream.pos += preparedBuffer.nrIndices * 4;
 		preparedBuffer.geometryIdToIndex = new Map();
 		preparedBuffer.geometryIdToMeta = new Map();
@@ -355,11 +355,11 @@ export default class GeometryLoader {
 		if (currentColorIndex != nrColors) {
 			console.error(currentColorIndex, nrColors);
 		}
-		preparedBuffer.colors = RenderLayer.createBuffer(this.renderLayer.gl, colors, nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4);
+		preparedBuffer.colors = Utils.createBuffer(this.renderLayer.gl, colors, nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4);
 
-		preparedBuffer.vertices = RenderLayer.createBuffer(this.renderLayer.gl, stream.dataView, preparedBuffer.positionsIndex * 2, this.renderLayer.gl.ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.SHORT, "Int16Array");
+		preparedBuffer.vertices = Utils.createBuffer(this.renderLayer.gl, stream.dataView, preparedBuffer.positionsIndex * 2, this.renderLayer.gl.ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.SHORT, "Int16Array");
 		stream.pos += preparedBuffer.positionsIndex * 2;
-		preparedBuffer.normals = RenderLayer.createBuffer(this.renderLayer.gl, stream.dataView, preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.BYTE, "Int8Array");
+		preparedBuffer.normals = Utils.createBuffer(this.renderLayer.gl, stream.dataView, preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, stream.pos, WebGL2RenderingContext.BYTE, "Int8Array");
 		stream.pos += preparedBuffer.normalsIndex;
 		
 		if (preparedBuffer.nrIndices == 0) {
@@ -383,7 +383,7 @@ export default class GeometryLoader {
 			}
 		}
 		
-		preparedBuffer.pickColors = RenderLayer.createBuffer(this.renderLayer.gl, pickColors, pickColors.i, this.renderLayer.gl.ARRAY_BUFFER, 4);
+		preparedBuffer.pickColors = Utils.createBuffer(this.renderLayer.gl, pickColors, pickColors.i, this.renderLayer.gl.ARRAY_BUFFER, 4);
 		preparedBuffer.bytes = RenderLayer.calculateBytesUsed(this.settings, preparedBuffer.positionsIndex, nrColors, preparedBuffer.nrIndices, preparedBuffer.normalsIndex);
 		
 		preparedBuffer.unquantizationMatrix = this.unquantizationMatrix;
