@@ -8,7 +8,8 @@ export default class Lighting {
     constructor(viewer) {
 
         this.viewer = viewer;
-        this._dir = new Float32Array([-0.5, -0.5, -1.0]);
+        this._dir = new Float32Array([-0.3, -0.7, -1.0]);
+        vec3.normalize(this._dir, this._dir);
         this._color = new Float32Array([0.4, 0.4, 0.4]);
         this._ambientColor = new Float32Array([0.3, 0.3, 0.3]);
         this._intensity = 0.5;

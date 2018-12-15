@@ -1,18 +1,30 @@
+const color_float_depth = 0xff01;
+const color_alpha_depth = 0xff02;
+
 export default class RenderBuffer {
 
-    constructor(canvas, gl) {
+    static get COLOR_FLOAT_DEPTH() {
+        return color_float_depth;
+    }
+
+    static get COLOR_ALPHA_DEPTH() {
+        return color_alpha_depth;
+    }
+
+    constructor(canvas, gl, purpose) {
         this.gl = gl;
         this.allocated = false;
         this.canvas = canvas;
         this.buffer = null;
         this.bound = false;
+        this.purpose = purpose;
     }
 
     bind() {
         this._touch();
-        if (this.bound) {
+        /* if (this.bound) {
             return;
-        }
+        } */
         var gl = this.gl;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.buffer.framebuf);
         gl.drawBuffers(this.attachments);
@@ -53,10 +65,18 @@ export default class RenderBuffer {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
             gl.framebufferTexture2D(gl.FRAMEBUFFER, attachments[i++], gl.TEXTURE_2D, t, 0);
+            return t;
         }
 
-        this.colorBuffer = createTexture(gl.RGBA8UI);
-        this.depthFloat = createTexture(gl.R32F);
+        if (this.purpose === color_float_depth) {
+            this.colorBuffer = createTexture(gl.RGBA8UI);
+            this.depthFloat = createTexture(gl.R32F);
+        } else if (this.purpose === color_alpha_depth) {
+            this.colorBuffer = createTexture(gl.RGBA16F);
+            this.alphaBuffer = createTexture(gl.R16F);
+        } else {
+            throw "Unknown purpose";
+        }
 
         this.depthBuffer = gl.createRenderbuffer();
         gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthBuffer);
@@ -92,12 +112,12 @@ export default class RenderBuffer {
         this.bound = false;
     }
 
-    clear() {
+    clear(depth) {
         if (!this.bound) {
             throw "Render buffer not bound";
         }
         var gl = this.gl;
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.clear(gl.COLOR_BUFFER_BIT | ((depth === false) ? 0 : gl.DEPTH_BUFFER_BIT));
     }
 
     read(pickX, pickY) {

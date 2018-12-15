@@ -7,6 +7,8 @@ import RenderBuffer from './renderbuffer.js'
 import SvgOverlay from './svgoverlay.js'
 import FrozenBufferSet from './frozenbufferset.js'
 import Utils from './utils.js'
+import SSQuad from './ssquad.js'
+
 /*
  * Main viewer class, too many responsibilities:
  * - Keep track of width/height of viewport
@@ -264,7 +266,9 @@ export default class Viewer {
                 });
             });
 
-            this.renderBuffer = new RenderBuffer(this.canvas, this.gl);
+            this.renderBuffer = new RenderBuffer(this.canvas, this.gl, RenderBuffer.COLOR_FLOAT_DEPTH);
+            this.oitBuffer = new RenderBuffer(this.canvas, this.gl, RenderBuffer.COLOR_ALPHA_DEPTH);
+            this.quad = new SSQuad(this.gl);
         });
         return promise;
     }
@@ -323,7 +327,8 @@ export default class Viewer {
         gl.clearDepth(1);
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
-
+        gl.disable(gl.POLYGON_OFFSET_FILL);
+        
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         
         // Disabled, seems redundant
@@ -348,25 +353,38 @@ export default class Viewer {
             renderLayer.prepareRender();
         }
 
-        let render = (elems, force) => {
-            for (var transparency of [false, true]) {
-                if (force !== true) {
-                    if (transparency) {
-                    	gl.enable(gl.BLEND);
-                    	gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-                    	// gl.depthMask(false);
-                    } else {
-                    	gl.disable(gl.BLEND);
-                    	// gl.depthMask(true);
-                    }
-                }
+        let render = (elems, t) => {
+            for (var transparency of (t || [false, true])) {
                 for (var renderLayer of this.renderLayers) {
                     renderLayer.render(transparency, elems);
                 }
             }
         }
 
-        render({without: this.invisibleElements}, false);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.disable(gl.BLEND);
+        render({without: this.invisibleElements}, [false]);
+
+        this.oitBuffer.bind();
+        gl.clearColor(0, 0, 0, 0);
+        this.oitBuffer.clear();
+        // @todo It should be possible to eliminate this step. It's necessary
+        // to repopulate the depth-buffer with opaque elements.
+        render({without: this.invisibleElements}, [false]);
+        this.oitBuffer.clear(false);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        gl.depthMask(false);
+        
+        gl.enable(gl.POLYGON_OFFSET_FILL);
+        // Somewhat arbitrarily offset to eliminate some z-fighting where opaque
+        // and transparent surfaces overlap.
+        gl.polygonOffset(1, -100);
+
+        render({without: this.invisibleElements}, [true]);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        this.quad.draw(this.oitBuffer.colorBuffer, this.oitBuffer.alphaBuffer);
 
         if (this.selectedElements.size > 0) {
             gl.enable(gl.STENCIL_TEST);

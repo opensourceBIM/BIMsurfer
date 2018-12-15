@@ -9,13 +9,21 @@ in float depth;
 layout(location = 1) out float myOutputDepth;
 #else
 in vec4 color;
-out vec4 myOutputColor;
+layout(location = 0) out vec4 myOutputColor;
+
+// out vec4 myOutputColor;
+#endif
+
+#ifndef WITH_PICKING
+layout(location=1) out float myOutputAlpha;
 #endif
 
 void main(void) {
-   myOutputColor = color;
-
    #ifdef WITH_PICKING
+   myOutputColor = color;
    myOutputDepth = depth;
+   #else
+   myOutputColor = color * color.a;
+   myOutputAlpha = color.a;
    #endif
 }

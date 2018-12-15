@@ -169,8 +169,9 @@ void main(void) {
     depth = gl_Position.z / gl_Position.w;
 #else
     vec3 viewNormal = normalize(viewNormalMatrix * floatNormal);
-    float lambertian = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
-    color = vec4(lambertian * floatColor.rgb, floatColor.a);
+    float lambert1 = abs(dot(floatNormal, normalize(lightData.dir)));
+    float lambert2 = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
+    color = vec4((lambert1 * 0.8 + lambert2 * 0.2) * floatColor.rgb, floatColor.a);
 #endif
 
 #endif
