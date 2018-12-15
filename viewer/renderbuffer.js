@@ -15,7 +15,7 @@ export default class RenderBuffer {
         }
         var gl = this.gl;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.buffer.framebuf);
-        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+        gl.drawBuffers(this.attachments);
         this.bound = true;
     }
 
@@ -36,32 +36,31 @@ export default class RenderBuffer {
         // var ext = gl.getExtension('WEBGL_draw_buffers');
         var ext = gl.getExtension('EXT_color_buffer_float');
 
-        this.colorBuffer = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, this.colorBuffer);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8UI, width, height, 0, gl.RGBA_INTEGER, gl.UNSIGNED_BYTE, null);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        var framebuf = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuf);
 
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        let attachments = this.attachments = [gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1];
+        let i = 0;
+        
+        function createTexture(format) {
+            let t = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, t);
+            gl.texStorage2D(gl.TEXTURE_2D, 1, format, width, height);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-        this.depthFloat = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, this.depthFloat);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, width, height, 0, gl.RED, gl.FLOAT, null);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, attachments[i++], gl.TEXTURE_2D, t, 0);
+        }
 
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        this.colorBuffer = createTexture(gl.RGBA8UI);
+        this.depthFloat = createTexture(gl.R32F);
 
         this.depthBuffer = gl.createRenderbuffer();
         gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthBuffer);
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
-
-        var framebuf = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuf);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.colorBuffer, 0);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, this.depthFloat, 0);
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthBuffer);
 
         gl.bindTexture(gl.TEXTURE_2D, null);
