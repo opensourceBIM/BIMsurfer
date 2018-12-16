@@ -266,7 +266,7 @@ export default class Viewer {
                 });
             });
 
-            this.renderBuffer = new RenderBuffer(this.canvas, this.gl, RenderBuffer.COLOR_FLOAT_DEPTH);
+            this.pickBuffer = new RenderBuffer(this.canvas, this.gl, RenderBuffer.COLOR_FLOAT_DEPTH);
             this.oitBuffer = new RenderBuffer(this.canvas, this.gl, RenderBuffer.COLOR_ALPHA_DEPTH, 2);
             this.quad = new SSQuad(this.gl);
         });
@@ -437,7 +437,7 @@ export default class Viewer {
             throw "param expected: canvasPos";
         }
 
-        this.renderBuffer.bind();
+        this.pickBuffer.bind();
 
         this.gl.depthMask(true);
         this.gl.clearBufferuiv(this.gl.COLOR, 0, new Uint8Array([0, 0, 0, 0]));
@@ -448,7 +448,7 @@ export default class Viewer {
          */
         // this.gl.clearBufferfv(this.gl.COLOR, 1, new Float32Array([1.]));
 
-        this.gl.clearBufferfv(this.gl.DEPTH, this.renderBuffer.depthBuffer, new Uint8Array([1, 0])); // TODO should be a Float16Array, which does not exists, need to find the 16bits that define the number 1 here
+        this.gl.clearBufferfv(this.gl.DEPTH, this.pickBuffer.depthBuffer, new Uint8Array([1, 0])); // TODO should be a Float16Array, which does not exists, need to find the 16bits that define the number 1 here
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.depthFunc(this.gl.LEQUAL);
         this.gl.disable(this.gl.BLEND);
@@ -460,7 +460,7 @@ export default class Viewer {
         }
         
         let [x,y] = [Math.round(canvasPos[0]), Math.round(canvasPos[1])];
-        var pickColor = this.renderBuffer.read(x, y);
+        var pickColor = this.pickBuffer.read(x, y);
         var pickId = pickColor[0] + pickColor[1] * 256 + pickColor[2] * 65536 + pickColor[3] * 16777216;
         var viewObject = this.pickIdToViewObject[pickId];
 
@@ -468,13 +468,13 @@ export default class Viewer {
         // Note that the default depth of 1. corresponds to the far plane, which
         // can be quite far away but at least is something that is recognizable
         // in most cases.
-        let z = viewObject ? this.renderBuffer.depth(x,y) : 1.;
+        let z = viewObject ? this.pickBuffer.depth(x,y) : 1.;
         vec3.set(tmp_unproject, x / this.width * 2 - 1, - y / this.height * 2 + 1, z);
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.projection.projMatrixInverted);
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.viewMatrixInverted);
 //        console.log("Picked @", tmp_unproject[0], tmp_unproject[1], tmp_unproject[2], objectId, viewObject);
 
-        this.renderBuffer.unbind();
+        this.pickBuffer.unbind();
         
         if (viewObject) {
         	var objectId = viewObject.objectId;
