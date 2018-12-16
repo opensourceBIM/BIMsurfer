@@ -16,20 +16,22 @@ export default class SSQuad {
         gl.enableVertexAttribArray(0);
 
         let vs_source = `#version 300 es
-        layout(location=0) in vec4 vertexPosition;        
+        layout(location=0) in vec4 vertexPosition;
+        out vec2 uv;
         void main() {
             gl_Position = vertexPosition;
+            uv = (vertexPosition.xy + 1.) / 2.;
         }`;
 
         let fs_source = `#version 300 es
         precision highp float;
         uniform sampler2D colorAccumulate;
         uniform sampler2D alphaAccumulate;
+        in vec2 uv;
         out vec4 fragColor;
         void main() {
-            ivec2 fragCoord = ivec2(gl_FragCoord.xy);
-            float a = texelFetch(alphaAccumulate, fragCoord, 0).r;
-            vec4 accum = texelFetch(colorAccumulate, fragCoord, 0);
+            float a = texture(alphaAccumulate, uv).r;
+            vec4 accum = texture(colorAccumulate, uv);
             fragColor = vec4(accum.rgb / a, clamp(accum.a, 0., 1.));
         }`;
 

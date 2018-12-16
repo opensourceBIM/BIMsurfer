@@ -267,7 +267,7 @@ export default class Viewer {
             });
 
             this.renderBuffer = new RenderBuffer(this.canvas, this.gl, RenderBuffer.COLOR_FLOAT_DEPTH);
-            this.oitBuffer = new RenderBuffer(this.canvas, this.gl, RenderBuffer.COLOR_ALPHA_DEPTH);
+            this.oitBuffer = new RenderBuffer(this.canvas, this.gl, RenderBuffer.COLOR_ALPHA_DEPTH, 2);
             this.quad = new SSQuad(this.gl);
         });
         return promise;
@@ -276,7 +276,6 @@ export default class Viewer {
     setDimensions(width, height) {
         this.width = width;
         this.height = height;
-        this.gl.viewport(0, 0, width, height);
         this.camera.perspective._dirty = true;
         this.updateViewport();
     }
@@ -329,6 +328,7 @@ export default class Viewer {
         gl.depthFunc(gl.LEQUAL);
         gl.disable(gl.POLYGON_OFFSET_FILL);
         
+        gl.viewport(0, 0, this.width, this.height);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         
         // Disabled, seems redundant
@@ -384,6 +384,7 @@ export default class Viewer {
         render({without: this.invisibleElements}, [true]);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, this.width, this.height);
         this.quad.draw(this.oitBuffer.colorBuffer, this.oitBuffer.alphaBuffer);
 
         if (this.selectedElements.size > 0) {

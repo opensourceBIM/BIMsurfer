@@ -11,13 +11,14 @@ export default class RenderBuffer {
         return color_alpha_depth;
     }
 
-    constructor(canvas, gl, purpose) {
+    constructor(canvas, gl, purpose, supersample) {
         this.gl = gl;
         this.allocated = false;
         this.canvas = canvas;
         this.buffer = null;
         this.bound = false;
         this.purpose = purpose;
+        this.supersample = supersample || 1;
     }
 
     bind() {
@@ -28,13 +29,14 @@ export default class RenderBuffer {
         var gl = this.gl;
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.buffer.framebuf);
         gl.drawBuffers(this.attachments);
+        gl.viewport(0, 0, this.buffer.width, this.buffer.height);
         this.bound = true;
     }
 
     _touch() { // Lazy-creates buffer if needed, resizes to canvas if needed
         var gl = this.gl;
-        var width = this.canvas.clientWidth;
-        var height = this.canvas.clientHeight;
+        var width = this.canvas.clientWidth * this.supersample;
+        var height = this.canvas.clientHeight * this.supersample;
         if (this.buffer) {
             if (this.buffer.width === width && this.buffer.height === height) {
                 return;
@@ -54,12 +56,12 @@ export default class RenderBuffer {
         let attachments = this.attachments = [gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1];
         let i = 0;
         
-        function createTexture(format) {
+        let createTexture = (format) => {
             let t = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, t);
             gl.texStorage2D(gl.TEXTURE_2D, 1, format, width, height);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, this.supersample !== 1 ? gl.LINEAR : gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, this.supersample !== 1 ? gl.LINEAR : gl.NEAREST);
     
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
