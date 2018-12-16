@@ -94,6 +94,9 @@ export default class Utils {
 		// According to the documentation, this should work, but unfortunately, we need to create a useless CPU-side typed array
 //		gl.bufferData(bufferType, null, gl.STATIC_DRAW, 0, numElements);
 		var typedArrFn = Utils.glTypeToTypedArray(b.attrib_type);
+		
+		// TODO this array consists of only zeros, so we should definitely reuse (cache) this array for future "empty" buffers
+		// Since we are going to need different types of typed arrays, we should make this buffer smart in the sense that the same background buffer is used
 		var uselessArray = new typedArrFn(numElements);
 		gl.bufferData(bufferType, uselessArray, gl.STATIC_DRAW, 0, numElements);
 
