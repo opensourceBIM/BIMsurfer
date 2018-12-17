@@ -379,7 +379,7 @@ export default class Viewer {
         gl.enable(gl.POLYGON_OFFSET_FILL);
         // Somewhat arbitrarily offset to eliminate some z-fighting where opaque
         // and transparent surfaces overlap.
-        gl.polygonOffset(1, -100);
+        gl.polygonOffset(1, -10);
 
         render({without: this.invisibleElements}, [true]);
 
