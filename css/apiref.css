@@ -1,0 +1,44 @@
+textarea, pre {
+    padding: 20px;
+    border: solid 1px #ddd;
+    background: #f4f4f4;
+    height: 12px;
+    line-height: 12px;
+    font-size: 12px;
+    width: 1200px;
+    display: block;
+}
+
+pre {
+    background: white;
+    overflow: hidden;
+    white-space: pre-wrap;
+}
+
+button {
+    margin: 10px 10px;
+    width: 100px;
+}
+
+#apirefContainerContainer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 520px 0 20px 20px;
+    pointer-events: none;
+}
+
+#apirefContainer {
+    pointer-events: initial;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    height: 100%;
+}
+
+#apirefContainer h2, 
+#apirefContainer h3 {
+    padding: 0;
+    margin: 0;
+}

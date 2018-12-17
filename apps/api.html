@@ -5,18 +5,88 @@
 <title>BIMsurfer Developer Mode</title>
 <link rel="icon" type="image/png" href="../img/application_home.png" />
 <link href="../css/viewer.css" type="text/css" rel="stylesheet" />
+<link href="../css/apiref.css" type="text/css" rel="stylesheet" />
 <script src="../gl-matrix.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 </head>
 
 <body>
 
-    <canvas></canvas>
+    <canvas style="width:100%; height:500px; border-bottom: solid 1px gray;"></canvas>
+
+    <div id='apirefContainerContainer'>
+        <div id='apirefContainer'>
+            <h2>API reference</h2>
+        </div>
+    </div>
 
     <script type="module">
         import BimSurfer from "../viewer/bimsurfer.js";
         
-        let bs = new BimSurfer();
-        bs.load({bimserver:"http://localhost:8080", username:"admin@bimserver.org", password:"admin", roid:131073});
+        let bs = window.bimSurfer = new BimSurfer();
+        bs.load({
+            bimserver:"http://localhost:8080", 
+            username:"admin@bimserver.org",
+            password:"admin",
+            roid:65539,
+            domNode:document.querySelector("canvas")
+        }).then(generateApiReference);
+    </script>
+
+    <script>
+        function generateApiReference() {
+
+            var oids = Array.from(bimSurfer.bimServerViewer.viewer.viewObjects.keys());
+            oids = _.shuffle(oids);
+            oids.splice(10);
+            oids = "["+oids.join(", ")+"]";
+            
+            var METHODS = [
+                {name:'setVisibility',     args:[{name: "ids", value: oids}, {name: "visible", value:false}]},
+                {name:'setVisibility',     args:[{name: "types", value: '["IfcWallStandardCase"]'}, {name: "visible", value:false}]},
+                {name:'setSelectionState', args:[{name: "ids", value: oids}, {name: "selected", value:true}]},
+                {name:'getSelected', args:[], hasResult: true},
+                {name:'setColor', args:[{name: "ids", value: oids}, {name: "color", value:"{r:1, g:0, b:0, a:1}"}]},
+                {name:'viewFit', args:[{name: "ids", value: oids}, {name: "animate", value:500}]},
+                {name:'setCamera', args:[{name: "type", value: "'ortho'"}]},
+                {name:'getCamera', args:[], hasResult: true},
+                {name:'reset', args:[{name: "cameraPosition", value: true}]},
+            ];
+
+            var n = document.getElementById('apirefContainer');
+
+            METHODS.forEach(function(m, i) {
+                n.innerHTML += "<h3>"+m.name+"()</h3>";
+                
+                var hasNamedArgs = false;
+                var args = m.args.map(function(a) {
+                    if (a.name) {
+                        hasNamedArgs = true;
+                        return a.name + ":" + a.value;
+                    } else {
+                        return a;
+                    }
+                }).join(", ");
+                
+                if (hasNamedArgs) {
+                    args = "{"+args+"}";
+                }
+                
+                var cmd = "bimSurfer."+m.name+"("+args+");";
+                n.innerHTML += "<textarea rows=3 id='code"+i+"' spellcheck=false>"+cmd+"\n</textarea>";
+                exec_statement = "eval(document.getElementById(\"code"+i+"\").value)"
+                if (m.hasResult) {
+                    exec_statement = "document.getElementById(\"result"+i+"\").innerHTML = JSON.stringify(" + exec_statement + ").replace(/,/g, \", \")";
+                } else {
+                    exec_statement += "; window.scrollTo(0,0)"
+                }
+                n.innerHTML += "<button onclick='"+exec_statement+"'>run</button>";
+                if (m.hasResult) {
+                    n.innerHTML += "<pre id='result"+i+"' />";
+                }
+            });
+
+        }
     </script>
 
 </body>

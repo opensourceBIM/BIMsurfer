@@ -84,16 +84,9 @@ export default class Viewer {
 
         document.addEventListener("keypress", (evt) => {
             if (evt.key === 'H') {
-                this.invisibleElements = new Set();
-                // Make sure elements hidden due to setColor() stay hidden
-                for (let i of this.hiddenDueToSetColor.keys()) {
-                    this.invisibleElements.add(i);
-                };
-                if (this.invisibleElements.size == 0) {
-                    this.invisibleElements = null;
-                }
+                this.setVisibility(this.invisibleElements.keys(), true);
             } else if (evt.key === 'h') {
-                this.hide(this.selectedElements);
+                this.setVisibility(this.selectedElements, false);
                 this.selectedElements = new Set();
             } else if (evt.key === 'C') {
                 this.resetColor(
@@ -116,13 +109,30 @@ export default class Viewer {
         });
     }
 
-    hide(elems) {
+    setVisibility(elems, visible) {
+        elems = Array.from(elems);
+        
         this.invisibleElements = this.invisibleElements || new Set();
+        
+        let fn = (visible ? this.invisibleElements.delete : this.invisibleElements.add).bind(this.invisibleElements);
+        
         elems.forEach((i) => {
-            this.invisibleElements.add(i);
-            // Hide transparently-adjusted counterpart (even though it might not exist)
-            this.invisibleElements.add(i | OVERRIDE_FLAG);
+            fn(i);
+            // Show/hide transparently-adjusted counterpart (even though it might not exist)
+            fn(i | OVERRIDE_FLAG);
         });
+
+        // Make sure elements hidden due to setColor() stay hidden
+        for (let i of this.hiddenDueToSetColor.keys()) {
+            this.invisibleElements.add(i);
+        };
+
+        // @todo why do we do this again?
+        if (this.invisibleElements.size == 0) {
+            this.invisibleElements = null;
+        }
+
+        this.dirty = true;
     }
 
     resetColor(elems) {

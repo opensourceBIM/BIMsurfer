@@ -21,13 +21,13 @@ export default class BimServerViewer {
 
 		this.canvas = canvas;
 
-		this.viewer = new Viewer(canvas, settings, stats, window.innerWidth, window.innerHeight);
 		this.settings = settings;
 		this.bimServerApi = bimServerApi;
 		this.stats = stats;
-		this.width = width;
-		this.height = height;
+		this.width = width || canvas.offsetWidth;
+		this.height = height || canvas.offsetHeight;
 		this.layers = [];
+		this.viewer = new Viewer(canvas, settings, stats, this.width, this.height);
 		
 		this.settings = DefaultSettings.create(settings);
 		
@@ -49,14 +49,11 @@ export default class BimServerViewer {
 		} else {
 			this.viewer.setDimensions(width, height);
 		}
-
-		// tfk: temporary debugging aid
-		window.bimServerViewer = this;
 	}
 
 	resizeCanvas() {
-		this.canvas.width = window.innerWidth;
-		this.canvas.height = window.innerHeight;
+		this.canvas.width = this.width;
+		this.canvas.height = this.height;
 		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
 	}
 
@@ -97,40 +94,42 @@ export default class BimServerViewer {
 	 * 
 	 */
 	loadModel(project) {
-		this.totalStart = performance.now();
+		return new Promise((resolve, reject) => {
+			this.totalStart = performance.now();
 
-		this.viewer.init().then(() => {
-			this.bimServerApi.call("ServiceInterface", "listBoundingBoxes", {
-				roids: [project.lastRevisionId]
-			}, (bbs) => {
-				if (bbs.length > 1) {
-					this.settings.regionSelector(bbs).then((bb) => {
-						this.genDensityThreshold(project.lastRevisionId, bb);
-					});
-				} else {
-					this.genDensityThreshold(project.lastRevisionId, bbs[0]);
-				}
+			this.viewer.init().then(() => {
+				this.bimServerApi.call("ServiceInterface", "listBoundingBoxes", {
+					roids: [project.lastRevisionId]
+				}, (bbs) => {
+					if (bbs.length > 1) {
+						this.settings.regionSelector(bbs).then((bb) => {
+							this.genDensityThreshold(project.lastRevisionId, bb).then(resolve);
+						});
+					} else {
+						this.genDensityThreshold(project.lastRevisionId, bbs[0]).then(resolve);
+					}
+				});
 			});
 		});
 	}
 
 	genDensityThreshold(roid, bb) {
-		this.bimServerApi.call("ServiceInterface", "getDensityThreshold", {
-			roid: roid,
-			nrTriangles: this.viewer.settings.triangleThresholdDefaultLayer,
-			excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"]
-		}, (densityAtThreshold) => {
-			this.densityAtThreshold = densityAtThreshold;
-			this.densityThreshold = densityAtThreshold.density;
-			var nrPrimitivesBelow = densityAtThreshold.trianglesBelow;
-			var nrPrimitivesAbove = densityAtThreshold.trianglesAbove;
-			
-//			console.log(nrPrimitivesBelow, nrPrimitivesAbove);
-			
-			this.bimServerApi.call("ServiceInterface", "getRevision", {
-				roid: roid
-			}, (revision) => {
-				this.internalLoadRevision(revision, nrPrimitivesBelow, nrPrimitivesAbove);
+		return new Promise((resolve, reject) => {
+			this.bimServerApi.call("ServiceInterface", "getDensityThreshold", {
+				roid: roid,
+				nrTriangles: this.viewer.settings.triangleThresholdDefaultLayer,
+				excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"]
+			}, (densityAtThreshold) => {
+				this.densityAtThreshold = densityAtThreshold;
+				this.densityThreshold = densityAtThreshold.density;
+				var nrPrimitivesBelow = densityAtThreshold.trianglesBelow;
+				var nrPrimitivesAbove = densityAtThreshold.trianglesAbove;
+				
+				this.bimServerApi.call("ServiceInterface", "getRevision", {
+					roid: roid
+				}, (revision) => {
+					this.internalLoadRevision(revision, nrPrimitivesBelow, nrPrimitivesAbove).then(resolve);
+				});
 			});
 		});
 	}
@@ -139,149 +138,146 @@ export default class BimServerViewer {
 	 * Private method
 	 */
 	internalLoadRevision(revision, nrPrimitivesBelow, nrPrimitivesAbove) {
-		this.revisionId = revision.oid;
+		return new Promise((resolve, reject) => {
 
-		this.viewer.stats.setParameter("Models", "Models to load", 1);
+			this.revisionId = revision.oid;
 
-//		console.log("Total triangles", nrPrimitivesBelow + nrPrimitivesAbove);
-		
-		var requests = [
-			["ServiceInterface", "getTotalBounds", {
-				roids: [revision.oid]
-			}],
-			["ServiceInterface", "getTotalUntransformedBounds", {
-				roids: [revision.oid]
-			}]
-		];
-		
-		if (this.settings.gpuReuse) {
-			requests.push(["ServiceInterface", "getGeometryDataToReuse", {
-				roids: [revision.oid],
-				excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"],
-				trianglesToSave: 0
-			}]);
-		}
-		
-		for (var croid of revision.concreteRevisions) {
-			requests.push(["ServiceInterface", "getModelBoundsUntransformedForConcreteRevision", {
-				croid: croid
-			}]);
-		}
-		for (var croid of revision.concreteRevisions) {
-			requests.push(["ServiceInterface", "getModelBoundsForConcreteRevision", {
-				croid: croid
-			}]);
-		}
+			this.viewer.stats.setParameter("Models", "Models to load", 1);
 
-		const fieldOfView = 45 * Math.PI / 180;
-		const aspect = this.width / this.height;
-		const zNear = 1;
-		const zFar = 50.0;
-
-//		var virtualProjectionMatrix = mat4.create();
-//		mat4.perspective(virtualProjectionMatrix, fieldOfView, aspect, zNear, zFar);
-		
-		this.bimServerApi.multiCall(requests, (responses) => {
-			var totalBounds = responses[0].result;
-			var totalBoundsUntransformed = responses[1].result;
+	//		console.log("Total triangles", nrPrimitivesBelow + nrPrimitivesAbove);
+			
+			var requests = [
+				["ServiceInterface", "getTotalBounds", {
+					roids: [revision.oid]
+				}],
+				["ServiceInterface", "getTotalUntransformedBounds", {
+					roids: [revision.oid]
+				}]
+			];
+			
 			if (this.settings.gpuReuse) {
-				this.geometryDataIdsToReuse = new Set(responses[2].result);
-			} else {
-				this.geometryDataIdsToReuse = new Set(); // TODO later make this null, nicer
-			}
-//			console.log("Geometry Data IDs to reuse", this.geometryDataIdsToReuse);
-
-			var add = this.settings.gpuReuse ? 3 : 2;
-			var modelBoundsUntransformed = new Map();
-			for (var i=0; i<(responses.length - add) / 2; i++) {
-				modelBoundsUntransformed.set(revision.concreteRevisions[i], responses[i + add].result);
-			}
-			var modelBoundsTransformed = new Map();
-			for (var i=0; i<(responses.length - add) / 2; i++) {
-				modelBoundsTransformed.set(revision.concreteRevisions[i], responses[(responses.length - add) / 2 + i + add].result);
+				requests.push(["ServiceInterface", "getGeometryDataToReuse", {
+					roids: [revision.oid],
+					excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"],
+					trianglesToSave: 0
+				}]);
 			}
 			
-			if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
-				this.viewer.vertexQuantization = new VertexQuantization(this.settings);
-				for (var croid of modelBoundsUntransformed.keys()) {
-					this.viewer.vertexQuantization.generateUntransformedMatrices(croid, modelBoundsUntransformed.get(croid));
-				}
-				this.viewer.vertexQuantization.generateMatrices(totalBounds, totalBoundsUntransformed);
+			for (var croid of revision.concreteRevisions) {
+				requests.push(["ServiceInterface", "getModelBoundsUntransformedForConcreteRevision", {
+					croid: croid
+				}]);
+			}
+			for (var croid of revision.concreteRevisions) {
+				requests.push(["ServiceInterface", "getModelBoundsForConcreteRevision", {
+					croid: croid
+				}]);
 			}
 
-			var bounds = [
-				totalBounds.min.x,
-				totalBounds.min.y,
-				totalBounds.min.z,
-				totalBounds.max.x,
-				totalBounds.max.y,
-				totalBounds.max.z,
-				];
-
-			this.viewer.stats.inc("Primitives", "Primitives to load (L1)", nrPrimitivesBelow);
-			this.viewer.stats.inc("Primitives", "Primitives to load (L2)", nrPrimitivesAbove);
-
-			this.viewer.setModelBounds(bounds);
-
-			
-			// TODO This is very BIMserver specific, clutters the code, should move somewhere else (maybe GeometryLoader)
-			var fieldsToInclude = ["indices"];
-			fieldsToInclude.push("colorPack");
-			if (this.settings.loaderSettings.quantizeNormals) {
-				if (this.settings.loaderSettings.prepareBuffers) {
-					fieldsToInclude.push("normals");
-					fieldsToInclude.push("normalsQuantized");
+			this.bimServerApi.multiCall(requests, (responses) => {
+				var totalBounds = responses[0].result;
+				var totalBoundsUntransformed = responses[1].result;
+				if (this.settings.gpuReuse) {
+					this.geometryDataIdsToReuse = new Set(responses[2].result);
 				} else {
-					fieldsToInclude.push("normalsQuantized");
+					this.geometryDataIdsToReuse = new Set(); // TODO later make this null, nicer
 				}
-			} else {
-				fieldsToInclude.push("normals");
-			}
-			if (this.settings.loaderSettings.quantizeVertices) {
-				if (this.settings.loaderSettings.prepareBuffers) {
-					fieldsToInclude.push("vertices");
-					fieldsToInclude.push("verticesQuantized");
-				} else {
-					fieldsToInclude.push("verticesQuantized");
+	//			console.log("Geometry Data IDs to reuse", this.geometryDataIdsToReuse);
+
+				var add = this.settings.gpuReuse ? 3 : 2;
+				var modelBoundsUntransformed = new Map();
+				for (var i=0; i<(responses.length - add) / 2; i++) {
+					modelBoundsUntransformed.set(revision.concreteRevisions[i], responses[i + add].result);
 				}
-			} else {
-				fieldsToInclude.push("vertices");
-			}
-			if (!this.settings.loaderSettings.useObjectColors) {
-				fieldsToInclude.push("colorsQuantized");
-			}
-			
-			var promise = Promise.resolve();
-			if (this.viewer.settings.defaultLayerEnabled && nrPrimitivesBelow) {
-				var defaultRenderLayer = new DefaultRenderLayer(this.viewer, this.geometryDataIdsToReuse);
-				this.layers.push(defaultRenderLayer);
-				this.viewer.renderLayers.push(defaultRenderLayer);
-
-				defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
-					var percentage = 100 * nrPrimitivesLoaded / nrPrimitivesBelow;
-					this.updateProgress(percentage);
-				});
-
-				promise = this.loadDefaultLayer(defaultRenderLayer, revision, bounds, fieldsToInclude);
-			}
-
-			promise.then(() => {
-				this.viewer.dirty = true;
-				var tilingPromise = Promise.resolve();
-				if (this.viewer.settings.tilingLayerEnabled && nrPrimitivesAbove > 0) {
-					var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.geometryDataIdsToReuse, bounds);
-					this.layers.push(tilingRenderLayer);
-					this.viewer.renderLayers.push(tilingRenderLayer);
-					
-					tilingPromise = this.loadTilingLayer(tilingRenderLayer, revision, bounds, fieldsToInclude);
+				var modelBoundsTransformed = new Map();
+				for (var i=0; i<(responses.length - add) / 2; i++) {
+					modelBoundsTransformed.set(revision.concreteRevisions[i], responses[(responses.length - add) / 2 + i + add].result);
 				}
-				tilingPromise.then(() => {
-					this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
-					this.viewer.bufferSetPool.cleanup();
-					if (this.loadingResolve != null) {
-						this.loadingResolve();
+				
+				if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
+					this.viewer.vertexQuantization = new VertexQuantization(this.settings);
+					for (var croid of modelBoundsUntransformed.keys()) {
+						this.viewer.vertexQuantization.generateUntransformedMatrices(croid, modelBoundsUntransformed.get(croid));
 					}
+					this.viewer.vertexQuantization.generateMatrices(totalBounds, totalBoundsUntransformed);
+				}
+
+				var bounds = [
+					totalBounds.min.x,
+					totalBounds.min.y,
+					totalBounds.min.z,
+					totalBounds.max.x,
+					totalBounds.max.y,
+					totalBounds.max.z,
+					];
+
+				this.viewer.stats.inc("Primitives", "Primitives to load (L1)", nrPrimitivesBelow);
+				this.viewer.stats.inc("Primitives", "Primitives to load (L2)", nrPrimitivesAbove);
+
+				this.viewer.setModelBounds(bounds);
+
+				
+				// TODO This is very BIMserver specific, clutters the code, should move somewhere else (maybe GeometryLoader)
+				var fieldsToInclude = ["indices"];
+				fieldsToInclude.push("colorPack");
+				if (this.settings.loaderSettings.quantizeNormals) {
+					if (this.settings.loaderSettings.prepareBuffers) {
+						fieldsToInclude.push("normals");
+						fieldsToInclude.push("normalsQuantized");
+					} else {
+						fieldsToInclude.push("normalsQuantized");
+					}
+				} else {
+					fieldsToInclude.push("normals");
+				}
+				if (this.settings.loaderSettings.quantizeVertices) {
+					if (this.settings.loaderSettings.prepareBuffers) {
+						fieldsToInclude.push("vertices");
+						fieldsToInclude.push("verticesQuantized");
+					} else {
+						fieldsToInclude.push("verticesQuantized");
+					}
+				} else {
+					fieldsToInclude.push("vertices");
+				}
+				if (!this.settings.loaderSettings.useObjectColors) {
+					fieldsToInclude.push("colorsQuantized");
+				}
+				
+				var promise = Promise.resolve();
+				if (this.viewer.settings.defaultLayerEnabled && nrPrimitivesBelow) {
+					var defaultRenderLayer = new DefaultRenderLayer(this.viewer, this.geometryDataIdsToReuse);
+					this.layers.push(defaultRenderLayer);
+					this.viewer.renderLayers.push(defaultRenderLayer);
+
+					defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
+						var percentage = 100 * nrPrimitivesLoaded / nrPrimitivesBelow;
+						this.updateProgress(percentage);
+					});
+
+					promise = this.loadDefaultLayer(defaultRenderLayer, revision, bounds, fieldsToInclude);
+				}
+
+				promise.then(() => {
 					this.viewer.dirty = true;
+					var tilingPromise = Promise.resolve();
+					if (this.viewer.settings.tilingLayerEnabled && nrPrimitivesAbove > 0) {
+						var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.geometryDataIdsToReuse, bounds);
+						this.layers.push(tilingRenderLayer);
+						this.viewer.renderLayers.push(tilingRenderLayer);
+						
+						tilingPromise = this.loadTilingLayer(tilingRenderLayer, revision, bounds, fieldsToInclude);
+					}
+					tilingPromise.then(() => {
+						this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
+						this.viewer.bufferSetPool.cleanup();
+						if (this.loadingResolve != null) {
+							this.loadingResolve();
+						}
+						this.viewer.dirty = true;
+
+						resolve();
+					});
 				});
 			});
 		});

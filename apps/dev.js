@@ -70,6 +70,7 @@ export default class Dev {
 		
 		var canvasWrapper = document.getElementById("canvasWrapper");
 		this.canvas = document.createElement("canvas");
+		this.canvas.className = "full";
 		canvasWrapper.appendChild(this.canvas);
 
 		var stats = new Stats();
