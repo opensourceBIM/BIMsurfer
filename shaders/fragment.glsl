@@ -23,7 +23,7 @@ void main(void) {
    myOutputColor = color;
    myOutputDepth = depth;
    #else
-   myOutputColor = color * color.a;
-   myOutputAlpha = color.a;
+   myOutputColor = vec4(color.rgb * color.a, color.a);
+   myOutputAlpha = 1.;
    #endif
 }
