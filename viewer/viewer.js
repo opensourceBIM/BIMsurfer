@@ -244,7 +244,7 @@ export default class Viewer {
             this.programManager = new ProgramManager(this.gl, this.settings);
 
             this.programManager.load().then(() => {
-                // this.gl.enable(this.gl.CULL_FACE);
+                this.gl.enable(this.gl.CULL_FACE);
 
                 // It would be really nice to get the BIMsurfer V1 like anti-aliasing, so far I understand this is definitely
                 // possible in WebGL2 but you need to do something with framebuffers/renderbuffers.
@@ -320,19 +320,13 @@ export default class Viewer {
 
         gl.depthMask(true);
         gl.disable(gl.STENCIL_TEST);
-        // gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
-        // gl.stencilFunc(gl.ALWAYS, 0, 1);
         gl.clearColor(1, 1, 1, 1.0);
         gl.clearDepth(1);
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
-        gl.disable(gl.POLYGON_OFFSET_FILL);
         
         gl.viewport(0, 0, this.width, this.height);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
-        
-        // Disabled, seems redundant
-//        gl.disable(gl.BLEND);
 
         if (this.modelBounds != null) {
             if (!this.cameraSet) { // HACK to look at model origin as soon as available
@@ -375,11 +369,6 @@ export default class Viewer {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE);
         gl.depthMask(false);
-        
-        gl.enable(gl.POLYGON_OFFSET_FILL);
-        // Somewhat arbitrarily offset to eliminate some z-fighting where opaque
-        // and transparent surfaces overlap.
-        gl.polygonOffset(1, -10);
 
         render({without: this.invisibleElements}, [true]);
 
