@@ -2,6 +2,10 @@
  * Generic utils
  */
 
+// Initially 10MB of zero'ed out buffer. Will increase over time when needed, used in Utils.createEmptyBuffer
+var zeroBuffer = new ArrayBuffer(10000000);
+var zeroDataView = new DataView(zeroBuffer);
+
 const glTypeToTypedArrayMap = new Map([
 	[WebGL2RenderingContext.BYTE, Int8Array],
 	[WebGL2RenderingContext.SHORT, Int16Array],
@@ -42,7 +46,7 @@ export default class Utils {
 		return glTypeToTypedArrayMap.get(glType)
 	}
 	
-	/*
+	/**
 	 * Converts the given 4x4 mat4 to an array
 	 */
 	static toArray(matrix) {
@@ -53,6 +57,9 @@ export default class Utils {
 		return result;
 	}
 
+	/**
+	 * Create a new GPU buffer, keep in mind that some extra attributes are being set on the returned GLBuffer object
+	 */
 	static createBuffer(gl, data, numElements, bufferType, components, srcStart, attribType, js_type) {
 		numElements = numElements || data.length;
 		bufferType = bufferType || gl.ARRAY_BUFFER;
@@ -74,35 +81,27 @@ export default class Utils {
 		return b;
 	}
 
+	/**
+	 * Create a new GPU empty buffer, keep in mind that some extra attributes are being set on the returned GLBuffer object.
+	 * This method is usually used in order to create buffers that will be later be filled by calls to bufferSubData (via Utils.updateBuffer)
+	 */
 	static createEmptyBuffer(gl, numElements, bufferType, components, attribType, js_type) {
-		bufferType = bufferType || gl.ARRAY_BUFFER;
-		components = components || 3;
+		if (numElements > zeroBuffer.byteLength) {
+			// According to the documentation, you should be able to pass `null` to gl.bufferData, but both Chrome and Firefox do not allow this
+			console.log("Increasing size of zero'ed-buffer", zeroBuffer.byteLength, numElements);
+			zeroBuffer = new ArrayBuffer(numElements);
+			zeroDataView = new DataView(zeroBuffer);
+		}
 		
-		var b = gl.createBuffer();
-		gl.bindBuffer(bufferType, b);
-
-		b.N = numElements;
-		b.gl_type = bufferType;
-		b.js_type = js_type ? js_type : data.constructor.name;
-		b.attrib_type = attribType ? attribType : Utils.typedArrayToGlType(b.js_type);
-		b.components = components;
-		b.normalize = false;
-		b.stride = 0;
-		b.offset = 0;
-		b.writePosition = 0;
+		const buffer = this.createBuffer(gl, zeroDataView, numElements, bufferType, components, 0, attribType, js_type);
+		buffer.writePosition = 0;
 		
-		// According to the documentation, this should work, but unfortunately, we need to create a useless CPU-side typed array
-//		gl.bufferData(bufferType, null, gl.STATIC_DRAW, 0, numElements);
-		var typedArrFn = Utils.glTypeToTypedArray(b.attrib_type);
-		
-		// TODO this array consists of only zeros, so we should definitely reuse (cache) this array for future "empty" buffers
-		// Since we are going to need different types of typed arrays, we should make this buffer smart in the sense that the same background buffer is used
-		var uselessArray = new typedArrFn(numElements);
-		gl.bufferData(bufferType, uselessArray, gl.STATIC_DRAW, 0, numElements);
-
-		return b;
+		return buffer;
 	}
 	
+	/**
+	 * Update a GPU buffer
+	 */	
 	static updateBuffer(gl, targetGlBuffer, sourceBuffer, pos, count) {
 		gl.bindBuffer(targetGlBuffer.gl_type, targetGlBuffer);
 		gl.bufferSubData(targetGlBuffer.gl_type, targetGlBuffer.writePosition, sourceBuffer, pos, count);
