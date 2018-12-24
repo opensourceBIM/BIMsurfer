@@ -12,7 +12,7 @@
 
 <body>
 
-    <canvas style="width:100%; height:500px; border-bottom: solid 1px gray;"></canvas>
+    <canvas></canvas>
 
     <div id='apirefContainerContainer'>
         <div id='apirefContainer'>
@@ -47,10 +47,12 @@
                 {name:'setSelectionState', args:[{name: "ids", value: oids}, {name: "selected", value:true}]},
                 {name:'getSelected', args:[], hasResult: true},
                 {name:'setColor', args:[{name: "ids", value: oids}, {name: "color", value:"{r:1, g:0, b:0, a:1}"}]},
-                {name:'viewFit', args:[{name: "ids", value: oids}, {name: "animate", value:500}]},
-                {name:'setCamera', args:[{name: "type", value: "'ortho'"}]},
+                {name:'viewFit', args:[{name: "ids", value: oids}]},
+                {name:'setCamera', args:[{name: "fovy", value: "10"}]},
                 {name:'getCamera', args:[], hasResult: true},
                 {name:'reset', args:[{name: "cameraPosition", value: true}]},
+                {name:'reset', args:[{name: "colors", value: true}]},
+                {name:'reset', args:[{name: "visibility", value: true}]},
             ];
 
             var n = document.getElementById('apirefContainer');
@@ -62,7 +64,7 @@
                 var args = m.args.map(function(a) {
                     if (a.name) {
                         hasNamedArgs = true;
-                        return a.name + ":" + a.value;
+                        return a.name + ": " + a.value;
                     } else {
                         return a;
                     }
@@ -76,16 +78,29 @@
                 n.innerHTML += "<textarea rows=3 id='code"+i+"' spellcheck=false>"+cmd+"\n</textarea>";
                 exec_statement = "eval(document.getElementById(\"code"+i+"\").value)"
                 if (m.hasResult) {
-                    exec_statement = "document.getElementById(\"result"+i+"\").innerHTML = JSON.stringify(" + exec_statement + ").replace(/,/g, \", \")";
-                } else {
-                    exec_statement += "; window.scrollTo(0,0)"
+                    n.innerHTML += "Result:<pre id='result"+i+"' />";
+                    exec_statement = "document.getElementById(\"result"+i+"\").innerHTML = stringify(" + exec_statement + ").replace(/,/g, \", \")";
                 }
                 n.innerHTML += "<button onclick='"+exec_statement+"'>run</button>";
-                if (m.hasResult) {
-                    n.innerHTML += "<pre id='result"+i+"' />";
-                }
             });
 
+        }
+
+        function stringify(x) {
+            function pre(v) {
+                if (v.BYTES_PER_ELEMENT) {
+                    return Array.from(v);
+                } else if ((v instanceof Object) && !(v instanceof Array)) {
+                    let r = {};
+                    Object.keys(v).forEach((k) => {
+                        r[k] = pre(v[k]);
+                    });
+                    return r;
+                } else {
+                    return v;
+                }
+            }
+            return JSON.stringify(pre(x));
         }
     </script>
 

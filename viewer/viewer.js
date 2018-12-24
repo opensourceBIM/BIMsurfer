@@ -61,6 +61,9 @@ export default class Viewer {
         // Object ID -> ViewObject
         this.viewObjects = new Map();
 
+        // String -> ViewObject[]
+        this.viewObjectsByType = new Map();
+
         // Null means everything visible, otherwise Set(..., ..., ...)
         this.invisibleElements = null;
 
@@ -84,18 +87,12 @@ export default class Viewer {
 
         document.addEventListener("keypress", (evt) => {
             if (evt.key === 'H') {
-                this.setVisibility(this.invisibleElements.keys(), true);
+                this.resetVisibility();
             } else if (evt.key === 'h') {
                 this.setVisibility(this.selectedElements, false);
                 this.selectedElements = new Set();
             } else if (evt.key === 'C') {
-                this.resetColor(
-                    Array.from(this.hiddenDueToSetColor.keys()).concat(
-                        Array.from(this.originalColors.keys())
-                    ).concat(
-                        Array.from(this.instancesWithChangedColor.keys())
-                    )
-                );
+                this.resetColors();
             } else if (evt.key === 'c' || evt.key === 'd') {
                 let R = Math.random;
                 let clr = [R(), R(), R(), evt.key === 'd' ? R() : 1.0];
@@ -107,6 +104,13 @@ export default class Viewer {
             }
             this.drawScene();
         });
+    }
+
+    callByType(method, types, ...args) {
+        let elems = types.map((i) => this.viewObjectsByType.get(i) || [])
+            .reduce((a, b) => a.concat(b), [])
+            .map((o) => o.oid);
+        method.call(this, elems, ...args);
     }
 
     setVisibility(elems, visible) {
@@ -133,6 +137,24 @@ export default class Viewer {
         }
 
         this.dirty = true;
+    }
+
+    setSelectionState(elems, selected, clear) {
+        if (clear) {
+            this.selectedElements.clear();
+        }
+
+        let fn = (selected ? this.selectedElements.add : this.selectedElements.delete).bind(this.selectedElements);
+        for (let e of elems) {
+            fn(e);
+        }
+
+        this.dirty = true;
+    }
+
+    getSelected() {
+        return Array.from(this.selectedElements)
+            .map(this.viewObjects.get.bind(this.viewObjects));
     }
 
     resetColor(elems) {
@@ -233,6 +255,8 @@ export default class Viewer {
                 }
             });
         }
+
+        this.dirty = true;
     }
 
     init() {
@@ -537,6 +561,39 @@ export default class Viewer {
     addViewObject(objectId, viewObject) {
     	viewObject.pickId = this.pickIdCounter++;
     	this.viewObjects.set(objectId, viewObject);
-    	this.pickIdToViewObject[viewObject.pickId] = viewObject;
+        this.pickIdToViewObject[viewObject.pickId] = viewObject;
+
+        let byType = this.viewObjectsByType.get(viewObject.type) || [];
+        byType.push(viewObject);
+        this.viewObjectsByType.set(viewObject.type, byType);
+    }
+
+    viewFit(ids) {
+        let aabb = ids.map(this.viewObjects.get.bind(this.viewObjects))
+            .map((o) => o.aabb)
+            .reduce(Utils.unionAabb, Utils.emptyAabb());
+        this.camera.viewFit(aabb);
+        this.dirty = true;
+    }
+
+    resetCamera() {
+        this.cameraSet = false;
+        this.dirty = true;
+    }
+
+    resetColors() {
+        this.resetColor(
+            Array.from(this.hiddenDueToSetColor.keys()).concat(
+                Array.from(this.originalColors.keys())
+            ).concat(
+                Array.from(this.instancesWithChangedColor.keys())
+            )
+        );
+        this.dirty = true;
+    }
+
+    resetVisibility() {
+        this.setVisibility(this.invisibleElements.keys(), true);
+        this.dirty = true;
     }
 }

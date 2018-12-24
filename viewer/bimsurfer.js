@@ -76,6 +76,68 @@ export default class BimSurfer extends EventHandler {
 	}
 	
 	setVisibility(params) {
-		this.bimServerViewer.viewer.setVisibility(params.ids, params.visible);
+		let v = this.bimServerViewer.viewer;
+		if (params.ids) {
+			v.setVisibility(params.ids, params.visible);
+		} else if (params.types) {
+			v.callByType(v.setVisibility, params.types, params.visible);
+		}
+	}
+
+	setSelectionState(params) {
+		let v = this.bimServerViewer.viewer;
+		v.setSelectionState(params.ids, params.selected, params.clear);
+	}
+
+	getSelected() {
+		let v = this.bimServerViewer.viewer;
+		return v.getSelected();
+	}
+
+	setColor(params) {
+		let v = this.bimServerViewer.viewer;
+		let clr = Array.from("rgba").map((x) => {
+			let v = params.color[x];
+			return typeof(v) === "undefined" ? 1. : v;
+		});
+		v.setColor(params.ids, clr);
+	}
+
+	viewFit(params) {
+		let v = this.bimServerViewer.viewer;
+		v.viewFit(params.ids);
+	}
+
+	getCamera() {
+		let v = this.bimServerViewer.viewer;
+		let projectionType = v.camera.projectionType;
+		let json = {
+			type: projectionType,
+			eye: v.camera._eye.slice(0),
+			target: v.camera._target.slice(0),
+			up: v.camera._up.slice(0)
+		}
+		if (projectionType === "persp") {
+			json.fovy = v.camera.projection.fov;
+		}
+		return json;
+	}
+
+	setCamera(params) {
+		let v = this.bimServerViewer.viewer;
+		v.camera.restore(params);
+	}
+
+	reset(params) {
+		let v = this.bimServerViewer.viewer;
+		if (params.cameraPosition) {
+			v.resetCamera();
+		}
+		if (params.colors) {
+			v.resetColors();
+		}
+		if (params.visibility) {
+			v.resetVisibility();
+		}
 	}
 }

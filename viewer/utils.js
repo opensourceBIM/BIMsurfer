@@ -111,4 +111,18 @@ export default class Utils {
 	static createIndexBuffer(gl, data, n) {
 		return Utils.createBuffer(gl, data, n, gl.ELEMENT_ARRAY_BUFFER);
 	}
+
+	static unionAabb(a, b) {
+		let r = new Float32Array(6);
+		for (let i = 0; i < 6; ++i) {
+			let fn = i < 3 ? Math.min : Math.max;
+			r[i] = fn(a[i], b[i]);
+		}
+		return r;
+	}
+
+	static emptyAabb() {
+		let i = Infinity;
+		return new Float32Array([i,i,i,-i,-i,-i]);
+	}
 }

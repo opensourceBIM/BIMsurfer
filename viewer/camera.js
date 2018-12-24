@@ -206,28 +206,25 @@ export default class Camera {
     /**
      Selects the current projection type.
 
-     @param {String} projectionType Accepted values are "perspective" or "orthographic".
+     @param {String} projectionType Accepted values are "persp" or "ortho".
      */
     set projectionType(projectionType) {
-        switch (projectionType) {
-            case "perspective":
-                this._projection = this.perspective;
-                break;
-            case "orthographic":
-                this._projection = this.orthographic;
-                break;
-            default:
-                console.log("Unsupported projectionType: " + projectionType);
+        if (projectionType.toLowerCase().startsWith("persp")) {
+            this._projection = this.perspective;
+        } else if (projectionType.toLowerCase().startsWith("ortho")) {
+            this._projection = this.orthographic;
+        } else {
+            console.error("Unsupported projectionType: " + projectionType);
         }
     }
 
     /**
      Gets the current projection type.
 
-     @returns {String} projectionType "perspective" or "orthographic".
+     @returns {String} projectionType "persp" or "ortho".
      */
     get projectionType() {
-        return this._projection.type;
+        return this._projection.constructor.name.substr(0,5).toLowerCase();
     }
 
     /**
@@ -569,7 +566,7 @@ export default class Camera {
      */
     viewFit(aabb, fitFOV) {
         aabb = aabb || this.viewer.modelBounds;
-        fitFOV = fitFOV || 45;
+        fitFOV = fitFOV || this.perspective.fov;
         var eyeToTarget = vec3.normalize(tempVec3b, vec3.subtract(tempVec3, this._eye, this._target));
         var diagonal = Math.sqrt(
             Math.pow(aabb[3] - aabb[0], 2) +
@@ -585,5 +582,22 @@ export default class Camera {
         this._eye[0] = this._target[0] + (eyeToTarget[0] * sca);
         this._eye[1] = this._target[1] + (eyeToTarget[1] * sca);
         this._eye[2] = this._target[2] + (eyeToTarget[2] * sca);
+
+        this._setDirty();
+    }
+
+    restore(params) {
+        if (params.type) {
+            this.projectionType = type;
+        }
+        if (this._projection instanceof Perspective && params.fovy) {
+            this._projection.fov = params.fovy;
+        }
+        ["eye", "target", "up"].forEach((k) => {
+            if (params[k]) {
+                let fn = Object.getOwnPropertyDescriptor(this, k).set;
+                fn(this, params[k]);
+            }
+        });
     }
 }

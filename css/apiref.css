@@ -1,44 +1,48 @@
 textarea, pre {
-    padding: 20px;
-    border: solid 1px #ddd;
-    background: #f4f4f4;
-    height: 12px;
-    line-height: 12px;
-    font-size: 12px;
-    width: 1200px;
+    padding: 10px 0;
+    border: none;
+    border-top: solid 1px #ddd;
+    width: 100%;
     display: block;
+    overflow: hidden;
 }
 
 pre {
     background: white;
     overflow: hidden;
     white-space: pre-wrap;
-}
-
-button {
-    margin: 10px 10px;
-    width: 100px;
+    border-top: none;
 }
 
 #apirefContainerContainer {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    padding: 520px 0 20px 20px;
-    pointer-events: none;
+    height: 100%;
+}
+
+#apirefContainer button {
+    width: 100px;
 }
 
 #apirefContainer {
-    pointer-events: initial;
     overflow-x: hidden;
     overflow-y: scroll;
-    height: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    border-left: solid 1px #ddd;
+    height:100%;
 }
 
 #apirefContainer h2, 
 #apirefContainer h3 {
     padding: 0;
     margin: 0;
+}
+
+#apirefContainer h3 {
+    padding-top: 10px;
+}
+
+canvas {
+    width: 50%;
+    height: 100%;
+    float: left;
 }
