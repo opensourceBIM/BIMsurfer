@@ -537,9 +537,10 @@ export default class Camera {
     }
 
     /**
-     Increments/decrements the zoom factor, ie. distance between the eye and the target.
+     Moves the camera along a ray through unprojected mouse coordinates
 
-     @param {Number} delta Zoom increment.
+     @param {Number} delta Zoom increment
+     @param canvasPos Mouse position relative to canvas to determine ray along which to move
      */
     zoom(delta, canvasPos) { // Translate 'eye' by given increment on (eye->target) vector
         // @todo: also not efficient
