@@ -123,7 +123,7 @@ export default class Stats {
 	}
 	
 	update() {
-		if (this.active) {
+		if (this.active && document.getElementById("stats")) {
 			if (!this.updateRequested) {
 				return;
 			}

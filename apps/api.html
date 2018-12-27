@@ -16,21 +16,20 @@
 
     <div id='apirefContainerContainer'>
         <div id='apirefContainer'>
-            <h2>API reference</h2>
         </div>
     </div>
 
     <script type="module">
         import BimSurfer from "../viewer/bimsurfer.js";
         
-        let bs = window.bimSurfer = new BimSurfer();
-        bs.load({
+        let surfer = window.bimSurfer = new BimSurfer();
+        surfer.load({
             bimserver:"http://localhost:8080", 
             username:"admin@bimserver.org",
             password:"admin",
-            roid:65539,
+            roid:165539,
             domNode:document.querySelector("canvas")
-        }).then(generateApiReference);
+        }).then(generateApiReference).catch(errorHandler);
     </script>
 
     <script>
@@ -56,6 +55,7 @@
             ];
 
             var n = document.getElementById('apirefContainer');
+            n.innerHTML = "<h2>API reference</h2>";
 
             METHODS.forEach(function(m, i) {
                 n.innerHTML += "<h3>"+m.name+"()</h3>";
@@ -101,6 +101,15 @@
                 }
             }
             return JSON.stringify(pre(x));
+        }
+
+        function errorHandler(message) {
+            let canvas = document.getElementsByTagName("canvas")[0];
+            let error = document.createElement("div");
+            error.className = "error";
+            error.innerHTML = `<span>${message}</span>`
+            canvas.parentElement.insertBefore(error, canvas);
+            canvas.parentElement.removeChild(canvas);
         }
     </script>
 

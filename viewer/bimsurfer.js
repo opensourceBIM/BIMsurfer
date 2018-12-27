@@ -4,77 +4,96 @@ import EventHandler from "./eventhandler.js";
 import BimServerClient from "http://localhost:8080/apps/bimserverjavascriptapi/bimserverclient.js"
 import Stats from "./stats.js"
 
+/**
+ * Entry point for the public BimSurfer API.
+ *
+ * @export
+ * @class BimSurfer
+ * @extends {EventHandler}
+ */
 export default class BimSurfer extends EventHandler {
     constructor() {
         super();
 
-        this.api = null;
-        this.poidToProject = new Map();
+        this._api = null;
     }
 
-    loadProjects() {
+    /**
+	 * Loads project meta-data from a BIMserver and searches for the
+	 * specified revision id.
+	 * 
+	 * @private
+	 * @param {Number} roid Revision id to load
+	 * @returns
+	 * @memberof BimSurfer
+	 */
+	loadProjects(roid) {
 		return new Promise((resolve, reject) => {
-			this.api.call("ServiceInterface", "getAllProjects", {
+			this._api.call("ServiceInterface", "getAllProjects", {
 				onlyTopLevel: false,
 				onlyActive: true
 			}, (projects) => {
+				let found = false;
 				for (var p of projects) {
-					this.poidToProject.set(p.oid, p);
-					p.subProjects = [];
-				}
-				for (var p of projects) {
-					if (p.parentId != -1) {
-						this.poidToProject.get(p.parentId).subProjects.push(p);
+					if (p.revisions.indexOf(roid) !== -1) {
+						resolve(p);
+						found = true;
+						break;
 					}
 				}
-				for (var p of projects) {
-					if (p.parentId == -1) {
-						this.addProject(p);
-					}
-				}
-				resolve();
+				if (!found) {
+					reject("Revision id not found");
+				}		
 			});
 		});
     }
-
-    addProject(project) {
-		if (project.lastRevisionId == -1) {
-			return;
-		}
-        
-        if (project.revisions.indexOf(this.roid) !== -1) {
-            this.project = project;
-        }
-    }
     
-    loadModel(domNode) {
+    /**
+	 * @private
+	 * @param {Object} project Project meta-data object
+	 * @param {HTMLElement} domNode The parent HTMLElement in which to create a CANVAS for WebGL rendering
+	 * @returns
+	 * @memberof BimSurfer
+	 */
+	loadModel(project, domNode) {
 		var stats = new Stats();		
-		stats.setParameter("Models", "Name", this.project.name);
+		stats.setParameter("Models", "Name", project.name);
 		
-		this.bimServerViewer = new BimServerViewer(this.api, {viewerBasePath:"../"}, domNode, null, null, this.stats);
+		this.bimServerViewer = new BimServerViewer(this._api, {viewerBasePath:"../"}, domNode, null, null, stats);
 		
 		this.bimServerViewer.setProgressListener((percentage) => {
 			console.log(percentage + "% loaded")
 		});
 
-		return this.bimServerViewer.loadModel(this.project);
+		return this.bimServerViewer.loadModel(project);
 	}
 
-    load(params) {
+    /**
+	 * Loads a project into the specified domNode for rendering.
+	 * 
+	 * @param {{username: String, password: String, roid: Number, domNode: HTMLElement}} params Function arguments
+	 * @returns Promise
+	 * @memberof BimSurfer
+	 */
+	load(params) {
 		return new Promise((resolve, reject) => {
-			this.roid = params.roid;
-
-			this.api = new BimServerClient(params.bimserver);
-			this.api.init(() => {
-				this.api.login(params.username, params.password, () => {
-					this.loadProjects().then(()=>{                
-						this.loadModel(params.domNode).then(resolve);
-					});
+			this._api = new BimServerClient(params.bimserver);
+			this._api.init(() => {
+				this._api.login(params.username, params.password, () => {
+					this.loadProjects(params.roid).then((project)=>{                
+						this.loadModel(project, params.domNode).then(resolve).catch(reject);
+					}).catch(reject);
 				});
 			});
 		});
 	}
 	
+	/**
+	 * Sets the visibility for the specified elements
+	 *
+	 * @param {{ids: Number[], visible:Boolean}} params
+	 * @memberof BimSurfer
+	 */
 	setVisibility(params) {
 		let v = this.bimServerViewer.viewer;
 		if (params.ids) {
@@ -84,16 +103,34 @@ export default class BimSurfer extends EventHandler {
 		}
 	}
 
+	/**
+	 * Sets the selection state for the specified elements
+	 *
+	 * @param {{ids: Number[], visible:Boolean}} params
+	 * @memberof BimSurfer
+	 */
 	setSelectionState(params) {
 		let v = this.bimServerViewer.viewer;
 		v.setSelectionState(params.ids, params.selected, params.clear);
 	}
 
+	/**
+	 * Gets the currently selected elements
+	 *
+	 * @returns Number[]
+	 * @memberof BimSurfer
+	 */
 	getSelected() {
 		let v = this.bimServerViewer.viewer;
 		return v.getSelected();
 	}
 
+	/**
+	 * Sets the color for the specified elements
+	 *
+	 * @param {*} params
+	 * @memberof BimSurfer
+	 */
 	setColor(params) {
 		let v = this.bimServerViewer.viewer;
 		let clr = Array.from("rgba").map((x) => {
@@ -103,11 +140,23 @@ export default class BimSurfer extends EventHandler {
 		v.setColor(params.ids, clr);
 	}
 
+	/**
+	 * Zooms the current camera in or out the fit the specified elements in the viewport
+	 *
+	 * @param {*} params
+	 * @memberof BimSurfer
+	 */
 	viewFit(params) {
 		let v = this.bimServerViewer.viewer;
 		v.viewFit(params.ids);
 	}
 
+	/**
+	 * Gets a javascript representation of the current camera orientation
+	 *
+	 * @returns {{type,eye,target,up,?fovy}}
+	 * @memberof BimSurfer
+	 */
 	getCamera() {
 		let v = this.bimServerViewer.viewer;
 		let projectionType = v.camera.projectionType;
@@ -123,11 +172,23 @@ export default class BimSurfer extends EventHandler {
 		return json;
 	}
 
+	/**
+	 * Sets the current camera orientation based on specified parameters
+	 *
+	 * @param {{type,eye,target,up,?fovy}} params
+	 * @memberof BimSurfer
+	 */
 	setCamera(params) {
 		let v = this.bimServerViewer.viewer;
 		v.camera.restore(params);
 	}
 
+	/**
+	 * Resets part of the viewer to its default state.
+	 *
+	 * @param {{?cameraPosition, ?colors, ?visibility}} params
+	 * @memberof BimSurfer
+	 */
 	reset(params) {
 		let v = this.bimServerViewer.viewer;
 		if (params.cameraPosition) {
