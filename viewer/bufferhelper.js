@@ -2,6 +2,9 @@
  * This is a utility class, it contains a few methods that convert bytes to triangles and the other way around, these are estimations because the amount of reuse is not known
  */
 
+/**
+ * @ignore
+ */
 export default class BufferHelper {
 	static trianglesToBytes(settings, nrPrimitives) {
 		var reusedVerticesFactor = 0.5;

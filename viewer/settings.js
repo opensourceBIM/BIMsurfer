@@ -1,8 +1,8 @@
-/*
+/**
  * This class builds a quick UI for changing basic settings and stores the settings in localStorage.
  * Changing any of these settings requires a reload of the model, or browser
  * 
- * TODO: This class was quickly hacked together, should not be built upon
+ * @todo This class was quickly hacked together, should not be built upon
  */
 export default class Settings {
 	constructor(element) {

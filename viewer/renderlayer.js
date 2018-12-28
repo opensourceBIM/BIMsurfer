@@ -8,6 +8,14 @@ const outlineColor = new Float32Array([1.0, 0.5, 0.0, 1.0]);
 const false_true = [false, true];
 const UINT32_MAX = (new Uint32Array((new Int32Array([-1])).buffer))[0];
 
+/**
+ * Abstract base class for managing and rendering buffers pertaining
+ * to a render layer, ie. the base geometries always visible vs. the
+ * dynamically visible tiles based on camera orientation.
+ * 
+ * @export
+ * @class RenderLayer
+ */
 export default class RenderLayer {
 	
 	constructor(viewer, geometryDataToReuse) {

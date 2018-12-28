@@ -1,5 +1,8 @@
 import AbstractBufferSet from "./abstractbufferset.js";
 
+/**
+ * @ignore
+ */
 export default class BufferSet extends AbstractBufferSet {
     
     constructor(viewer, settings, hasTransparency, color, sizes) {

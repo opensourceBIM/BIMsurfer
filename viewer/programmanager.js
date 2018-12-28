@@ -1,8 +1,3 @@
-/*
- * Keeps track of all the programs and positions
- */
-
-
 export const OBJECT_COLORS = 1;
 export const VERTEX_QUANTIZATION = 2;
 export const NORMAL_QUANTIZATION = 4;
@@ -11,6 +6,9 @@ export const REUSE = 16;
 export const PICKING = 32;
 export const LINE_PRIMITIVES = 64;
 
+/**
+ * Keeps track of shader programs, glsl, uniform positions and vertex attributes
+ */
 export default class ProgramManager {
 	
 	constructor(gl, settings) {

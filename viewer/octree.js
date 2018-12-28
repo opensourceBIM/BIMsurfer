@@ -1,9 +1,8 @@
 import Utils from './utils.js'
 
-/*
+/**
  * Octree implementation targeted towards being used in the TilingLayer, could possibly be retrofitted to be a generic Octree to be used in other contexts
  */
-
 class OctreeNode {
 	constructor(viewer, parent, id, x, y, z, width, height, depth, level) {
 		this.viewer = viewer;

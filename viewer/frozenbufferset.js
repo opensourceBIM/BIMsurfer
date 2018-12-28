@@ -1,6 +1,9 @@
 import AbstractBufferSet from "./abstractbufferset.js";
 import Utils from "./utils.js"
 
+/**
+ * @ignore
+ */
 export default class FrozenBufferSet extends AbstractBufferSet {
     constructor(
     	viewer,

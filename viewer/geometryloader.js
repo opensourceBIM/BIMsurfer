@@ -3,10 +3,9 @@ import DefaultColors from "./defaultcolors.js"
 import RenderLayer from "./renderlayer.js"
 import Utils from "./utils.js"
 
-/*
+/**
  * GeometryLoader loads data from a BIMserver
  */
-
 export default class GeometryLoader {
 
 	constructor(loaderId, bimServerApi, renderLayer, roids, loaderSettings, vertexQuantizationMatrices, stats, settings, query, geometryCache, gpuBufferManager) {

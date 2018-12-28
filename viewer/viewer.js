@@ -9,13 +9,6 @@ import FrozenBufferSet from './frozenbufferset.js'
 import Utils from './utils.js'
 import SSQuad from './ssquad.js'
 
-/*
- * Main viewer class, too many responsibilities:
- * - Keep track of width/height of viewport
- * - Keeps track of dirty scene
- * - Contains the basic render loop (and delegates to the render layers)
- */
-
 var tmp_unproject = vec3.create();
 
 // When a change in color results in a different
@@ -26,6 +19,16 @@ var tmp_unproject = vec3.create();
 // set to 1.
 const OVERRIDE_FLAG = (1 << 31);
 
+/**
+ *
+ * Main viewer class, too many responsibilities:
+ * - Keep track of width/height of viewport
+ * - Keeps track of dirty scene
+ * - Contains the basic render loop (and delegates to the render layers)
+ *
+ * @export
+ * @class Viewer
+ */
 export default class Viewer {
 
     constructor(canvas, settings, stats, width, height) {
@@ -451,7 +454,7 @@ export default class Viewer {
 
      @param {*} params
      @param {Array} params.canvasPos Canvas coordinates
-     @returns {*} Information about the object that was picked, if any.
+     @return {*} Information about the object that was picked, if any.
      */
     pick(params) { // Returns info on the object at the given canvas coordinates
 

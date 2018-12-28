@@ -1,8 +1,7 @@
-/*
+/**
  * This class transforms buffers. The main purpose is to fix discrepancies between the over-the-line format and the glsl format. In ideal situations no conversions are needed.
  * At the moment these methods are only used when data is reused. The idea is that all transformations will happen in this class, making for more readable renderers
  */
-
 export default class BufferTransformer {
 	constructor(settings, vertexQuantization) {
 		this.settings = settings;

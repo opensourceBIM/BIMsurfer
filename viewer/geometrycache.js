@@ -1,10 +1,9 @@
-/*
+/**
  * Keeps track of GeometryData that is potentially reused. There are three fases:
  * - toload (this data has yet to start loading)
  * - loading (data has been requested from the server but not yet returned)
  * - loaded (data has arrived and is processed)
  */
-
 export default class GeometryCache {
 	constructor(renderLayer) {
 		this.renderLayer = renderLayer;

@@ -1,7 +1,3 @@
-/*
- * Generic utils
- */
-
 // Initially 10MB of zero'ed out buffer. Will increase over time when needed, used in Utils.createEmptyBuffer
 var zeroBuffer = new ArrayBuffer(10000000);
 var zeroDataView = new DataView(zeroBuffer);
@@ -26,6 +22,12 @@ const typedArrayToGlTypeMap = new Map([
 	["Float32Array", WebGL2RenderingContext.FLOAT]
 ]);
 
+/**
+ * Generic utils
+ *
+ * @export
+ * @class Utils
+ */
 export default class Utils {
 	static hash(input) {
 		  var hash = 0, i, chr;

@@ -1,5 +1,8 @@
 import FatLineRenderer from './fatlinerenderer.js'
 
+/**
+ * @ignore
+ */
 export default class AbstractBufferSet {
     
     constructor(viewer) {

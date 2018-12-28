@@ -13,7 +13,6 @@ var tmp_modelBounds = vec3.create();
 
 /**
  A **Camera** defines viewing and projection transforms for its Viewer.
-
  */
 export default class Camera {
 
@@ -140,7 +139,7 @@ export default class Camera {
     /**
      Gets the current viewing transform matrix.
 
-     @returns {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
+     @return {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
      */
     get viewMatrix() {
         if (this._dirty) {
@@ -152,7 +151,7 @@ export default class Camera {
     /**
      Gets the current view projection matrix.
 
-     @returns {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
+     @return {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
      */
     get viewProjMatrix() {
         if (this._dirty) {
@@ -164,7 +163,7 @@ export default class Camera {
     /**
      Gets the current inverted view projection matrix.
 
-     @returns {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
+     @return {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
      */
     get viewProjMatrixInverted() {
         if (this._dirty) {
@@ -185,7 +184,7 @@ export default class Camera {
 
      This is the transposed inverse of the view matrix.
 
-     @returns {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
+     @return {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
      */
     get viewNormalMatrix() {
         if (this._dirty) {
@@ -197,7 +196,7 @@ export default class Camera {
     /**
      Gets the current projection transform matrix.
 
-     @returns {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
+     @return {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
      */
     get projMatrix() {
         return this._projection.projMatrix;
@@ -221,7 +220,7 @@ export default class Camera {
     /**
      Gets the current projection type.
 
-     @returns {String} projectionType "persp" or "ortho".
+     @return {String} projectionType "persp" or "ortho".
      */
     get projectionType() {
         return this._projection.constructor.name.substr(0,5).toLowerCase();
@@ -230,7 +229,7 @@ export default class Camera {
     /**
      Gets the component that represents the current projection type.
 
-     @returns {Perspective|Orthographic}
+     @return {Perspective|Orthographic}
      */
     get projection() {
         return this._projection;
@@ -247,7 +246,7 @@ export default class Camera {
 
     /**
      Gets the position of the camera.
-     @returns {Float32Array} 3D position of the camera in World space.
+     @return {Float32Array} 3D position of the camera in World space.
      */
     get eye() {
         return this._eye;
@@ -264,7 +263,7 @@ export default class Camera {
 
     /**
      Gets the point tha camera is looking at.
-     @returns {Float32Array} 3D position of the point of interest in World space.
+     @return {Float32Array} 3D position of the point of interest in World space.
      */
     get target() {
         return this._target;
@@ -290,7 +289,7 @@ export default class Camera {
 
     /**
      Gets the camera's "up" direction.
-     @returns {Float32Array} 3D vector indicating the camera's "up" direction in World-space.
+     @return {Float32Array} 3D vector indicating the camera's "up" direction in World-space.
      */
     get up() {
         return this._up;
@@ -312,7 +311,7 @@ export default class Camera {
 
      When true, yaw rotation will always pivot about the World-space "up" axis.
 
-     @returns {Boolean} True if gimbal locking is enabled.
+     @return {Boolean} True if gimbal locking is enabled.
      */
     get gimbalLock() {
         return this._gimbalLock;
@@ -333,7 +332,7 @@ export default class Camera {
     /**
      Gets whether its currently possible to pitch the camera to look at the model upside-down.
 
-     @returns {Boolean}
+     @return {Boolean}
      */
     get constrainPitch() {
         return this._constrainPitch;

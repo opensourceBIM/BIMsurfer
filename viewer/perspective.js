@@ -1,8 +1,6 @@
 /**
- Configures perspective projection mode for the camera.
-
- Perspective projection is represented as a viewing frustum, given as six planes, along with a field of view (FOV) angle.
-
+ * Configures perspective projection mode for the camera.
+ * Perspective projection is represented as a viewing frustum, given as six planes, along with a field of view (FOV) angle.
  */
 export default class Perspective {
 
@@ -43,7 +41,7 @@ export default class Perspective {
     /**
      Gets the frustum's vertical field of view, from bottom to top of view, in degrees.
 
-     @returns {Number} Field of view angle, in degrees.
+     @return {Number} Field of view angle, in degrees.
      */
     get fov() {
         return this._fov;
@@ -62,7 +60,7 @@ export default class Perspective {
     /**
      Gets the position of the near plane on the positive View-space Z-axis.
 
-     @returns {Number} Position of the near clipping plane.
+     @return {Number} Position of the near clipping plane.
      */
     get near() {
         return this._near;
@@ -81,7 +79,7 @@ export default class Perspective {
     /**
      Gets the position of the far clipping plane on the positive View-space Z-axis.
 
-     @returns {Number} Position of the far clipping plane.
+     @return {Number} Position of the far clipping plane.
      */
     get far() {
         return this._far;
@@ -92,7 +90,7 @@ export default class Perspective {
 
      This will be the camera's current projection matrix when it's in perspective projection mode.
 
-     @returns {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
+     @return {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
      */
     get projMatrix() {
         if (this._dirty) {

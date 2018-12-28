@@ -1,5 +1,12 @@
 let tmp = vec3.create();
 
+/**
+ * A SVG overlay that is synced with the WebGL viewport for efficiently rendering
+ * two-dimensional elements such as text, that are not easily rendered using WebGL.
+ *
+ * @export
+ * @class SvgOverlay
+ */
 export default class SvgOverlay {
 	constructor(domNode, camera) {
         this.track = domNode;

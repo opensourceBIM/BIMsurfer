@@ -1,9 +1,7 @@
 /**
- Configures orthographic projection mode for the camera.
-
- In this projection mode, an object's size in the rendered image stays constant regardless of its distance from the camera.
-
- Orthographic projection is represented as a viewing frustum, given as six planes.
+ * Configures orthographic projection mode for the camera.
+ * In this projection mode, an object's size in the rendered image stays constant regardless of its distance from the camera.
+ * Orthographic projection is represented as a viewing frustum, given as six planes.
  */
 export default class Orthographic {
 
@@ -38,7 +36,7 @@ export default class Orthographic {
     /**
      Gets the position of the left plane on the negative View-space X-axis.
 
-     @returns {Number} Position of the left plane.
+     @return {Number} Position of the left plane.
      */
     get left() {
         return this._left;
@@ -58,7 +56,7 @@ export default class Orthographic {
     /**
      Gets the position of bottom plane on the negative View-space Y-axis.
 
-     @returns {Number} Position of the bottom plane.
+     @return {Number} Position of the bottom plane.
      */
     get bottom() {
         return this._bottom;
@@ -77,7 +75,7 @@ export default class Orthographic {
     /**
      Gets the position of the near plane on the positive View-space Z-axis.
 
-     @returns {Number} Position of the near clipping plane.
+     @return {Number} Position of the near clipping plane.
      */
     get near() {
         return this._near;
@@ -97,7 +95,7 @@ export default class Orthographic {
     /**
      Gets the position of the right plane on the positive View-space X-axis.
 
-     @returns {Number} Position of the right plane.
+     @return {Number} Position of the right plane.
      */
     get right() {
         return this._right;
@@ -116,7 +114,7 @@ export default class Orthographic {
     /**
      Gets the position of the top plane on the positive View-space Y-axis.
 
-     @returns {Number} Position of the top plane.
+     @return {Number} Position of the top plane.
      */
     get top() {
         return this._top;
@@ -135,7 +133,7 @@ export default class Orthographic {
     /**
      Gets the position of the far clipping plane on the positive View-space Z-axis.
 
-     @returns {Number} Position of the far clipping plane.
+     @return {Number} Position of the far clipping plane.
      */
     get far() {
         return this._far;
@@ -146,7 +144,7 @@ export default class Orthographic {
 
      This will be the camera's current projection matrix when it's in orthographic projection mode.
 
-     @returns {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
+     @return {Float32Array} 4x4 column-order matrix as an array of 16 contiguous floats.
      */
     get projMatrix() {
         if (this._dirty) {

@@ -1,3 +1,6 @@
+/**
+ * @ignore
+ */
 export default class EventHandler {
     constructor() {
         this.handlers = {};

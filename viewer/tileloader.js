@@ -3,10 +3,9 @@ import Utils from './utils.js'
 import GpuBufferManager from './gpubuffermanager.js'
 import GeometryLoader from "./geometryloader.js"
 
-/*
+/**
  * Loads tiles. Needs to be initialized first (initialize method).
  */
-
 export default class TileLoader {
 	constructor(tilingRenderLayer, viewer, bimServerApi, densityThreshold, reuseLowerThreshold, geometryDataToReuse, roids, fieldsToInclude) {
 		this.tilingRenderLayer = tilingRenderLayer;

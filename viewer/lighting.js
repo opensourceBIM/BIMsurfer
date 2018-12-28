@@ -1,7 +1,6 @@
 /**
- Configures the viewer's light sources.
-
- TODO: This class's API will probably change as we add ability to configure multiple light sources.
+ * Configures the viewer's light sources.
+ * @todo This class's API will probably change as we add ability to configure multiple light sources.
  */
 export default class Lighting {
 

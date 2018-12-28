@@ -1,7 +1,6 @@
-/*
+/**
  * Keeps track of a collections of buffersets that can be reused. The main reason is that we don't have to allocate new memory for each new bufferset
  */
-
 export default class BufferSetPool {
 	constructor(maxPoolSize, stats) {
 		this.maxPoolSize = maxPoolSize;

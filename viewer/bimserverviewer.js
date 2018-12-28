@@ -4,7 +4,6 @@ import TilingRenderLayer from './tilingrenderlayer.js'
 import VertexQuantization from './vertexquantization.js'
 import Executor from './executor.js'
 import GeometryLoader from "./geometryloader.js"
-import BufferHelper from "./bufferhelper.js"
 import Stats from "./stats.js"
 import DefaultSettings from "./defaultsettings.js"
 
@@ -13,6 +12,9 @@ import DefaultSettings from "./defaultsettings.js"
  * This will eventually become a public API
  */
 
+/**
+ * @ignore
+ */
 export default class BimServerViewer {
 	constructor(bimServerApi, settings, canvas, width, height, stats) {
 		if (stats == null) {

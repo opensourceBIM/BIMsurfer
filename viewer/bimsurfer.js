@@ -24,7 +24,7 @@ export default class BimSurfer extends EventHandler {
 	 * 
 	 * @private
 	 * @param {Number} roid Revision id to load
-	 * @returns
+	 * @return
 	 * @memberof BimSurfer
 	 */
 	loadProjects(roid) {
@@ -52,27 +52,27 @@ export default class BimSurfer extends EventHandler {
 	 * @private
 	 * @param {Object} project Project meta-data object
 	 * @param {HTMLElement} domNode The parent HTMLElement in which to create a CANVAS for WebGL rendering
-	 * @returns
+	 * @return
 	 * @memberof BimSurfer
 	 */
 	loadModel(project, domNode) {
 		var stats = new Stats();		
 		stats.setParameter("Models", "Name", project.name);
 		
-		this.bimServerViewer = new BimServerViewer(this._api, {viewerBasePath:"../"}, domNode, null, null, stats);
+		this._bimServerViewer = new BimServerViewer(this._api, {viewerBasePath:"../"}, domNode, null, null, stats);
 		
-		this.bimServerViewer.setProgressListener((percentage) => {
+		this._bimServerViewer.setProgressListener((percentage) => {
 			console.log(percentage + "% loaded")
 		});
 
-		return this.bimServerViewer.loadModel(project);
+		return this._bimServerViewer.loadModel(project);
 	}
 
     /**
-	 * Loads a project into the specified domNode for rendering.
+	 * Loads a BIMserver project into the specified domNode for rendering.
 	 * 
 	 * @param {{username: String, password: String, roid: Number, domNode: HTMLElement}} params Function arguments
-	 * @returns Promise
+	 * @return Promise
 	 * @memberof BimSurfer
 	 */
 	load(params) {
@@ -91,11 +91,11 @@ export default class BimSurfer extends EventHandler {
 	/**
 	 * Sets the visibility for the specified elements
 	 *
-	 * @param {{ids: Number[], visible:Boolean}} params
+	 * @param {{ids: Number[], visible: Boolean}} params Function arguments
 	 * @memberof BimSurfer
 	 */
 	setVisibility(params) {
-		let v = this.bimServerViewer.viewer;
+		let v = this._bimServerViewer.viewer;
 		if (params.ids) {
 			v.setVisibility(params.ids, params.visible);
 		} else if (params.types) {
@@ -106,33 +106,33 @@ export default class BimSurfer extends EventHandler {
 	/**
 	 * Sets the selection state for the specified elements
 	 *
-	 * @param {{ids: Number[], visible:Boolean}} params
+	 * @param {{ids: Number[], selected: Boolean, clear: ?Boolean}} params Function arguments
 	 * @memberof BimSurfer
 	 */
 	setSelectionState(params) {
-		let v = this.bimServerViewer.viewer;
+		let v = this._bimServerViewer.viewer;
 		v.setSelectionState(params.ids, params.selected, params.clear);
 	}
 
 	/**
 	 * Gets the currently selected elements
 	 *
-	 * @returns Number[]
+	 * @return {Number[]} Identifiers of selected elements
 	 * @memberof BimSurfer
 	 */
 	getSelected() {
-		let v = this.bimServerViewer.viewer;
+		let v = this._bimServerViewer.viewer;
 		return v.getSelected();
 	}
 
 	/**
 	 * Sets the color for the specified elements
 	 *
-	 * @param {*} params
+	 * @param {{ids: Number[], color:{r:Number, g:Number, b:Number, a:Number}}} params
 	 * @memberof BimSurfer
 	 */
 	setColor(params) {
-		let v = this.bimServerViewer.viewer;
+		let v = this._bimServerViewer.viewer;
 		let clr = Array.from("rgba").map((x) => {
 			let v = params.color[x];
 			return typeof(v) === "undefined" ? 1. : v;
@@ -143,22 +143,22 @@ export default class BimSurfer extends EventHandler {
 	/**
 	 * Zooms the current camera in or out the fit the specified elements in the viewport
 	 *
-	 * @param {*} params
+	 * @param {{ids: Number[]}} params
 	 * @memberof BimSurfer
 	 */
 	viewFit(params) {
-		let v = this.bimServerViewer.viewer;
+		let v = this._bimServerViewer.viewer;
 		v.viewFit(params.ids);
 	}
 
 	/**
 	 * Gets a javascript representation of the current camera orientation
 	 *
-	 * @returns {{type,eye,target,up,?fovy}}
+	 * @return {{type: String, eye: Float32Array, target: Float32Array, up: Float32Array, fovy: ?Number}} Camera parameters
 	 * @memberof BimSurfer
 	 */
 	getCamera() {
-		let v = this.bimServerViewer.viewer;
+		let v = this._bimServerViewer.viewer;
 		let projectionType = v.camera.projectionType;
 		let json = {
 			type: projectionType,
@@ -175,22 +175,22 @@ export default class BimSurfer extends EventHandler {
 	/**
 	 * Sets the current camera orientation based on specified parameters
 	 *
-	 * @param {{type,eye,target,up,?fovy}} params
+	 * @param {{type: String, eye: Float32Array, target: Float32Array, up: Float32Array, fovy: ?Number}} params Camera parameters
 	 * @memberof BimSurfer
 	 */
 	setCamera(params) {
-		let v = this.bimServerViewer.viewer;
+		let v = this._bimServerViewer.viewer;
 		v.camera.restore(params);
 	}
 
 	/**
 	 * Resets part of the viewer to its default state.
 	 *
-	 * @param {{?cameraPosition, ?colors, ?visibility}} params
+	 * @param {{cameraPosition: ?Boolean, colors: ?Boolean, visibility: ?Boolean}} params Parts of the viewer state to reset
 	 * @memberof BimSurfer
 	 */
 	reset(params) {
-		let v = this.bimServerViewer.viewer;
+		let v = this._bimServerViewer.viewer;
 		if (params.cameraPosition) {
 			v.resetCamera();
 		}

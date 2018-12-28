@@ -4,8 +4,12 @@ var tempMat4 = mat4.create();
 var tempVec3 = vec3.create();
 var tempVec3b = vec3.create();
 
-// Frustum for fast World-space frustum-AABB collision testing
-
+/**
+ * Frustum for fast World-space frustum-AABB collision testing
+ * 
+ * @export
+ * @class Frustum
+ */
 export default class Frustum {
 
     constructor() {

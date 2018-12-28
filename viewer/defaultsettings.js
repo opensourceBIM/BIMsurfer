@@ -1,3 +1,6 @@
+/**
+ * @ignore
+ */
 export default class DefaultSettings {
 	static create(settings) {
 		if (settings == null) {

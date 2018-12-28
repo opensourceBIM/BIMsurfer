@@ -1,11 +1,10 @@
 import GeometryLoader from './geometryloader.js'
 import RenderLayer from './renderlayer.js'
 
-/*
+/**
  * When loading Tiles, there is sometimes geometry (GeometryData) that is reused in other Tiles as well, in that case it is omitted in the stream, to be loaded later.
  * This class is called whenever there is a batch of GeometryData that needs to be loaded.
  */
-
 export default class ReuseLoader {
 	constructor(viewer, reuseLowerThreshold, bimServerApi, fieldsToInclude, roids, quantizationMap, geometryCache, geometryDataToReuse) {
 		this.settings = viewer.settings;

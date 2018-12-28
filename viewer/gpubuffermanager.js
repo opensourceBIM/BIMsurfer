@@ -1,13 +1,11 @@
-/*
+/**
  * Responsible for managing GPU buffers. There are 4 types of buffers:
  * - Transparent batched
  * - Opaque batched
  * - Transparent reused
  * - Opaque reused
- * 
  *  
  */
-
 export default class GpuBufferManager {
 	constructor(viewer) {
 		this.viewer = viewer;

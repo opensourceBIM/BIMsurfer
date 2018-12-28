@@ -1,8 +1,7 @@
-/*
+/**
  * Executor allows to submit jobs for execution. Jobs are queued when the maxJobCount is exceeded.
  *
  */
-
 export default class Executor {
 	constructor(maxJobCount) {
 		this.jobCounter = 0;

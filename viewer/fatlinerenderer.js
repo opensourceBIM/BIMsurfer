@@ -1,4 +1,9 @@
-/*
+import Utils from './utils.js'
+import ProgramManager from './programmanager.js'
+import {VERTEX_QUANTIZATION} from './programmanager.js'
+import {LINE_PRIMITIVES} from './programmanager.js'
+
+/**
  *
  * As you many know, line rendering with thickness is not well-supported in
  * WebGL implementations (mostly due to WebGL implementations on Windows
@@ -22,12 +27,6 @@
  * (A,B,1)                                       (B,A,1)
  * 
  */
-
-import Utils from './utils.js'
-import ProgramManager from './programmanager.js'
-import {VERTEX_QUANTIZATION} from './programmanager.js'
-import {LINE_PRIMITIVES} from './programmanager.js'
-
 export default class FatLineRenderer {
     constructor(viewer, gl, settings) {
     	this.viewer = viewer;

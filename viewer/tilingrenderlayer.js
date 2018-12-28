@@ -8,11 +8,10 @@ import Utils from './utils.js'
 import TileLoader from './tileloader.js'
 import ReuseLoader from './reuseloader.js'
 
-/*
+/**
  * A specific type of RenderLayer, which uses Tiling to achieve better render performance, but also minimizes the amount of data that needs to be loaded of the line.
  * 
  */
-
 export default class TilingRenderLayer extends RenderLayer {
 	constructor(viewer, geometryDataToReuse, bounds) {
 		super(viewer, geometryDataToReuse);

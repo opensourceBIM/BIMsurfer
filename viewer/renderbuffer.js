@@ -1,6 +1,12 @@
 const color_float_depth = 0xff01;
 const color_alpha_depth = 0xff02;
 
+/**
+ *
+ * @ignore
+ * @export
+ * @class RenderBuffer
+ */
 export default class RenderBuffer {
 
     static get COLOR_FLOAT_DEPTH() {
