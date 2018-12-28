@@ -20,6 +20,9 @@ export default class BimServerViewer {
 		if (stats == null) {
 			stats = new Stats(false);
 		}
+		
+		// Necessary for settings
+		window.bimServerViewer = this;
 
 		this.canvas = canvas;
 

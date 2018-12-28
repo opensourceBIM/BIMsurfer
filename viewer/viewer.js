@@ -86,6 +86,8 @@ export default class Viewer {
 
         this.selectedElements = new FreezableSet();
 
+        this.useOrderIndependentTransparency = true;
+
         var self = this;
 //        window._debugViewer = this;  // HACK for console debugging
 
@@ -382,26 +384,35 @@ export default class Viewer {
             }
         }
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.disable(gl.BLEND);
-        render({without: this.invisibleElements}, [false]);
+        
 
-        this.oitBuffer.bind();
-        gl.clearColor(0, 0, 0, 0);
-        this.oitBuffer.clear();
-        // @todo It should be possible to eliminate this step. It's necessary
-        // to repopulate the depth-buffer with opaque elements.
-        render({without: this.invisibleElements}, [false]);
-        this.oitBuffer.clear(false);
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE);
-        gl.depthMask(false);
+        if (this.useOrderIndependentTransparency) {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.disable(gl.BLEND);
+            render({without: this.invisibleElements}, [false]);
 
-        render({without: this.invisibleElements}, [true]);
-
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, this.width, this.height);
-        this.quad.draw(this.oitBuffer.colorBuffer, this.oitBuffer.alphaBuffer);
+            this.oitBuffer.bind();
+            gl.clearColor(0, 0, 0, 0);
+            this.oitBuffer.clear();
+            // @todo It should be possible to eliminate this step. It's necessary
+            // to repopulate the depth-buffer with opaque elements.
+            render({without: this.invisibleElements}, [false]);
+            this.oitBuffer.clear(false);
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.ONE, gl.ONE);
+            gl.depthMask(false);
+    
+            render({without: this.invisibleElements}, [true]);
+    
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, this.width, this.height);
+            this.quad.draw(this.oitBuffer.colorBuffer, this.oitBuffer.alphaBuffer);
+        } else {
+            gl.disable(gl.BLEND);
+            render({without: this.invisibleElements}, [false]);
+            gl.enable(gl.BLEND);
+            render({without: this.invisibleElements}, [true]);
+        }
 
         if (this.selectedElements.size > 0) {
             gl.enable(gl.STENCIL_TEST);

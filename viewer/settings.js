@@ -27,6 +27,7 @@ export default class Settings {
 			},
 			realtimeSettings: {
 				drawTileBorders: "boolean",
+				orderIndependentTransparency: "boolean",
 				loadAllTiles: "button"
 			}
 		};
@@ -52,10 +53,13 @@ export default class Settings {
 				prepareBuffer: false
 			},
 			realtimeSettings: {
-				drawTileBorders: true
+				drawTileBorders: true,
+				orderIndependentTransparency: true
 			}
 		} : JSON.parse(settingsObject);
-//		console.log("settings loaded", this.settings);
+
+		element.innerHTML = "<span>Settings</span>";
+
 		this.processSettings(element, settingsDefinition, null, this.settings);
 	}
 	
@@ -146,7 +150,7 @@ export default class Settings {
 				var newParent = document.createElement("div");
 				
 				var title = document.createElement("span");
-				title.innerHTML = key;
+				title.innerHTML = key.charAt(0).toUpperCase() + key.substr(1).replace(/([A-Z])/g, " $1")
 				
 				newParent.appendChild(title);
 				
@@ -154,6 +158,7 @@ export default class Settings {
 				container.style["padding-left"] = "20px";
 				newParent.appendChild(container);
 				
+				parent.appendChild(document.createElement("hr"));
 				parent.appendChild(newParent);
 				
 				if (settings[key] == null) {
@@ -179,5 +184,10 @@ export default class Settings {
 		} else {
 			alert("No tiling layer");
 		}
+	}
+
+	orderIndependentTransparency(value) {
+		window.bimServerViewer.viewer.useOrderIndependentTransparency = value;
+		window.bimServerViewer.viewer.dirty = true;
 	}
 }
