@@ -72,7 +72,7 @@ export default class BimSurfer extends EventHandler {
 	 * Loads a BIMserver project into the specified domNode for rendering.
 	 * 
 	 * @param {{username: String, password: String, roid: Number, domNode: HTMLElement}} params Function arguments
-	 * @return Promise
+	 * @return {Promise}
 	 * @memberof BimSurfer
 	 */
 	load(params) {

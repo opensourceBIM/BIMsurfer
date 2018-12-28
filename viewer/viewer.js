@@ -8,6 +8,7 @@ import SvgOverlay from './svgoverlay.js'
 import FrozenBufferSet from './frozenbufferset.js'
 import Utils from './utils.js'
 import SSQuad from './ssquad.js'
+import FreezableSet from './freezableset.js';
 
 var tmp_unproject = vec3.create();
 
@@ -68,7 +69,7 @@ export default class Viewer {
         this.viewObjectsByType = new Map();
 
         // Null means everything visible, otherwise Set(..., ..., ...)
-        this.invisibleElements = null;
+        this.invisibleElements = new FreezableSet();
 
         // Elements for which the color has been overriden and transparency has
         // changed. These elements are hidden from their original buffers and
@@ -83,7 +84,7 @@ export default class Viewer {
         // simply needs to be added back to the original.
         this.instancesWithChangedColor = new Map();
 
-        this.selectedElements = new Set();
+        this.selectedElements = new FreezableSet();
 
         var self = this;
 //        window._debugViewer = this;  // HACK for console debugging
@@ -93,14 +94,14 @@ export default class Viewer {
                 this.resetVisibility();
             } else if (evt.key === 'h') {
                 this.setVisibility(this.selectedElements, false);
-                this.selectedElements = new Set();
+                this.selectedElements.clear();
             } else if (evt.key === 'C') {
                 this.resetColors();
             } else if (evt.key === 'c' || evt.key === 'd') {
                 let R = Math.random;
                 let clr = [R(), R(), R(), evt.key === 'd' ? R() : 1.0];
                 this.setColor(this.selectedElements, clr);
-                this.selectedElements = new Set();
+                this.selectedElements.clear();
             } else {
             	// Don't do a drawScene for every key pressed
             	return;
@@ -119,8 +120,6 @@ export default class Viewer {
     setVisibility(elems, visible) {
         elems = Array.from(elems);
         
-        this.invisibleElements = this.invisibleElements || new Set();
-        
         let fn = (visible ? this.invisibleElements.delete : this.invisibleElements.add).bind(this.invisibleElements);
         
         elems.forEach((i) => {
@@ -133,11 +132,6 @@ export default class Viewer {
         for (let i of this.hiddenDueToSetColor.keys()) {
             this.invisibleElements.add(i);
         };
-
-        // @todo why do we do this again?
-        if (this.invisibleElements.size == 0) {
-            this.invisibleElements = null;
-        }
 
         this.dirty = true;
     }
@@ -191,10 +185,6 @@ export default class Viewer {
             this.geometryIdToBufferSet.get(objectId).forEach((bufferSet) => {
                 let originalColor = bufferSet.setColor(this.gl, objectId, clr);
                 if (originalColor === false) {
-                    if (!this.invisibleElements) {
-                        this.invisibleElements = new Set();
-                    }
-
                     let copiedBufferSet = bufferSet.copy(this.gl, objectId);
                     let clrSameType, newClrBuffer;
                     if (copiedBufferSet instanceof FrozenBufferSet) {
@@ -506,7 +496,7 @@ export default class Viewer {
         	var objectId = viewObject.objectId;
             if (params.select !== false) {
                 if (!params.shiftKey) {
-                    this.selectedElements = new Set();
+                    this.selectedElements.clear();
                 }
                 if (this.selectedElements.has(objectId)) {
                     this.selectedElements.delete(objectId);
@@ -516,7 +506,7 @@ export default class Viewer {
             }
             return {object: viewObject, coordinates: tmp_unproject};
         } else if (params.select !== false) {
-            this.selectedElements = new Set();
+            this.selectedElements.clear();
         }
 
         return {object: null, coordinates: tmp_unproject};

@@ -109,10 +109,7 @@ export default class AbstractBufferSet {
         var ids = Object.values(ids_with_or_without)[0];
         var exclude = "without" in ids_with_or_without;
         
-        // Wow set equality is really broken. This is going to hurt performance.
-		var ids_str = Array.from(ids || []);
-		ids_str.sort();
-		ids_str = Object.keys(ids_with_or_without)[0] + ':' +  ids_str.join(',');
+		var ids_str = exclude + ':' +  ids.frozen;
 
         {
             var cache_lookup;
@@ -157,10 +154,7 @@ export default class AbstractBufferSet {
 		var ids = Object.values(ids_with_or_without)[0];
 		var exclude = "without" in ids_with_or_without;
 
-		// Wow set equality is really broken. This is going to hurt performance.
-		var ids_str = Array.from(ids || []);
-		ids_str.sort();
-		ids_str = Object.keys(ids_with_or_without)[0] + ':' +  ids_str.join(',');
+		const ids_str = exclude + ':' +  ids.frozen;
 
         {
             var cache_lookup;

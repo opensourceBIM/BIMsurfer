@@ -35,7 +35,7 @@
     <script>
         function generateApiReference() {
 
-            var oids = Array.from(bimSurfer.bimServerViewer.viewer.viewObjects.keys());
+            var oids = Array.from(bimSurfer._bimServerViewer.viewer.viewObjects.keys());
             oids = _.shuffle(oids);
             oids.splice(10);
             oids = "["+oids.join(", ")+"]";
