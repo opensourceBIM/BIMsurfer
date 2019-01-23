@@ -45,10 +45,11 @@ export default class BimServerViewer {
 		stats.setParameter("Loader settings", "Quantize normals", this.settings.loaderSettings.quantizeNormals);
 		stats.setParameter("Loader settings", "Quantize vertices", this.settings.loaderSettings.quantizeVertices);
 
+		// Autoresize automatically resizes the viewer to the full width/height of the screen
 		if (this.settings.autoResize) {
-			this.resizeCanvas();
+			this.autoResizeCanvas();
 			this.resizeHandler = () => {
-				this.resizeCanvas();
+				this.autoResizeCanvas();
 			};
 			window.addEventListener("resize", this.resizeHandler, false);
 		} else {
@@ -56,7 +57,7 @@ export default class BimServerViewer {
 		}
 	}
 
-	resizeCanvas() {
+	autoResizeCanvas() {
 		this.canvas.width = window.innerWidth;
 		this.canvas.height = window.innerHeight;
 		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
