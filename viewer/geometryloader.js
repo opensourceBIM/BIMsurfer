@@ -298,9 +298,9 @@ export default class GeometryLoader {
 		
 		this.preparedBuffer.nrColors = this.preparedBuffer.positionsIndex * 4 / 3;
 
-		this.preparedBuffer.indices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrIndices * 4, this.renderLayer.gl.ELEMENT_ARRAY_BUFFER, 3, WebGL2RenderingContext.UNSIGNED_INT, "Uint32Array");
+		this.preparedBuffer.indices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrIndices, this.renderLayer.gl.ELEMENT_ARRAY_BUFFER, 3, WebGL2RenderingContext.UNSIGNED_INT, "Uint32Array");
 		this.preparedBuffer.colors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
-		this.preparedBuffer.vertices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.positionsIndex * 2, this.renderLayer.gl.ARRAY_BUFFER, 3, WebGL2RenderingContext.SHORT, "Int16Array");
+		this.preparedBuffer.vertices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.positionsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, WebGL2RenderingContext.SHORT, "Int16Array");
 		this.preparedBuffer.normals = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, WebGL2RenderingContext.BYTE, "Int8Array");
 		this.preparedBuffer.pickColors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
 
@@ -328,7 +328,7 @@ export default class GeometryLoader {
 			return;
 		}
 		
-		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.indices, stream.dataView, stream.pos, totalNrIndices * 4);
+		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.indices, stream.dataView, stream.pos, totalNrIndices);
 		stream.pos += totalNrIndices * 4;
 		
 		var nrColors = positionsIndex * 4 / 3;
@@ -394,7 +394,7 @@ export default class GeometryLoader {
 		}
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.colors, colors, 0, nrColors);
 
-		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, stream.dataView, stream.pos, positionsIndex * 2);
+		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, stream.dataView, stream.pos, positionsIndex);
 		stream.pos += positionsIndex * 2;
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.normals, stream.dataView, stream.pos, normalsIndex);
 		stream.pos += normalsIndex;

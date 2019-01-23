@@ -63,18 +63,28 @@ export default class Utils {
 	 * Create a new GPU buffer, keep in mind that some extra attributes are being set on the returned GLBuffer object
 	 */
 	static createBuffer(gl, data, numElements, bufferType, components, srcStart, attribType, js_type) {
+		// numElements -> Number of typed elements
 		numElements = numElements || data.length;
 		bufferType = bufferType || gl.ARRAY_BUFFER;
 		components = components || 3;
 		srcStart = srcStart || 0;
 
-		var b = gl.createBuffer();
+		const b = gl.createBuffer();
 		gl.bindBuffer(bufferType, b);
-		gl.bufferData(bufferType, data, gl.STATIC_DRAW, srcStart, numElements);
+		var js_type = js_type ? js_type : data.constructor.name;
+		const byteCount = numElements * window[js_type].BYTES_PER_ELEMENT;
 		
+		// Read the WebGL documentation carefully on this, the interpretation of the size argument depends on the type of "data"
+		let size = numElements; // Ok for non-typed arrays
+		if (data.constructor.name == "DataView") {
+			size = byteCount;
+		}
+		gl.bufferData(bufferType, data, gl.STATIC_DRAW, srcStart, size);
+		
+		b.byteSize = byteCount;
 		b.N = numElements;
 		b.gl_type = bufferType;
-		b.js_type = js_type ? js_type : data.constructor.name;
+		b.js_type = js_type;
 		b.attrib_type = attribType ? attribType : Utils.typedArrayToGlType(b.js_type);
 		b.components = components;
 		b.normalize = false;
@@ -88,10 +98,11 @@ export default class Utils {
 	 * This method is usually used in order to create buffers that will be later be filled by calls to bufferSubData (via Utils.updateBuffer)
 	 */
 	static createEmptyBuffer(gl, numElements, bufferType, components, attribType, js_type) {
-		if (numElements > zeroBuffer.byteLength) {
+		const nrBytesRequired = numElements * window[js_type].BYTES_PER_ELEMENT;
+		if (nrBytesRequired > zeroBuffer.byteLength) {
 			// According to the documentation, you should be able to pass `null` to gl.bufferData, but both Chrome and Firefox do not allow this
-			console.log("Increasing size of zero'ed-buffer", zeroBuffer.byteLength, numElements);
-			zeroBuffer = new ArrayBuffer(numElements);
+			console.log("Increasing size of zero'ed-buffer", nrBytesRequired);
+			zeroBuffer = new ArrayBuffer(nrBytesRequired);
 			zeroDataView = new DataView(zeroBuffer);
 		}
 		
@@ -104,10 +115,18 @@ export default class Utils {
 	/**
 	 * Update a GPU buffer
 	 */	
-	static updateBuffer(gl, targetGlBuffer, sourceBuffer, pos, count) {
+	static updateBuffer(gl, targetGlBuffer, data, pos, numElements) {
 		gl.bindBuffer(targetGlBuffer.gl_type, targetGlBuffer);
-		gl.bufferSubData(targetGlBuffer.gl_type, targetGlBuffer.writePosition, sourceBuffer, pos, count);
-		targetGlBuffer.writePosition += count;
+		const byteCount = numElements * window[targetGlBuffer.js_type].BYTES_PER_ELEMENT;
+		
+		// Read the WebGL documentation carefully on this, the interpretation of the size argument depends on the type of "data"
+		let size = numElements; // Ok for non-typed arrays
+		if (data.constructor.name == "DataView") {
+			size = byteCount;
+		}
+		
+		gl.bufferSubData(targetGlBuffer.gl_type, targetGlBuffer.writePosition, data, pos, size);
+		targetGlBuffer.writePosition += byteCount;
 	}
 	
 	static createIndexBuffer(gl, data, n) {
