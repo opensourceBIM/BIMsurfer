@@ -86,7 +86,7 @@ export default class Viewer {
 
         this.selectedElements = new FreezableSet();
 
-        this.useOrderIndependentTransparency = true;
+        this.useOrderIndependentTransparency = this.settings.realtimeSettings.orderIndependentTransparency;
 
         var self = this;
 //        window._debugViewer = this;  // HACK for console debugging
@@ -384,8 +384,6 @@ export default class Viewer {
             }
         }
 
-        
-
         if (this.useOrderIndependentTransparency) {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             gl.disable(gl.BLEND);
@@ -411,6 +409,7 @@ export default class Viewer {
             gl.disable(gl.BLEND);
             render({without: this.invisibleElements}, [false]);
             gl.enable(gl.BLEND);
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             render({without: this.invisibleElements}, [true]);
         }
 
