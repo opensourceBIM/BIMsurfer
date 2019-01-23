@@ -57,8 +57,8 @@ export default class BimServerViewer {
 	}
 
 	resizeCanvas() {
-		this.canvas.width = this.width;
-		this.canvas.height = this.height;
+		this.canvas.width = window.innerWidth;
+		this.canvas.height = window.innerHeight;
 		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
 	}
 
@@ -387,6 +387,7 @@ export default class BimServerViewer {
 	}
 	
 	cleanup() {
+		console.log("resize handler");
 		window.removeEventListener("resize", this.resizeHandler, false);
 		this.viewer.cleanup();
 	}
