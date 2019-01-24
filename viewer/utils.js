@@ -1,7 +1,3 @@
-// Initially 10MB of zero'ed out buffer. Will increase over time when needed, used in Utils.createEmptyBuffer
-var zeroBuffer = new ArrayBuffer(10000000);
-var zeroDataView = new DataView(zeroBuffer);
-
 const glTypeToTypedArrayMap = new Map([
 	[WebGL2RenderingContext.BYTE, Int8Array],
 	[WebGL2RenderingContext.SHORT, Int16Array],
@@ -74,12 +70,7 @@ export default class Utils {
 		var js_type = js_type ? js_type : data.constructor.name;
 		const byteCount = numElements * window[js_type].BYTES_PER_ELEMENT;
 		
-		// Read the WebGL documentation carefully on this, the interpretation of the size argument depends on the type of "data"
-		let size = numElements; // Ok for non-typed arrays
-		if (data.constructor.name == "DataView") {
-			size = byteCount;
-		}
-		gl.bufferData(bufferType, data, gl.STATIC_DRAW, srcStart, size);
+		gl.bufferData(bufferType, data, gl.STATIC_DRAW, srcStart, numElements);
 		
 		b.byteSize = byteCount;
 		b.N = numElements;
@@ -99,25 +90,30 @@ export default class Utils {
 	 */
 	static createEmptyBuffer(gl, numElements, bufferType, components, attribType, js_type) {
 		const nrBytesRequired = numElements * window[js_type].BYTES_PER_ELEMENT;
-		// This caching is disabled for now, it seems as though both Firefox and Chrome copy (!) the complete (mostly empty) buffer for each (!) bufferData call.
-		// This resulted in about 48GB being used on Firefox for a moderately big model.
-		// I can imagine them doing this in order to being able to restore stuff after a context-lose... Or my code contains a stupid error
-		if (false) {
-			if (nrBytesRequired > zeroBuffer.byteLength) {
-				// According to the documentation, you should be able to pass `null` to gl.bufferData, but both Chrome and Firefox do not allow this
-				console.log("Increasing size of zero'ed-buffer", nrBytesRequired);
-				zeroBuffer = new ArrayBuffer(nrBytesRequired);
-				zeroDataView = new DataView(zeroBuffer);
-			}
-		} else {
-			zeroBuffer = new ArrayBuffer(nrBytesRequired);
-			zeroDataView = new DataView(zeroBuffer);
-		}
 
-		const buffer = this.createBuffer(gl, zeroDataView, numElements, bufferType, components, 0, attribType, js_type);
-		buffer.writePosition = 0;
+		bufferType = bufferType || gl.ARRAY_BUFFER;
+		components = components || 3;
+
+		const b = gl.createBuffer();
+		gl.bindBuffer(bufferType, b);
+		var js_type = js_type ? js_type : zeroDataView.constructor.name;
+		const byteCount = numElements * window[js_type].BYTES_PER_ELEMENT;
 		
-		return buffer;
+		// Read the WebGL documentation carefully on this, the interpretation of the size argument depends on the type of "data"
+		gl.bufferData(bufferType, byteCount, gl.STATIC_DRAW);
+		
+		b.byteSize = byteCount;
+		b.N = numElements;
+		b.gl_type = bufferType;
+		b.js_type = js_type;
+		b.attrib_type = attribType ? attribType : Utils.typedArrayToGlType(b.js_type);
+		b.components = components;
+		b.normalize = false;
+		b.stride = 0;
+		b.offset = 0;
+		b.writePosition = 0;
+		
+		return b;
 	}
 	
 	/**
