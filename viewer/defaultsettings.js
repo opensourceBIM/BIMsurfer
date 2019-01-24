@@ -86,6 +86,15 @@ export default class DefaultSettings {
 		if (settings.loaderSettings.reuseThreshold == null) {
 			settings.loaderSettings.reuseThreshold = 25000;
 		}
+		if (settings.loaderSettings.prepareBuffers == null) {
+			settings.loaderSettings.prepareBuffers = true;
+		}
+		if (settings.realtimeSettings == null) {
+			settings.realtimeSettings = {};
+		}
+		if (settings.realtimeSettings.orderIndependentTransparency == null) {
+			settings.realtimeSettings.orderIndependentTransparency = true;
+		}
 		return settings;
 	}
 }
