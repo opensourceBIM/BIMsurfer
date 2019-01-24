@@ -99,13 +99,21 @@ export default class Utils {
 	 */
 	static createEmptyBuffer(gl, numElements, bufferType, components, attribType, js_type) {
 		const nrBytesRequired = numElements * window[js_type].BYTES_PER_ELEMENT;
-		if (nrBytesRequired > zeroBuffer.byteLength) {
-			// According to the documentation, you should be able to pass `null` to gl.bufferData, but both Chrome and Firefox do not allow this
-			console.log("Increasing size of zero'ed-buffer", nrBytesRequired);
+		// This caching is disabled for now, it seems as though both Firefox and Chrome copy (!) the complete (mostly empty) buffer for each (!) bufferData call.
+		// This resulted in about 48GB being used on Firefox for a moderately big model.
+		// I can imagine them doing this in order to being able to restore stuff after a context-lose... Or my code contains a stupid error
+		if (false) {
+			if (nrBytesRequired > zeroBuffer.byteLength) {
+				// According to the documentation, you should be able to pass `null` to gl.bufferData, but both Chrome and Firefox do not allow this
+				console.log("Increasing size of zero'ed-buffer", nrBytesRequired);
+				zeroBuffer = new ArrayBuffer(nrBytesRequired);
+				zeroDataView = new DataView(zeroBuffer);
+			}
+		} else {
 			zeroBuffer = new ArrayBuffer(nrBytesRequired);
 			zeroDataView = new DataView(zeroBuffer);
 		}
-		
+
 		const buffer = this.createBuffer(gl, zeroDataView, numElements, bufferType, components, 0, attribType, js_type);
 		buffer.writePosition = 0;
 		
