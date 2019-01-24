@@ -32,9 +32,10 @@ export default class BimServerViewer {
 		this.width = width || canvas.offsetWidth;
 		this.height = height || canvas.offsetHeight;
 		this.layers = [];
-		this.viewer = new Viewer(canvas, settings, stats, this.width, this.height);
 		
 		this.settings = DefaultSettings.create(settings);
+
+		this.viewer = new Viewer(canvas, settings, stats, this.width, this.height);
 		
 		stats.setParameter("Renderer settings", "Object colors", this.settings.useObjectColors);
 		stats.setParameter("Renderer settings", "Small indices if possible", this.settings.useSmallIndicesIfPossible);
@@ -276,7 +277,9 @@ export default class BimServerViewer {
 					}
 					tilingPromise.then(() => {
 						this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
-						this.viewer.bufferSetPool.cleanup();
+						if (this.viewer.bufferSetPool != null) {
+							this.viewer.bufferSetPool.cleanup();
+						}
 						if (this.loadingResolve != null) {
 							this.loadingResolve();
 						}
@@ -375,8 +378,10 @@ export default class BimServerViewer {
 			this.viewer.stats.setParameter("Loading time", "Layer 2", performance.now() - layer2Start);
 			this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
 //			document.getElementById("progress").style.display = "none";
-			
-			this.viewer.bufferSetPool.cleanup();
+
+			if (this.viewer.bufferSetPool != null) {
+				this.viewer.bufferSetPool.cleanup();
+			}
 
 //			tilingLayer.octree.traverse((node) => {
 //				if (node.liveBuffers.length > 0) {
