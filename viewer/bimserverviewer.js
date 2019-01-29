@@ -184,6 +184,7 @@ export default class BimServerViewer {
 			this.bimServerApi.multiCall(requests, (responses) => {
 				var totalBounds = responses[0].result;
 				var totalBoundsUntransformed = responses[1].result;
+				console.log(totalBounds, totalBoundsUntransformed);
 				if (this.settings.gpuReuse) {
 					this.geometryDataIdsToReuse = new Set(responses[2].result);
 				} else {
@@ -216,7 +217,7 @@ export default class BimServerViewer {
 					totalBounds.max.x,
 					totalBounds.max.y,
 					totalBounds.max.z,
-					];
+				];
 
 				this.viewer.stats.inc("Primitives", "Primitives to load (L1)", nrPrimitivesBelow);
 				this.viewer.stats.inc("Primitives", "Primitives to load (L2)", nrPrimitivesAbove);
@@ -346,10 +347,14 @@ export default class BimServerViewer {
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 		};
 		
-		query.loaderSettings.vertexQuantizationMatrix = this.viewer.vertexQuantization.getTransformedVertexQuantizationMatrix();
+		if (this.settings.loaderSettings.quantizeVertices) {
+			query.loaderSettings.vertexQuantizationMatrix = this.viewer.vertexQuantization.getTransformedVertexQuantizationMatrix();
+		}
 		
 		var geometryLoader = new GeometryLoader(0, this.bimServerApi, defaultRenderLayer, [revision.oid], this.settings.loaderSettings, null, this.stats, this.settings, query, null, defaultRenderLayer.gpuBufferManager);
-		geometryLoader.unquantizationMatrix = this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix();
+		if (this.settings.loaderSettings.quantizeVertices) {
+			geometryLoader.unquantizationMatrix = this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix();
+		}
 		defaultRenderLayer.registerLoader(geometryLoader.loaderId);
 		executor.add(geometryLoader).then(() => {
 			defaultRenderLayer.done(geometryLoader.loaderId);

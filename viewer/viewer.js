@@ -10,6 +10,8 @@ import Utils from './utils.js'
 import SSQuad from './ssquad.js'
 import FreezableSet from './freezableset.js';
 
+import {COLOR_FLOAT_DEPTH, COLOR_ALPHA_DEPTH, RUBEN_TEST} from './renderbuffer.js';
+
 var tmp_unproject = vec3.create();
 
 // When a change in color results in a different
@@ -49,7 +51,9 @@ export default class Viewer {
         this.width = width;
         this.height = height;
 
-        this.bufferSetPool = new BufferSetPool(1000, this.stats);
+        if (!this.settings.loaderSettings.prepareBuffers) {
+        	this.bufferSetPool = new BufferSetPool(1000, this.stats);
+        }
 
         this.pickIdCounter = 1;
         
@@ -295,8 +299,9 @@ export default class Viewer {
                 });
             });
 
-            this.pickBuffer = new RenderBuffer(this.canvas, this.gl, RenderBuffer.COLOR_FLOAT_DEPTH);
-            this.oitBuffer = new RenderBuffer(this.canvas, this.gl, RenderBuffer.COLOR_ALPHA_DEPTH, 2);
+            this.pickBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_FLOAT_DEPTH);
+            this.oitAntialiasBuffer = new RenderBuffer(this.canvas, this.gl, RUBEN_TEST);
+            this.oitBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_ALPHA_DEPTH);
             this.quad = new SSQuad(this.gl);
         });
         return promise;
@@ -385,26 +390,12 @@ export default class Viewer {
         }
 
         if (this.useOrderIndependentTransparency) {
+        	/* 1. Render opaque objects to default framebuffer */
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
             gl.disable(gl.BLEND);
             render({without: this.invisibleElements}, [false]);
 
-            this.oitBuffer.bind();
-            gl.clearColor(0, 0, 0, 0);
-            this.oitBuffer.clear();
-            // @todo It should be possible to eliminate this step. It's necessary
-            // to repopulate the depth-buffer with opaque elements.
-            render({without: this.invisibleElements}, [false]);
-            this.oitBuffer.clear(false);
-            gl.enable(gl.BLEND);
-            gl.blendFunc(gl.ONE, gl.ONE);
-            gl.depthMask(false);
-    
-            render({without: this.invisibleElements}, [true]);
-    
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            gl.viewport(0, 0, this.width, this.height);
-            this.quad.draw(this.oitBuffer.colorBuffer, this.oitBuffer.alphaBuffer);
+            
         } else {
             gl.disable(gl.BLEND);
             render({without: this.invisibleElements}, [false]);

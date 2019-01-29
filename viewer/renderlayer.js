@@ -367,6 +367,9 @@ export default class RenderLayer {
 			geometry.croid
 		);
 
+		buffer.numInstances = numInstances;
+		buffer.nrTrianglesToDraw = (buffer.nrIndices / 3) * geometry.matrices.length;
+		
 		buffer.setObjects(this.gl, geometry.objects);
 		buffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
 
@@ -483,7 +486,7 @@ export default class RenderLayer {
 						gl.uniform1ui(programInfo.uniformLocations.containedMeansHidden, subset.hidden ? 1 : 0);
 						this.previousInstanceVisibilityState = instanceVisibilityState;
 					}
-					gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrIndices, buffer.indexType, 0, buffer.nrProcessedMatrices);
+					gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrTrianglesToDraw * 3, buffer.indexType, 0, buffer.nrProcessedMatrices);
 				}
 			}
 		} else {
@@ -497,12 +500,12 @@ export default class RenderLayer {
 					include = false;
 				}
 				if (include) {
-					this.gl.drawElements(this.gl.TRIANGLES, buffer.nrIndices, this.gl.UNSIGNED_INT, 0);
+					this.gl.drawElements(this.gl.TRIANGLES, buffer.nrTrianglesToDraw * 3, this.gl.UNSIGNED_INT, 0);
 				}				
 			} else {
 				// These are the conventional buffersets
 				for (var range of buffer.computeVisibleRanges(visibleElements, this.gl)) {
-					this.gl.drawElements(this.gl.TRIANGLES, range[1] - range[0], this.gl.UNSIGNED_INT, range[0] * 4);
+					this.gl.drawElements(this.gl.TRIANGLES, Math.min(range[1] - range[0], buffer.nrTrianglesToDraw * 3), this.gl.UNSIGNED_INT, range[0] * 4);
 				}
 			}
 		}
@@ -557,8 +560,10 @@ export default class RenderLayer {
 				buffer.hasTransparency,
 				false,
 				this,
-				gpuBufferManager			
+				gpuBufferManager
 			);
+			
+			newBuffer.nrTrianglesToDraw = buffer.nrIndices / 3;
 			
 			newBuffer.unquantizationMatrix = buffer.unquantizationMatrix;
 
@@ -647,7 +652,9 @@ export default class RenderLayer {
 				this,
 				gpuBufferManager
 			);
-
+			
+			newBuffer.nrTrianglesToDraw = buffer.nrIndices / 3;
+			
 			newBuffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
 
 			if (buffer.geometryIdToIndex) {

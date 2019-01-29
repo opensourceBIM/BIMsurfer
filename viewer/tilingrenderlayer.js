@@ -79,10 +79,48 @@ export default class TilingRenderLayer extends RenderLayer {
 		var cameraEye = this.viewer.camera.eye;
 		var tileCenter = node.getCenter();
 		var sizeFactor = 1 / Math.pow(2, node.level);
-		if (vec3.distance(cameraEye, tileCenter) / sizeFactor > 5000000) { // TODO use something related to the total bounding box size
-			return true;
-		}
+		var closestPotentialDistanceMm = Math.abs(vec3.distance(cameraEye, tileCenter) - node.radius);
+		
+//		console.log(closestPotentialDistanceMm);
+		
+		const vFOV = this.viewer.camera.perspective.fov * Math.PI / 180;
+		const pixelWidth = 2 * Math.tan(vFOV / 2) * Math.abs(closestPotentialDistanceMm);
 
+		if (node.gpuBufferManager != null) {
+			node.stats.trianglesDrawing = 0;
+			var totalTriangles = 0;
+			for (var transparent of [false, true]) {
+				var buffers = node.gpuBufferManager.getBuffers(transparent, false);
+				for (var buffer of buffers) {
+					buffer.nrTrianglesToDraw = Math.floor(Math.min(buffer.nrIndices, Math.floor(buffer.nrIndices * (200000 / closestPotentialDistanceMm))) / 3);
+					totalTriangles += buffer.nrIndices / 3;
+					node.stats.trianglesDrawing += buffer.nrTrianglesToDraw;
+				}
+			}
+			for (var transparent of [false, true]) {
+				var buffers = node.gpuBufferManager.getBuffers(transparent, true);
+				for (var buffer of buffers) {
+					buffer.nrTrianglesToDraw = Math.floor(Math.min(buffer.nrIndices, Math.floor(buffer.nrIndices * (200000 / closestPotentialDistanceMm))) / 3);
+//					buffer.nrTrianglesToDraw = (buffer.nrIndices / 3) * buffer.numInstances;
+					totalTriangles += (buffer.nrIndices / 3) * buffer.numInstances;
+					node.stats.trianglesDrawing += buffer.nrTrianglesToDraw;
+				}
+			}
+			node.normalizedDistanceFactor = node.stats.trianglesDrawing / totalTriangles;
+			if (node.stats.trianglesDrawing == 0) {
+				return true;
+			}
+		} else {
+			if (closestPotentialDistanceMm < 800000) {
+				return false;
+			} else {
+				node.normalizedDistanceFactor = 0;
+				if (node.stats != null) {
+					node.stats.trianglesDrawing = 0;
+				}
+				return true;
+			}
+		}
 		// Default response
 		return false;
 	}
@@ -108,13 +146,14 @@ export default class TilingRenderLayer extends RenderLayer {
 					return false;
 				} else {
 					node.visibilityStatus = 1;
-					if (node.stats != null) {
-						renderingTiles++;
-						renderingTriangles += node.stats.triangles;
-						drawCalls += node.stats.drawCallsPerFrame;
-					}
 					if (node.loadingStatus == 0) {
 						this.tileLoader.loadTile(node);
+					} else {
+						if (node.stats != null) {
+							renderingTiles++;
+							renderingTriangles += (node.stats.trianglesDrawing ? node.stats.trianglesDrawing : 0);
+							drawCalls += node.stats.drawCallsPerFrame;
+						}
 					}
 				}
 			});
@@ -185,15 +224,20 @@ export default class TilingRenderLayer extends RenderLayer {
 					if (node.visibilityStatus == 0) {
 						color = [0, 1, 0, 1];
 					} else if (node.visibilityStatus == 1) {
-						color = [0, 0, 1, 1];
+						if (node.normalizedDistanceFactor == 1) {
+							color = [0, 0, 0, 0];
+						} else {
+							color = [0, 0, 1, 1 - node.normalizedDistanceFactor];
+						}
 					}
 				} else if (node.loadingStatus == 4) {
+					// To be documented
 					color = [0.5, 0.5, 0.5, 1];
 				} else if (node.loadingStatus == 5) {
 					// Node has been tried to load, but no objects were returned
 				}
 				if (color != null && visibleElements.pass != 'stencil') {
-					this.lineBoxGeometry.render(color, node.getMatrix(), 0.001);
+					this.lineBoxGeometry.render(color, node.getMatrix(), 0.003);
 				}
 			});
 			this.lineBoxGeometry.renderStop();
@@ -256,7 +300,14 @@ export default class TilingRenderLayer extends RenderLayer {
 	done(loaderId) {
 		var loader = this.getLoader(loaderId);
 		var node = this.loaderToNode[loaderId];
-
+		
+		// When a new tile has been loaded and the viewer is not moving, we need to force an update of the culling of the node
+		if (this.cull(node)) {
+			node.visibilityStatus = 0;
+		} else {
+			node.visibilityStatus = 1;
+		}
+		
 		for (var geometry of loader.geometries.values()) {
 			if (geometry.isReused) {
 				this.addGeometryReusable(geometry, loader, node.gpuBufferManager);
