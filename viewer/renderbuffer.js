@@ -1,5 +1,5 @@
-const color_float_depth = 0xff01;
-const color_alpha_depth = 0xff02;
+export const COLOR_FLOAT_DEPTH = 0xff01;
+export const COLOR_ALPHA_DEPTH = 0xff02;
 
 /**
  *
@@ -8,14 +8,6 @@ const color_alpha_depth = 0xff02;
  * @class RenderBuffer
  */
 export default class RenderBuffer {
-
-    static get COLOR_FLOAT_DEPTH() {
-        return color_float_depth;
-    }
-
-    static get COLOR_ALPHA_DEPTH() {
-        return color_alpha_depth;
-    }
 
     constructor(canvas, gl, purpose, supersample) {
         this.gl = gl;

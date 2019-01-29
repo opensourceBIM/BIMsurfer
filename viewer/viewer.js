@@ -10,7 +10,7 @@ import Utils from './utils.js'
 import SSQuad from './ssquad.js'
 import FreezableSet from './freezableset.js';
 
-import {COLOR_FLOAT_DEPTH, COLOR_ALPHA_DEPTH, RUBEN_TEST} from './renderbuffer.js';
+import {COLOR_FLOAT_DEPTH, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 
 var tmp_unproject = vec3.create();
 
