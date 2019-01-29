@@ -68,10 +68,10 @@ export default class RenderBuffer {
             return t;
         }
 
-        if (this.purpose === color_float_depth) {
+        if (this.purpose === COLOR_FLOAT_DEPTH) {
             this.colorBuffer = createTexture(gl.RGBA8UI);
             this.depthFloat = createTexture(gl.R32F);
-        } else if (this.purpose === color_alpha_depth) {
+        } else if (this.purpose === COLOR_ALPHA_DEPTH) {
             this.colorBuffer = createTexture(gl.RGBA16F);
             this.alphaBuffer = createTexture(gl.R16F);
         } else {

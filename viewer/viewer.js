@@ -300,7 +300,6 @@ export default class Viewer {
             });
 
             this.pickBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_FLOAT_DEPTH);
-            this.oitAntialiasBuffer = new RenderBuffer(this.canvas, this.gl, RUBEN_TEST);
             this.oitBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_ALPHA_DEPTH);
             this.quad = new SSQuad(this.gl);
         });

@@ -184,7 +184,7 @@ export default class BimServerViewer {
 			this.bimServerApi.multiCall(requests, (responses) => {
 				var totalBounds = responses[0].result;
 				var totalBoundsUntransformed = responses[1].result;
-				console.log(totalBounds, totalBoundsUntransformed);
+//				console.log(totalBounds, totalBoundsUntransformed);
 				if (this.settings.gpuReuse) {
 					this.geometryDataIdsToReuse = new Set(responses[2].result);
 				} else {
