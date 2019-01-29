@@ -303,7 +303,8 @@ export default class GeometryLoader {
 		this.preparedBuffer.vertices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.positionsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, WebGL2RenderingContext.SHORT, "Int16Array");
 		this.preparedBuffer.normals = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, WebGL2RenderingContext.BYTE, "Int8Array");
 		this.preparedBuffer.pickColors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
-
+		this.preparedBuffer.pickColors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
+		
 		this.preparedBuffer.geometryIdToIndex = new Map();
 		this.preparedBuffer.geometryIdToMeta = new Map();
 
@@ -350,8 +351,9 @@ export default class GeometryLoader {
 			var startIndex = stream.readInt();
 			var nrIndices = stream.readInt();
 			var nrVertices = stream.readInt();
-			
 			var nrObjectColors = nrVertices / 3 * 4;
+			
+			const density = stream.readFloat();
 
 			this.preparedBuffer.geometryIdToMeta.set(oid, [{
 				start: startIndex,
@@ -361,7 +363,9 @@ export default class GeometryLoader {
 			}]);
 			
 			var colorPackSize = stream.readInt();
-			var type = createdObjects.get(oid).type;
+			var object = createdObjects.get(oid);
+			object.density = density;
+			var type = object.type;
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
 				var defaultColor = DefaultColors[type];
@@ -387,6 +391,7 @@ export default class GeometryLoader {
 				colors32.fill(color32, (currentColorIndex / 4), (currentColorIndex + count) / 4);
 				currentColorIndex += count;
 			}
+			
 			this.preparedBuffer.geometryIdToIndex.set(oid, startIndex);
 		}
 		if (currentColorIndex != nrColors) {
