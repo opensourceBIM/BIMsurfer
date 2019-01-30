@@ -60,6 +60,12 @@
 			<resource>
 				<targetPath>apps</targetPath>
 				<directory>apps</directory>
+				<excludes>
+					<exclude>dev.js</exclude>
+					<exclude>minimal.js</exclude>
+					<exclude>tests.js</exclude>
+					<exclude>api.js</exclude>
+				</excludes>
 			</resource>
 			<resource>
 				<targetPath>apps</targetPath>
