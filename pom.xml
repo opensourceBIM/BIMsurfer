@@ -69,7 +69,7 @@
 			</resource>
 			<resource>
 				<targetPath>apps</targetPath>
-				<directory>output</directory>
+				<directory>../../output</directory>
 			</resource>
 			<resource>
 				<targetPath>css</targetPath>
