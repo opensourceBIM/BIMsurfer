@@ -56,10 +56,45 @@
 	<build>
 		<resources>
 			<resource>
+				<targetPath>apps</targetPath>
+				<directory>apps</directory>
+			</resource>
+			<resource>
+				<targetPath>css</targetPath>
+				<directory>css</directory>
+			</resource>
+			<resource>
+				<targetPath>docs</targetPath>
+				<directory>docs</directory>
+			</resource>
+			<resource>
+				<targetPath>img</targetPath>
+				<directory>img</directory>
+			</resource>
+			<resource>
+				<targetPath>plugin</targetPath>
+				<directory>plugin</directory>
+			</resource>
+			<resource>
+				<targetPath>shaders</targetPath>
+				<directory>shaders</directory>
+			</resource>
+			<resource>
+				<targetPath>viewer</targetPath>
+				<directory>viewer</directory>
+			</resource>
+			<resource>
+				<targetPath>deps</targetPath>
+				<directory>deps</directory>
+			</resource>
+			<resource>
 				<targetPath>.</targetPath>
 				<directory>.</directory>
 				<includes>
-					<include>**/*</include>
+					<include>gl-matrix.js</include>
+					<include>index.html</include>
+					<include>LICENSE</include>
+					<include>README.md</include>
 				</includes>
 			</resource>
 		</resources>
