@@ -62,6 +62,10 @@
 				<directory>apps</directory>
 			</resource>
 			<resource>
+				<targetPath>apps</targetPath>
+				<directory>output</directory>
+			</resource>
+			<resource>
 				<targetPath>css</targetPath>
 				<directory>css</directory>
 			</resource>
