@@ -97,7 +97,7 @@
 			</resource>
 			<resource>
 				<targetPath>deps</targetPath>
-				<directory>deps</directory>
+				<directory>../../deps</directory>
 			</resource>
 			<resource>
 				<targetPath>.</targetPath>
