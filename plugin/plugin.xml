@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PluginDescriptor>
 	<WebModulePlugin>
-		<identifier>bimsurfer21</identifier>
-		<name>bimsurfer21</name>
-		<description>BIMsurfer 2.1</description>
+		<identifier>bimsurfer3</identifier>
+		<name>bimsurfer3</name>
+		<description>BIMsurfer 3</description>
 	</WebModulePlugin>
 </PluginDescriptor>

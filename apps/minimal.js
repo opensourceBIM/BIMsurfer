@@ -1,5 +1,5 @@
 // At the moment this API is loaded from a BIMserver, you could also include the API files in your viewer
-import BimServerClient from "http://localhost:8080/apps/bimserverjavascriptapi/bimserverclient.js"
+import BimServerClient from "../../bimserverjavascriptapi/bimserverclient.js"
 import BimServerViewer from "../viewer/bimserverviewer.js"
 
 /*

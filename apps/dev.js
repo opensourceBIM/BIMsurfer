@@ -1,4 +1,4 @@
-import BimServerClient from "http://localhost:8080/apps/bimserverjavascriptapi/bimserverclient.js"
+import BimServerClient from "../../bimserverjavascriptapi/bimserverclient.js"
 import BimServerViewer from "../viewer/bimserverviewer.js"
 import Stats from "../viewer/stats.js"
 import Settings from "../viewer/settings.js"
