@@ -1,10 +1,9 @@
-// At the moment this API is loaded from a BIMserver, you could also include the API files in your viewer
 import {Address} from "./address.js";
 import {BimServerClient} from "../../bimserverjavascriptapi/bimserverclient.js"
 import {BimServerViewer} from "../viewer/bimserverviewer.js"
 
 /*
- * This class is where the minimal demo starts. This is intended as an example you can copy-and-paste to start integratie the viewer in your own application.
+ * This class is where the minimal demo starts. This is intended as an example you can copy-and-paste to start integrating the viewer in your own application.
  */
 
 export class Minimal {
@@ -48,7 +47,11 @@ export class Minimal {
 
 					// Load the model
 					this.bimServerViewer.loadModel(project);
+				}, function(error) {
+					console.error(error.message);
 				});
+			}, function() {
+				console.error("Error logging-in, probably wrong username/password");
 			});
 		});
 	}
