@@ -36,7 +36,7 @@ export class Interactive {
 				address: "https://thisisanexperimentalserver.com"
 			}, {
 				title: "Logic Labs - Epic BIMserver",
-				description: "An online server used for testing. NO GUARANTEES AT ALL that this is up/working. You need to have an account.",
+				description: "An online server used for testing. NO GUARANTEES AT ALL that this is up/working. You need to have an account and your IP whitelisted.",
 				address: "https://epic.logic-labs.nl"
 			}
 		];
