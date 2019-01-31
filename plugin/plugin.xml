@@ -2,7 +2,7 @@
 <PluginDescriptor>
 	<WebModulePlugin>
 		<identifier>bimsurfer3</identifier>
-		<name>bimsurfer3</name>
+		<name>BIMsurfer 3</name>
 		<description>BIMsurfer 3</description>
 	</WebModulePlugin>
 </PluginDescriptor>
