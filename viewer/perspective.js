@@ -2,7 +2,7 @@
  * Configures perspective projection mode for the camera.
  * Perspective projection is represented as a viewing frustum, given as six planes, along with a field of view (FOV) angle.
  */
-export default class Perspective {
+export class Perspective {
 
     constructor(viewer) {
         this.viewer = viewer;
@@ -27,7 +27,7 @@ export default class Perspective {
     }
 
     /**
-     Sets the frustum's vertical field of view, from bottom to top of view, in degrees. Default is 45.
+     Sets the frustum's vertical field of view,} from bottom to top of view, in degrees. Default is 45.
 
      @param {Number} fov Field of view angle, in degrees.
      */
@@ -39,7 +39,7 @@ export default class Perspective {
     }
 
     /**
-     Gets the frustum's vertical field of view, from bottom to top of view, in degrees.
+     Gets the frustum's vertical field of view,} from bottom to top of view, in degrees.
 
      @return {Number} Field of view angle, in degrees.
      */

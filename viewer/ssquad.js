@@ -5,7 +5,7 @@
  * @export
  * @class SSQuad
  */
-export default class SSQuad {
+export class SSQuad {
 
     constructor(gl) {
         this.gl = gl;

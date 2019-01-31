@@ -1,7 +1,7 @@
 /**
  * @ignore
  */
-export default class FrustumPlane {
+export class FrustumPlane {
 
     constructor(nx = 0, ny = 0, nz = 1, offset = 1.0) {
 

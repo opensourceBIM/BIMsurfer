@@ -7,7 +7,7 @@ let tmp = vec3.create();
  * @export
  * @class SvgOverlay
  */
-export default class SvgOverlay {
+export class SvgOverlay {
 	constructor(domNode, camera) {
         this.track = domNode;
         this.camera = camera;

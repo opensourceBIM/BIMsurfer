@@ -1,4 +1,4 @@
-import BufferSet from './bufferset.js';
+import {BufferSet} from './bufferset.js';
 
 /**
  * BufferManager keeps track of (CPU side) buffers, these buffers are eventually flushed to the GPU.
@@ -9,7 +9,7 @@ import BufferSet from './bufferset.js';
  *  
  *  Because of allocation costs, buffers are reused. Flushed buffers will reset their indices (resetBuffer), subsequently overwriting old data.
  */
-export default class BufferManager {
+export class BufferManager {
 	constructor(viewer, settings, renderer, bufferSetPool) {
 		this.viewer = viewer;
 		this.settings = settings;

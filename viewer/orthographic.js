@@ -1,9 +1,9 @@
 /**
  * Configures orthographic projection mode for the camera.
- * In this projection mode, an object's size in the rendered image stays constant regardless of its distance from the camera.
+ * In this projection mode, an object's size in the rendered image stays constant regardless of its distance} from the camera.
  * Orthographic projection is represented as a viewing frustum, given as six planes.
  */
-export default class Orthographic {
+export class Orthographic {
 
     constructor(viewer) {
         this.viewer = viewer;

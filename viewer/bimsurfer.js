@@ -1,8 +1,8 @@
-import BimServerViewer from "./bimserverviewer.js"
-import EventHandler from "./eventhandler.js";
+import {BimServerViewer} from "./bimserverviewer.js"
+import {EventHandler} from "./eventhandler.js";
 // @todo why?
-import BimServerClient from "http://localhost:8080/apps/bimserverjavascriptapi/bimserverclient.js"
-import Stats from "./stats.js"
+import {BimServerClient} from "http://localhost:8080/apps/bimserverjavascriptapi/bimserverclient.js"
+import {Stats} from "./stats.js"
 
 /**
  * Entry point for the public BimSurfer API.
@@ -11,7 +11,7 @@ import Stats from "./stats.js"
  * @class BimSurfer
  * @extends {EventHandler}
  */
-export default class BimSurfer extends EventHandler {
+export class BimSurfer extends EventHandler {
     constructor() {
         super();
 
@@ -19,7 +19,7 @@ export default class BimSurfer extends EventHandler {
     }
 
     /**
-	 * Loads project meta-data from a BIMserver and searches for the
+	 * Loads project meta-data} from a BIMserver and searches for the
 	 * specified revision id.
 	 * 
 	 * @private

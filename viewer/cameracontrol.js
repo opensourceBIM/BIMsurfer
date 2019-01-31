@@ -1,7 +1,7 @@
 /**
  Controls the camera with user input.
  */
-export default class CameraControl {
+export class CameraControl {
 
     constructor(viewer) {
 

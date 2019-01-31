@@ -1,4 +1,4 @@
-import Utils from './utils.js'
+import {Utils} from './utils.js'
 
 /**
  * Octree implementation targeted towards being used in the TilingLayer, could possibly be retrofitted to be a generic Octree to be used in other contexts
@@ -223,7 +223,7 @@ class OctreeNode {
 	}
 }
 
-export default class Octree extends OctreeNode {
+export class Octree extends OctreeNode {
 	constructor(viewer, bounds, maxDepth) {
 		super(viewer, null, 0, bounds[0], bounds[1], bounds[2], bounds[3] - bounds[0], bounds[4] - bounds[1], bounds[5] - bounds[2]);
 		this.maxDepth = maxDepth;

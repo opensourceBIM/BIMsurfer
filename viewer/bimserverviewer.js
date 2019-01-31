@@ -1,21 +1,21 @@
-import Viewer from './viewer.js'
-import DefaultRenderLayer from './defaultrenderlayer.js'
-import TilingRenderLayer from './tilingrenderlayer.js'
-import VertexQuantization from './vertexquantization.js'
-import Executor from './executor.js'
-import GeometryLoader from "./geometryloader.js"
-import Stats from "./stats.js"
-import DefaultSettings from "./defaultsettings.js"
+import {Viewer} from './viewer.js'
+import {DefaultRenderLayer} from './defaultrenderlayer.js'
+import {TilingRenderLayer} from './tilingrenderlayer.js'
+import {VertexQuantization} from './vertexquantization.js'
+import {Executor} from './executor.js'
+import {GeometryLoader} from "./geometryloader.js"
+import {Stats} from "./stats.js"
+import {DefaultSettings} from "./defaultsettings.js"
 
 /*
- * The main class you instantiate when creating a viewer that will be loading data from a BIMserver.
+ * The main class you instantiate when creating a viewer that will be loading data} from a BIMserver.
  * This will eventually become a public API
  */
 
 /**
  * @ignore
  */
-export default class BimServerViewer {
+export class BimServerViewer {
 	constructor(bimServerApi, settings, canvas, width, height, stats) {
 		if (stats == null) {
 			stats = new Stats(false);

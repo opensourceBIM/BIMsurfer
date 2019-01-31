@@ -24,7 +24,7 @@ const typedArrayToGlTypeMap = new Map([
  * @export
  * @class Utils
  */
-export default class Utils {
+export class Utils {
 	static hash(input) {
 		  var hash = 0, i, chr;
 		  if (input.length === 0) return hash;

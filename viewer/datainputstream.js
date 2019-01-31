@@ -5,7 +5,7 @@ let utf8TextDecoder = new TextDecoder("utf-8");
  * This class keeps track of the position of reading, supplies get methods for most types and provides alignment methods.
  * All data is assumed to be in LITTLE_ENDIAN!
  */
-export default class DataInputStream {
+export class DataInputStream {
 
 	constructor(arrayBuffer) {
 		this.arrayBuffer = arrayBuffer;

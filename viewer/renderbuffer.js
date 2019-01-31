@@ -7,7 +7,7 @@ export const COLOR_ALPHA_DEPTH = 0xff02;
  * @export
  * @class RenderBuffer
  */
-export default class RenderBuffer {
+export class RenderBuffer {
 
     constructor(canvas, gl, purpose, supersample) {
         this.gl = gl;

@@ -6,7 +6,7 @@
  * - Opaque reused
  *  
  */
-export default class GpuBufferManager {
+export class GpuBufferManager {
 	constructor(viewer) {
 		this.viewer = viewer;
 		this.gl = this.viewer.gl;

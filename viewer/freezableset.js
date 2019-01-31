@@ -8,7 +8,7 @@
  * @export
  * @class FreezableSet
  */
-export default class FreezableSet {
+export class FreezableSet {
     constructor() {
         this._set = new Set();
         this._build();
@@ -29,12 +29,12 @@ export default class FreezableSet {
     }
 
     get size() {
-        // Don't know link from Set.prototype, see if() below
+        // Don't know link} from Set.prototype, see if() below
         return this._set.size;
     }
 }
 
-// Hacks to automatically copy over functions from Set.prototype
+// Hacks to automatically copy over functions} from Set.prototype
 let props = Object.getOwnPropertyDescriptors(Set.prototype);
 Object.getOwnPropertyNames(Set.prototype).forEach((name) => {
     if (!props[name].get) {

@@ -1,9 +1,9 @@
-import TreeModel from './treemodel.js'
+import {TreeModel} from './treemodel.js'
 
 /**
  * A quick and dirty tree model, this is used in both the dev.js and interactive.js apps
  */
-export default class ProjectTreeModel extends TreeModel{
+export class ProjectTreeModel extends TreeModel{
 	constructor(bimServerApi, view) {
 		super(view);
 		this.subDiv = view.rootElement;

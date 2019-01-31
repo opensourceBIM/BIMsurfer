@@ -1,10 +1,10 @@
-import BufferManager from './buffermanager.js'
+import {BufferManager} from './buffermanager.js'
 
 /**
  * A buffer manager that keeps track of only 2 buffers, one opaque and one with transparent data.
  * The buffers in this class use an additional buffer to store vertex-colors.
  */
-export default class BufferManagerTransparencyOnly extends BufferManager {
+export class BufferManagerTransparencyOnly extends BufferManager {
 	constructor(viewer, settings, renderer, bufferSetPool) {
 		super(viewer, settings, renderer, bufferSetPool);
 	}

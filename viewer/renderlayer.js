@@ -1,7 +1,7 @@
-import BufferTransformer from './buffertransformer.js'
-import Utils from './utils.js'
-import GeometryCache from './geometrycache.js'
-import FrozenBufferSet from './frozenbufferset.js';
+import {BufferTransformer} from './buffertransformer.js'
+import {Utils} from './utils.js'
+import {GeometryCache} from './geometrycache.js'
+import {FrozenBufferSet} from './frozenbufferset.js';
 
 const selectionOutlineMatrix = mat4.create();
 const outlineColor = new Float32Array([1.0, 0.5, 0.0, 1.0]);
@@ -16,7 +16,7 @@ const UINT32_MAX = (new Uint32Array((new Int32Array([-1])).buffer))[0];
  * @export
  * @class RenderLayer
  */
-export default class RenderLayer {
+export class RenderLayer {
 	
 	constructor(viewer, geometryDataToReuse) {
 		this.settings = viewer.settings;

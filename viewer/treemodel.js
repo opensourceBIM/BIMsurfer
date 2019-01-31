@@ -47,7 +47,7 @@ class TreeNode {
 	}
 }
 
-export default class TreeModel extends TreeNode {
+export class TreeModel extends TreeNode {
 	constructor(view) {
 		super(view);
 	}

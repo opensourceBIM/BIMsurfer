@@ -1,5 +1,5 @@
-import Perspective from './perspective.js'
-import Orthographic from './orthographic.js'
+import {Perspective} from './perspective.js'
+import {Orthographic} from './orthographic.js'
 
 var tempMat4 = mat4.create();
 var tempMat4b = mat4.create();
@@ -14,7 +14,7 @@ var tmp_modelBounds = vec3.create();
 /**
  A **Camera** defines viewing and projection transforms for its Viewer.
  */
-export default class Camera {
+export class Camera {
 
     constructor(viewer) {
 
@@ -43,7 +43,7 @@ export default class Camera {
         this._worldForward = vec3.fromValues(0, 0, -1); // Direction of "forward" in World-space
 
         this._gimbalLock = true; // When true, orbiting world-space "up", else orbiting camera's local "up"
-        this._constrainPitch = true; // When true, will prevent camera from being rotated upside-down
+        this._constrainPitch = true; // When true, will prevent camera} from being rotated upside-down
 
         this._dirty = true; // Lazy-builds view matrix
 
@@ -61,7 +61,7 @@ export default class Camera {
     setModelBounds(bounds) {
         this._modelBounds = [];
 
-        // Store aabb calculated from points
+        // Store aabb calculated} from points
         let a = vec3.fromValues(+Infinity, +Infinity, +Infinity);
         let b = vec3.fromValues(-Infinity, -Infinity, -Infinity);
 
@@ -470,7 +470,7 @@ export default class Camera {
         var eyeToTarget = vec3.subtract(tempVec3, this._target, this._eye);
         mat4.fromRotation(tempMat4, degrees * 0.0174532925, this._gimbalLock ? this._worldUp : this._up);
         vec3.transformMat4(eyeToTarget, eyeToTarget, tempMat4); // Rotate vector
-        vec3.add(this._target, this._eye, eyeToTarget); // Derive 'target' from eye and vector
+        vec3.add(this._target, this._eye, eyeToTarget); // Derive 'target'} from eye and vector
         if (this._gimbalLock) {
             vec3.transformMat4(this._up, this._up, tempMat4); // Rotate 'up' vector
         }
@@ -497,7 +497,7 @@ export default class Camera {
             }
         }
         this._up.set(newUp);
-        vec3.add(this._target, this._eye, eyeToTarget); // Derive 'target' from eye and vector
+        vec3.add(this._target, this._eye, eyeToTarget); // Derive 'target'} from eye and vector
         this._setDirty();
     }
 

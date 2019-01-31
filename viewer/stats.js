@@ -1,7 +1,7 @@
 /**
  * Keeps track of statistics. Initially only a UI, but can also be used "headless" by given a false value for the `active` constructor argument
  */
-export default class Stats {
+export class Stats {
 	constructor(active = true) {
 		this.active = active;
 		this.parameters = {};

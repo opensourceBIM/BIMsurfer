@@ -5,7 +5,7 @@
 /**
  * @ignore
  */
-export default class BufferHelper {
+export class BufferHelper {
 	static trianglesToBytes(settings, nrPrimitives) {
 		var reusedVerticesFactor = 0.5;
 		var estimatedNonReusedByteSize = 0;

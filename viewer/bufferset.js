@@ -1,9 +1,9 @@
-import AbstractBufferSet from "./abstractbufferset.js";
+import {AbstractBufferSet} from "./abstractbufferset.js";
 
 /**
  * @ignore
  */
-export default class BufferSet extends AbstractBufferSet {
+export class BufferSet extends AbstractBufferSet {
     
     constructor(viewer, settings, hasTransparency, color, sizes) {
 		super(viewer);

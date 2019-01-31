@@ -1,7 +1,7 @@
 /**
  * @ignore
  */
-export default class DefaultSettings {
+export class DefaultSettings {
 	static create(settings) {
 		if (settings == null) {
 			var settings = {};

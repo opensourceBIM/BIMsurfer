@@ -1,7 +1,7 @@
 /**
  * @ignore
  */
-export default class EventHandler {
+export class EventHandler {
     constructor() {
         this.handlers = {};
     }

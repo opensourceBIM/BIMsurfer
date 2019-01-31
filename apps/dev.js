@@ -1,15 +1,16 @@
-import BimServerClient from "../../bimserverjavascriptapi/bimserverclient.js"
-import BimServerViewer from "../viewer/bimserverviewer.js"
-import Stats from "../viewer/stats.js"
-import Settings from "../viewer/settings.js"
-import ProjectTreeModel from "../viewer/projecttreemodel.js"
-import TreeView from "../viewer/treeview.js"
+import {Address} from "./address.js";
+import {BimServerClient} from "../../bimserverjavascriptapi/bimserverclient.js"
+import {BimServerViewer} from "../viewer/bimserverviewer.js"
+import {Stats} from "../viewer/stats.js"
+import {Settings} from "../viewer/settings.js"
+import {ProjectTreeModel} from "../viewer/projecttreemodel.js"
+import {TreeView} from "../viewer/treeview.js"
 
 /*
  * This class is where the applications starts, it's a mess, needs to go when we change this into an API
  */
 
-export default class Dev {
+export class Dev {
 
 	start() {
 		this.animationEnabled = false;
@@ -34,7 +35,7 @@ export default class Dev {
 		this.settings.viewerBasePath = "../";
 		this.settings.drawTileBorders = true;
 		
-		this.api = new BimServerClient("http://localhost:8080");
+		this.api = new BimServerClient(Address.getApiAddress());
 //		this.api = new BimServerClient("https://epic.logic-labs.nl");
 		this.api.init(() => {
 			this.api.login("admin@bimserver.org", "admin", () => {

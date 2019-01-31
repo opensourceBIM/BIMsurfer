@@ -1,4 +1,4 @@
-import FatLineRenderer from './fatlinerenderer.js'
+import {FatLineRenderer} from './fatlinerenderer.js'
 
 /**
  * Simple (reusable) class to draw a linebox
@@ -7,7 +7,7 @@ import FatLineRenderer from './fatlinerenderer.js'
  * @class LineBoxGeometry
  * @extends {FatLineRenderer}
  */
-export default class LineBoxGeometry extends FatLineRenderer {
+export class LineBoxGeometry extends FatLineRenderer {
 	constructor(viewer, gl) {
 		super(viewer, gl, {quantize: false});
 		this.gl = gl;

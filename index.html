@@ -8,20 +8,16 @@
 </head>
 <body>
 	<h1>BIMsurfer V3 Index Page</h1>
-	<p>This page serves as an index page to jump to different applications of BIMsurfer V3</p>
-	<ul>
-		<li>BIMsurfer V3 is a JavaScript library, not an application</li>
-	</ul>
+	<p>This page serves as an index page to jump to different example/development/testing applications of BIMsurfer V3</p>
+	<b>To be clear, BIMsurfer 3 is a JavaScript library, not an application, what you see here can be regarded as documentation</b>
 	<h3>Current limitations</h3>
-	<ul>
-		<li>Most of the demo apps connect to http://localhost:8080 and expect a BIMserver there with admin@bimserver.org/admin as a user</li>
-	</ul>	
 	<div class="wrapper">
 		<div class="mode">
 			<a href="apps/dev.html">
 				<b>Developer Mode</b>
 				<p>
-					Includes UI to select project, visual settings and stats
+					Includes UI to select project, visual settings and stats<br/><br/>
+					When BIMsurfer 3 is loaded from a BIMserver, it will try to connect to it's API, otherwise, it will connect to http://localhost:8080
 				</p>
 				<img/>
 			</a>
@@ -30,7 +26,8 @@
 			<a href="apps/minimal.html"> 
 				<b>Minimal Demo</b>
 				<p>
-					A minimal implementation, ready for copy/paste. Make sure to change the default credentials and settings
+					A minimal implementation, ready for copy/paste. Make sure to change the default credentials and settings<br/><br/>
+					Also the poid is hardcoded, so don't expect this to simply work by clicking on it
 				</p>
 				<img/>
 			</a>
@@ -39,7 +36,7 @@
 			<a href="apps/interactive.html">
 				<b>Interactive Demo</b>
 				<p>
-					Allows you to select a BIMserver first, login and then select the project you want you want to visualize
+					Allows you to select a BIMserver first, login and then select the project you want to visualize
 				</p>
 				<img/>
 			</a>
@@ -48,12 +45,12 @@
 			<a href="apps/api.html">
 				<b>API</b>
 				<p>
-					api.
+					Shows the basic API functions. Also this connects to with default credentials and a hardcoded poid.
 				</p>
 				<img/>
 			</a>
 		</div>
-		<div class="mode test">
+		<div class="mode test hidden">
 			<a href="apps/tests.html">
 				<b>Functional and Performance tests</b>
 				<p>

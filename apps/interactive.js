@@ -1,14 +1,14 @@
 // At the moment this API is loaded from a BIMserver, you could also include the API files in your viewer
-import BimServerClient from "../../bimserverjavascriptapi/bimserverclient.js"
-import BimServerViewer from "../viewer/bimserverviewer.js"
-import TreeView from "../viewer/treeview.js"
-import ProjectTreeModel from "../viewer/projecttreemodel.js"
+import {BimServerClient} from "../../bimserverjavascriptapi/bimserverclient.js"
+import {BimServerViewer} from "../viewer/bimserverviewer.js"
+import {TreeView} from "../viewer/treeview.js"
+import {ProjectTreeModel} from "../viewer/projecttreemodel.js"
 
 /*
  * This class is where the interactive demo application starts
  */
 
-export default class Interactive {
+export class Interactive {
 
 	constructor() {
 		// You need to change these to something that makes sense

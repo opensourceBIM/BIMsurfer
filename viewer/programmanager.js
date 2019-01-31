@@ -9,7 +9,7 @@ export const LINE_PRIMITIVES = 64;
 /**
  * Keeps track of shader programs, glsl, uniform positions and vertex attributes
  */
-export default class ProgramManager {
+export class ProgramManager {
 	
 	constructor(gl, settings) {
 		this.gl = gl;

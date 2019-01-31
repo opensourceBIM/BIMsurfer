@@ -1,4 +1,4 @@
-import FrustumPlane from './frustumplane.js'
+import {FrustumPlane} from './frustumplane.js'
 
 var tempMat4 = mat4.create();
 var tempVec3 = vec3.create();
@@ -10,7 +10,7 @@ var tempVec3b = vec3.create();
  * @export
  * @class Frustum
  */
-export default class Frustum {
+export class Frustum {
 
     constructor() {
         this.planes = [ // Allocate now, init when needed
@@ -23,7 +23,7 @@ export default class Frustum {
         ];
     }
 
-    init(viewMatrix, projMatrix) { // Builds frustum planes from view and projection matrices
+    init(viewMatrix, projMatrix) { // Builds frustum planes} from view and projection matrices
         var m = tempMat4;
         mat4.multiply(m, projMatrix, viewMatrix);
         var m0 = m[0], m1 = m[1], m2 = m[2], m3 = m[3];

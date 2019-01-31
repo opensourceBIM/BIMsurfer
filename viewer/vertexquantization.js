@@ -1,11 +1,11 @@
-import Utils from './utils.js'
+import {Utils} from './utils.js'
 
 /**
  * This class is responsible for keeping track of the various matrices used for quantization/unquantization
  * 
  * croid stands for: ConcreteRevision Object Identifier, it's a BIMserver object, you can see it as a unique identifier that identifies a revision.
  */
-export default class VertexQuantization {
+export class VertexQuantization {
 	constructor(settings) {
 		this.settings = settings;
 		

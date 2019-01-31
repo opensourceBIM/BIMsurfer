@@ -1,18 +1,19 @@
 // At the moment this API is loaded from a BIMserver, you could also include the API files in your viewer
-import BimServerClient from "../../bimserverjavascriptapi/bimserverclient.js"
-import BimServerViewer from "../viewer/bimserverviewer.js"
+import {Address} from "./address.js";
+import {BimServerClient} from "../../bimserverjavascriptapi/bimserverclient.js"
+import {BimServerViewer} from "../viewer/bimserverviewer.js"
 
 /*
  * This class is where the minimal demo starts. This is intended as an example you can copy-and-paste to start integratie the viewer in your own application.
  */
 
-export default class Minimal {
+export class Minimal {
 
 	constructor() {
 		// You need to change these to something that makes sense
 		this.demoSettings = {
 			// Address of your BIMserver
-			bimServerAddress: "http://localhost:8080",
+			bimServerAddress: Address.getApiAddress(),
 			// Login credentials of your BIMserver, obviously you'd never include these for production applications
 			bimServerLogin: {
 				username: "admin@bimserver.org",

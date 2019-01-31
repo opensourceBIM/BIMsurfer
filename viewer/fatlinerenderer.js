@@ -1,5 +1,5 @@
-import Utils from './utils.js'
-import ProgramManager from './programmanager.js'
+import {Utils} from './utils.js'
+import {ProgramManager} from './programmanager.js'
 import {VERTEX_QUANTIZATION} from './programmanager.js'
 import {LINE_PRIMITIVES} from './programmanager.js'
 
@@ -27,7 +27,7 @@ import {LINE_PRIMITIVES} from './programmanager.js'
  * (A,B,1)                                       (B,A,1)
  * 
  */
-export default class FatLineRenderer {
+export class FatLineRenderer {
     constructor(viewer, gl, settings) {
     	this.viewer = viewer;
 		settings = settings || {};

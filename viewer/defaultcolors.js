@@ -1,7 +1,7 @@
 /**
  * Default colors, only used by the GeometryLoader when no default color is given by the serializer
  */
-export default {
+export const DefaultColors = {
 	IfcSpace: {r: 0.137255, g: 0.403922, b: 0.870588, a: 1.0},
 	IfcRoof: {r: 0.837255, g: 0.203922, b: 0.270588, a: 1.0},
 	IfcSlab: {r: 0.637255, g: 0.603922, b: 0.670588, a: 1.0},

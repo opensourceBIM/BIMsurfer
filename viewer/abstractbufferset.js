@@ -1,9 +1,9 @@
-import FatLineRenderer from './fatlinerenderer.js'
+import {FatLineRenderer} from './fatlinerenderer.js'
 
 /**
  * @ignore
  */
-export default class AbstractBufferSet {
+export class AbstractBufferSet {
     
     constructor(viewer) {
     	this.viewer = viewer;

@@ -4,7 +4,7 @@
  * 
  * @todo This class was quickly hacked together, should not be built upon
  */
-export default class Settings {
+export class Settings {
 	constructor(element) {
 		var settingsDefinition = {
 			quantizeNormals: "boolean",

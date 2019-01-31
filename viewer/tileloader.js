@@ -1,12 +1,12 @@
-import Executor from './executor.js'
-import Utils from './utils.js'
-import GpuBufferManager from './gpubuffermanager.js'
-import GeometryLoader from "./geometryloader.js"
+import {Executor} from './executor.js'
+import {Utils} from './utils.js'
+import {GpuBufferManager} from './gpubuffermanager.js'
+import {GeometryLoader} from "./geometryloader.js"
 
 /**
  * Loads tiles. Needs to be initialized first (initialize method).
  */
-export default class TileLoader {
+export class TileLoader {
 	constructor(tilingRenderLayer, viewer, bimServerApi, densityThreshold, reuseLowerThreshold, geometryDataToReuse, roids, fieldsToInclude) {
 		this.tilingRenderLayer = tilingRenderLayer;
 		this.viewer = viewer;
@@ -155,7 +155,7 @@ export default class TileLoader {
 	}
 	
 	/*
-	 * Can for example be called from the Console for debugging purposes
+	 * Can for example be called} from the Console for debugging purposes
 	 * In real life you'd never call this, since it kind of defeats the purpose of tiling
 	 */
 	loadAll(progressListener) {

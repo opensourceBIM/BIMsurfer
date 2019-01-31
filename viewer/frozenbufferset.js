@@ -1,10 +1,10 @@
-import AbstractBufferSet from "./abstractbufferset.js";
-import Utils from "./utils.js"
+import {AbstractBufferSet} from "./abstractbufferset.js";
+import {Utils} from "./utils.js"
 
 /**
  * @ignore
  */
-export default class FrozenBufferSet extends AbstractBufferSet {
+export class FrozenBufferSet extends AbstractBufferSet {
     constructor(
     	viewer,
         originalBuffer,

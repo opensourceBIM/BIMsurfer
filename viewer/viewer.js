@@ -1,14 +1,14 @@
-import ProgramManager from './programmanager.js'
-import Lighting from './lighting.js'
-import BufferSetPool from './buffersetpool.js'
-import Camera from './camera.js'
-import CameraControl from './cameracontrol.js'
-import RenderBuffer from './renderbuffer.js'
-import SvgOverlay from './svgoverlay.js'
-import FrozenBufferSet from './frozenbufferset.js'
-import Utils from './utils.js'
-import SSQuad from './ssquad.js'
-import FreezableSet from './freezableset.js';
+import {ProgramManager} from './programmanager.js'
+import {Lighting} from './lighting.js'
+import {BufferSetPool} from './buffersetpool.js'
+import {Camera} from './camera.js'
+import {CameraControl} from './cameracontrol.js'
+import {RenderBuffer} from './renderbuffer.js'
+import {SvgOverlay} from './svgoverlay.js'
+import {FrozenBufferSet} from './frozenbufferset.js'
+import {Utils} from './utils.js'
+import {SSQuad} from './ssquad.js'
+import {FreezableSet} from './freezableset.js';
 
 import {COLOR_FLOAT_DEPTH, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 
@@ -16,7 +16,7 @@ var tmp_unproject = vec3.create();
 
 // When a change in color results in a different
 // transparency state, the objects needs to be hidden
-// from the original buffer and recreate in a new buffer
+//} from the original buffer and recreate in a new buffer
 // to be rendered during the correct render pass. This
 // recreated object will have it's most significant bit
 // set to 1.
@@ -32,7 +32,7 @@ const OVERRIDE_FLAG = (1 << 31);
  * @export
  * @class Viewer
  */
-export default class Viewer {
+export class Viewer {
 
     constructor(canvas, settings, stats, width, height) {
         this.stats = stats;
@@ -76,14 +76,14 @@ export default class Viewer {
         this.invisibleElements = new FreezableSet();
 
         // Elements for which the color has been overriden and transparency has
-        // changed. These elements are hidden from their original buffers and
+        // changed. These elements are hidden} from their original buffers and
         // recreated in a new buffer during the correct render pass. When elements
         // are unhidden, the overridden elements need to stay hidden.
         this.hiddenDueToSetColor = new Map();
         this.originalColors = new Map();
 
         // For instances the logic is even different, as the element matrices
-        // are removed from the buffer and added back to different (instanced)
+        // are removed} from the buffer and added back to different (instanced)
         // bufferset. When undoing colors on reused geometries, the product matrix
         // simply needs to be added back to the original.
         this.instancesWithChangedColor = new Map();

@@ -20,11 +20,12 @@
     </div>
 
     <script type="module">
-        import BimSurfer from "../viewer/bimsurfer.js";
+        import {BimSurfer} from "../viewer/bimsurfer.js";
+		import {Address} from "./address.js";
         
         let surfer = window.bimSurfer = new BimSurfer();
         surfer.load({
-            bimserver:"http://localhost:8080", 
+            bimserver: Address.getApiAddress(), 
             username:"admin@bimserver.org",
             password:"admin",
             roid:65539,

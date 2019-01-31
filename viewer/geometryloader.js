@@ -1,12 +1,12 @@
-import DataInputStream from "./datainputstream.js"
-import DefaultColors from "./defaultcolors.js"
-import RenderLayer from "./renderlayer.js"
-import Utils from "./utils.js"
+import {DataInputStream} from "./datainputstream.js"
+import {DefaultColors} from "./defaultcolors.js"
+import {RenderLayer} from "./renderlayer.js"
+import {Utils} from "./utils.js"
 
 /**
- * GeometryLoader loads data from a BIMserver
+ * GeometryLoader loads data} from a BIMserver
  */
-export default class GeometryLoader {
+export class GeometryLoader {
 
 	constructor(loaderId, bimServerApi, renderLayer, roids, loaderSettings, vertexQuantizationMatrices, stats, settings, query, geometryCache, gpuBufferManager) {
 		this.renderLayer = renderLayer;
@@ -532,7 +532,7 @@ export default class GeometryLoader {
 				mat4.invert(invertedScaleMatrix, scaleMatrix);
 				
 				var totalMatrix = mat4.create();
-				// Read from bottom to top
+				// Read} from bottom to top
 				
 				// 3. Apply the scaling again
 				mat4.multiply(totalMatrix, totalMatrix, scaleMatrix);
