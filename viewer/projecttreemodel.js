@@ -19,6 +19,10 @@ export class ProjectTreeModel extends TreeModel{
 			onlyTopLevel: false,
 			onlyActive: true
 		}, (projects) => {
+			if (projects.length == 0) {
+				var node = this.add("No projects");
+				node.show();
+			}
 			for (var p of projects) {
 				this.poidToProject.set(p.oid, p);
 				p.subProjects = [];
@@ -33,7 +37,7 @@ export class ProjectTreeModel extends TreeModel{
 					this.addProject(null, p, clickFn);
 				}
 			}
-		})
+		});
 	}
 	
 	addProject(parentNode, project, clickFn) {

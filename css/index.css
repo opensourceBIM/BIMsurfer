@@ -15,3 +15,8 @@
 .hidden {
 	display: none
 }
+
+.mode {
+	background: #DDDDDD;
+	padding: 10px;
+}
