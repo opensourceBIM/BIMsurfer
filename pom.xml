@@ -77,7 +77,7 @@
 			</resource>
 			<resource>
 				<targetPath>docs</targetPath>
-				<directory>docs</directory>
+				<directory>../../docs</directory>
 			</resource>
 			<resource>
 				<targetPath>img</targetPath>
@@ -168,6 +168,7 @@
 						<checkModificationExclude>apps/interactive.js</checkModificationExclude>
 						<checkModificationExclude>apps/minimal.js</checkModificationExclude>
 						<checkModificationExclude>apps/tests.js</checkModificationExclude>
+						<checkModificationExclude>docs/index.html</checkModificationExclude>
 					</checkModificationExcludes>
 				</configuration>
 			</plugin>
