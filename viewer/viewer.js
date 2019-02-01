@@ -389,12 +389,26 @@ export class Viewer {
         }
 
         if (this.useOrderIndependentTransparency) {
-        	/* 1. Render opaque objects to default framebuffer */
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            gl.disable(gl.BLEND);
-            render({without: this.invisibleElements}, [false]);
+        	  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+              gl.disable(gl.BLEND);
+              render({without: this.invisibleElements}, [false]);
 
-            
+              this.oitBuffer.bind();
+              gl.clearColor(0, 0, 0, 0);
+              this.oitBuffer.clear();
+              // @todo It should be possible to eliminate this step. It's necessary
+              // to repopulate the depth-buffer with opaque elements.
+              render({without: this.invisibleElements}, [false]);
+              this.oitBuffer.clear(false);
+              gl.enable(gl.BLEND);
+              gl.blendFunc(gl.ONE, gl.ONE);
+              gl.depthMask(false);
+      
+              render({without: this.invisibleElements}, [true]);
+      
+              gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+              gl.viewport(0, 0, this.width, this.height);
+              this.quad.draw(this.oitBuffer.colorBuffer, this.oitBuffer.alphaBuffer);
         } else {
             gl.disable(gl.BLEND);
             render({without: this.invisibleElements}, [false]);
