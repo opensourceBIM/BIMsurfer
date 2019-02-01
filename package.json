@@ -1,0 +1,45 @@
+{
+  "name": "bimsurfer3",
+  "groupId": "org.opensourcebim",
+  "artifactId": "bimsurfer3",
+  "organization": "OpenSource BIM",
+  "version": "0.0.1",
+  "description": "BIMsurferV3",
+  "author": {
+    "name": "Ruben de Laat",
+    "email": "ruben@logic-labs.nl"
+  },
+  "scripts": {},
+  "files": [
+    "js"
+  ],
+  "main": "index.html",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TNOBIM/BIMSurfer"
+  },
+  "bugs": {
+    "url": "https://github.com/TNOBIM/BIMSurfer/issues"
+  },
+  "keywords": [],
+  "dependencies": {
+    "bimserverapi": "*",
+    "xhr2": "*"
+  },
+  "devDependencies": {
+    "grunt": "*",
+    "grunt-contrib-jshint": "*",
+    "grunt-contrib-nodeunit": "*",
+    "grunt-contrib-uglify": "*",
+    "grunt-contrib-concat": "*",
+    "grunt-contrib-cssmin": "*",
+    "grunt-contrib-copy": "*",
+    "grunt-contrib-clean": "*",
+    "grunt-zip": "*"
+  },
+  "preferGlobal": true,
+  "private": false,
+  "analyze": true,
+  "license": "AGPL-3.0",
+  "readmeFilename": "README.md"
+}
