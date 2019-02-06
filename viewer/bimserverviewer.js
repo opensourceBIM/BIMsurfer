@@ -309,6 +309,21 @@ export class BimServerViewer {
 			});
 		});
 	}
+
+	getGlobalId(oid) {
+
+		return new Promise((resolve, reject) => {
+	
+			this.bimServerApi.call("LowLevelInterface", "getDataObjectByOid", {
+				roid: this.revisionId,
+				oid : oid
+			}, (data)=> {
+				// console.log("bimserver returend "+data.guid);
+				resolve(data.guid);
+			});
+
+		});
+	}
 	
 	loadDefaultLayer(defaultRenderLayer, revision, totalBounds, fieldsToInclude) {
 //		document.getElementById("progress").style.display = "block";
