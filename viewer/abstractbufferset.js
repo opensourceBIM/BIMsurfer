@@ -180,7 +180,7 @@ export class AbstractBufferSet {
         };
 
         const id_ranges = this.geometryIdToIndex
-            ? Array.from(_(this.geometryIdToIndex)).sort()
+            ? Array.from(_(this.geometryIdToIndex)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
             // If we don't have this mapping, we're dealing with a dedicated
             // non-instanced bufferset for one particular overriden object
             : [[this.objectId & 0x8FFFFFFF, [0, this.nrIndices]]];
