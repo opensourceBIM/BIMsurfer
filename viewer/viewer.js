@@ -127,30 +127,35 @@ export class Viewer {
         elems = Array.from(elems);
         
         let fn = (visible ? this.invisibleElements.delete : this.invisibleElements.add).bind(this.invisibleElements);
+        this.invisibleElements.batch(() => {
         
-        elems.forEach((i) => {
-            fn(i);
-            // Show/hide transparently-adjusted counterpart (even though it might not exist)
-            fn(i | OVERRIDE_FLAG);
-        });
+            elems.forEach((i) => {
+                fn(i);
+                // Show/hide transparently-adjusted counterpart (even though it might not exist)
+                fn(i | OVERRIDE_FLAG);
+            });
 
-        // Make sure elements hidden due to setColor() stay hidden
-        for (let i of this.hiddenDueToSetColor.keys()) {
-            this.invisibleElements.add(i);
-        };
+            // Make sure elements hidden due to setColor() stay hidden
+            for (let i of this.hiddenDueToSetColor.keys()) {
+                this.invisibleElements.add(i);
+            };
+
+        });
 
         this.dirty = true;
     }
 
     setSelectionState(elems, selected, clear) {
-        if (clear) {
-            this.selectedElements.clear();
-        }
+        this.selectedElements.batch(() => {
+            if (clear) {
+                this.selectedElements.clear();
+            }
 
-        let fn = (selected ? this.selectedElements.add : this.selectedElements.delete).bind(this.selectedElements);
-        for (let e of elems) {
-            fn(e);
-        }
+            let fn = (selected ? this.selectedElements.add : this.selectedElements.delete).bind(this.selectedElements);
+            for (let e of elems) {
+                fn(e);
+            }
+        });
 
         this.dirty = true;
     }
@@ -161,26 +166,28 @@ export class Viewer {
     }
 
     resetColor(elems) {
-        for (let objectId of elems) {
-            if (this.hiddenDueToSetColor.has(objectId)) {
-                this.invisibleElements.delete(objectId);
-                let buffer = this.hiddenDueToSetColor.get(objectId);
-                buffer.manager.deleteBuffer(buffer);
+        this.invisibleElements.batch(() => {
+            for (let objectId of elems) {
+                if (this.hiddenDueToSetColor.has(objectId)) {
+                    this.invisibleElements.delete(objectId);
+                    let buffer = this.hiddenDueToSetColor.get(objectId);
+                    buffer.manager.deleteBuffer(buffer);
 
-                this.hiddenDueToSetColor.delete(objectId);
-            } else if (this.originalColors.has(objectId)) {
-                this.geometryIdToBufferSet.get(objectId).forEach((bufferSet) => {
-                    bufferSet.setColor(this.gl, objectId, this.originalColors.get(objectId));
-                });
+                    this.hiddenDueToSetColor.delete(objectId);
+                } else if (this.originalColors.has(objectId)) {
+                    this.geometryIdToBufferSet.get(objectId).forEach((bufferSet) => {
+                        bufferSet.setColor(this.gl, objectId, this.originalColors.get(objectId));
+                    });
 
-                this.originalColors.delete(objectId);
-            } else if (this.instancesWithChangedColor.has(objectId)) {
-                let entry = this.instancesWithChangedColor.get(objectId);
-                entry.override.manager.deleteBuffer(entry.override);
-                entry.original.setObjects(this.gl, entry.original.objects.concat([entry.object]));
-                this.instancesWithChangedColor.delete(objectId);
+                    this.originalColors.delete(objectId);
+                } else if (this.instancesWithChangedColor.has(objectId)) {
+                    let entry = this.instancesWithChangedColor.get(objectId);
+                    entry.override.manager.deleteBuffer(entry.override);
+                    entry.original.setObjects(this.gl, entry.original.objects.concat([entry.object]));
+                    this.instancesWithChangedColor.delete(objectId);
+                }
             }
-        }
+        });
     }
 
     setColor(elems, clr) {

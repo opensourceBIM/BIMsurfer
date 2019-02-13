@@ -11,6 +11,7 @@
 export class FreezableSet {
     constructor() {
         this._set = new Set();
+        this._update = true;
         this._build();
     }
 
@@ -32,6 +33,13 @@ export class FreezableSet {
         // Don't know link} from Set.prototype, see if() below
         return this._set.size;
     }
+
+    batch(fn) {
+        this._update = false;
+        fn();
+        this._build();
+        this._update = true;
+    }
 }
 
 // Hacks to automatically copy over functions} from Set.prototype
@@ -41,7 +49,9 @@ Object.getOwnPropertyNames(Set.prototype).forEach((name) => {
         FreezableSet.prototype[name] = function(...args) {
             let r = this._set[name](...args);
             // Rebuild the string representation after every modification
-            this._build();
+            if (this._update && name !== 'has') {
+                this._build();
+            }
             return r;
         }
     }
