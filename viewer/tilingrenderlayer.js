@@ -205,9 +205,10 @@ export class TilingRenderLayer extends RenderLayer {
 				return false;
 			}
 		});
+	}
 
-		// TODO this is still called twice now, also for selection...
-		if (this.drawTileBorders && !picking && transparency && !reuse) {
+	renderTileBorders() {
+		if (this.drawTileBorders) {
 			// The lines are rendered in the transparency-phase only
 			this.lineBoxGeometry.renderStart(this.viewer);
 			this.octree.traverse((node, level) => {
@@ -236,7 +237,7 @@ export class TilingRenderLayer extends RenderLayer {
 				} else if (node.loadingStatus == 5) {
 					// Node has been tried to load, but no objects were returned
 				}
-				if (color != null && visibleElements.pass != 'stencil') {
+				if (color != null) {
 					this.lineBoxGeometry.render(color, node.getMatrix(), 0.003);
 				}
 			});

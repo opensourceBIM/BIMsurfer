@@ -277,8 +277,6 @@ export class Viewer {
             this.programManager = new ProgramManager(this.gl, this.settings);
 
             this.programManager.load().then(() => {
-                this.gl.enable(this.gl.CULL_FACE);
-
                 // It would be really nice to get the BIMsurfer V1 like anti-aliasing, so far I understand this is definitely
                 // possible in WebGL2 but you need to do something with framebuffers/renderbuffers.
 
@@ -360,6 +358,7 @@ export class Viewer {
         
         gl.viewport(0, 0, this.width, this.height);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+        gl.enable(gl.CULL_FACE);
 
         if (this.modelBounds != null) {
             if (!this.cameraSet) { // HACK to look at model origin as soon as available
@@ -417,6 +416,9 @@ export class Viewer {
             render({without: this.invisibleElements}, [true]);
         }
 
+        // Selection outlines require face culling to be disabled.
+        gl.disable(gl.CULL_FACE);
+
         if (this.selectedElements.size > 0) {
             gl.enable(gl.STENCIL_TEST);
             gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
@@ -440,6 +442,12 @@ export class Viewer {
 
             for (var renderLayer of this.renderLayers) {
                 renderLayer.renderSelectionOutlines(this.selectedElements, 0.001);
+            }
+        }
+
+        for (var renderLayer of this.renderLayers) {
+            if (renderLayer.renderTileBorders) {
+                renderLayer.renderTileBorders();
             }
         }
 
