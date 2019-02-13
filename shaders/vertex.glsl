@@ -171,7 +171,7 @@ void main(void) {
     vec3 viewNormal = normalize(viewNormalMatrix * floatNormal);
     float lambert1 = abs(dot(floatNormal, normalize(lightData.dir)));
     float lambert2 = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
-    color = vec4((lambert1 * 0.8 + lambert2 * 0.2) * floatColor.rgb, floatColor.a);
+    color = vec4((lambert1 * 0.85 + lambert2 * 0.2 + 0.3) * floatColor.rgb, floatColor.a);
 #endif
 
 #endif
