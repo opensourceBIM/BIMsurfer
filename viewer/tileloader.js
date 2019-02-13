@@ -123,7 +123,9 @@ export class TileLoader {
 			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
 		};
 		
-		query.loaderSettings.vertexQuantizationMatrix = this.tilingRenderLayer.viewer.vertexQuantization.getTransformedVertexQuantizationMatrix();
+		if (this.tilingRenderLayer.viewer.vertexQuantization) {
+			query.loaderSettings.vertexQuantizationMatrix = this.tilingRenderLayer.viewer.vertexQuantization.getTransformedVertexQuantizationMatrix();
+		}
 		
 		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, this.tilingRenderLayer, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, this.tilingRenderLayer.reusedGeometryCache, node.gpuBufferManager);
 		

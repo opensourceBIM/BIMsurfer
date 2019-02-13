@@ -48,8 +48,10 @@ class OctreeNode {
 		
 		this.quadrants = [];
 		
-		this.vertexQuantizationMatrix = Utils.toArray(this.viewer.vertexQuantization.getTransformedQuantizationMatrix(this.bounds));
-		this.vertexUnquantizationMatrix = Utils.toArray(this.viewer.vertexQuantization.getTransformedInverseQuantizationMatrix(this.bounds));
+		if (this.viewer.vertexQuantization) {
+			this.vertexQuantizationMatrix = Utils.toArray(this.viewer.vertexQuantization.getTransformedQuantizationMatrix(this.bounds));
+			this.vertexUnquantizationMatrix = Utils.toArray(this.viewer.vertexQuantization.getTransformedInverseQuantizationMatrix(this.bounds));
+		}
 		
 		this.largestFaceArea = width * height;
 		if (width * depth > this.largestFaceArea) {
