@@ -468,6 +468,10 @@ export class Viewer {
 //		);
     }
 
+    startMeasurement() {
+
+    }
+
     /**
      Attempts to pick an object at the given canvas coordinates.
 

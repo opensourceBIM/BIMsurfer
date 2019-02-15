@@ -109,36 +109,43 @@ export class CameraControl {
         this.lastX = this.mousePos[0];
         this.lastY = this.mousePos[1];
 
+        this.ctrlDown = e.ctrlKey;
+        this.mouseDownTime = e.timeStamp;
+
         switch (e.which) {
             case 1:
                 this.mouseDownLeft = true;
-                this.mouseDownPos.set(this.mousePos);
-                let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
-                if (picked && picked.coordinates && picked.object) {
-                    this.viewer.camera.center = picked.coordinates;
-                } else {
-                    // Check if we can 'see' the previous center. If not, pick
-                    // a new point.
-                    let center_vp = vec3.transformMat4(vec3.create(), this.viewer.camera.center, this.viewer.camera.viewProjMatrix);
+                this.mouseDownPos.set(this.mousePos);       
+                if (e.ctrlKey) {
+                    this.viewer.startMeasurement({canvasPos:[this.lastX, this.lastY]});                    
+                } else {                    
+                    let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
+                    if (picked && picked.coordinates && picked.object) {
+                        this.viewer.camera.center = picked.coordinates;
+                    } else {
+                        // Check if we can 'see' the previous center. If not, pick
+                        // a new point.
+                        let center_vp = vec3.transformMat4(vec3.create(), this.viewer.camera.center, this.viewer.camera.viewProjMatrix);
 
-                    let isv = true;
-                    for (let i = 0; i < 3; ++i) {
-                        if (center_vp[i] < -1. || center_vp[i] > 1.) {
-                            isv = false;
-                            break;
+                        let isv = true;
+                        for (let i = 0; i < 3; ++i) {
+                            if (center_vp[i] < -1. || center_vp[i] > 1.) {
+                                isv = false;
+                                break;
+                            }
                         }
-                    }
 
-                    if (!isv) {
-                        let [x,y] = this.mousePos;
-                        vec3.set(center_vp, x / this.viewer.width * 2 - 1, - y / this.viewer.height * 2 + 1, 1.);
-                        vec3.transformMat4(center_vp, center_vp, this.camera.viewProjMatrixInverted);
-                        vec3.subtract(center_vp, center_vp, this.camera.eye);
-                        vec3.normalize(center_vp, center_vp);
-                        vec3.scale(center_vp, center_vp, this.getZoomRate() * 10.);
-                        vec3.add(center_vp, center_vp, this.camera.eye);
-                        console.log("new center", center_vp);
-                        this.viewer.camera.center = center_vp;
+                        if (!isv) {
+                            let [x,y] = this.mousePos;
+                            vec3.set(center_vp, x / this.viewer.width * 2 - 1, - y / this.viewer.height * 2 + 1, 1.);
+                            vec3.transformMat4(center_vp, center_vp, this.camera.viewProjMatrixInverted);
+                            vec3.subtract(center_vp, center_vp, this.camera.eye);
+                            vec3.normalize(center_vp, center_vp);
+                            vec3.scale(center_vp, center_vp, this.getZoomRate() * 10.);
+                            vec3.add(center_vp, center_vp, this.camera.eye);
+                            console.log("new center", center_vp);
+                            this.viewer.camera.center = center_vp;
+                        }
                     }
                 }
                 break;
@@ -163,10 +170,13 @@ export class CameraControl {
         this.camera.orbitting = false;
         this.viewer.overlay.update();
         this.getCanvasPosFromEvent(e, this.mousePos);
+
+        let dt = e.timeStamp - this.mouseDownTime;
+
         switch (e.which) {
             case 1:
             	this.mouseDownLeft = false;
-                if (this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
+                if (dt < 500. && this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
                     var viewObject = this.viewer.pick({
                         canvasPos: this.mousePos,
                         shiftKey: e.shiftKey
