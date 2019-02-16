@@ -80,6 +80,8 @@ uniform mat3 viewNormalMatrix;
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
 
+out vec3 worldCoords;
+
 void main(void) {
 #ifdef WITH_QUANTIZEVERTICES
     vec4 floatVertex = vertexQuantizationMatrix * vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
@@ -176,4 +178,5 @@ void main(void) {
 
 #endif
 
+    worldCoords = floatVertex.xyz;
 }

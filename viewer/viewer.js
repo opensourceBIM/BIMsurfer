@@ -11,6 +11,7 @@ import {SSQuad} from './ssquad.js'
 import {FreezableSet} from './freezableset.js';
 
 import {COLOR_FLOAT_DEPTH, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
+import { WSQuad } from './wsquad.js';
 
 var tmp_unproject = vec3.create();
 
@@ -56,7 +57,13 @@ export class Viewer {
         }
 
         this.pickIdCounter = 1;
-        
+        this.sectionPlaneValues = new Float32Array(4);
+        this.sectionPlaneValues2 = new Float32Array(4);
+        this.sectionPlaneValuesDisabled = new Float32Array(4);
+        this.sectionPlaneValuesDisabled.set([0,0,0,1]);
+        this.sectionPlaneValues.set([0,1,1,8]);
+        this.sectionPlaneValues2.set(this.sectionPlaneValues);
+
         // Picking ID (unsigned int) -> ViewObject
         // This is an array now since the picking ids form a continues array
         this.pickIdToViewObject = [];
@@ -307,6 +314,7 @@ export class Viewer {
             this.pickBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_FLOAT_DEPTH);
             this.oitBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_ALPHA_DEPTH);
             this.quad = new SSQuad(this.gl);
+            this.quad2 = new WSQuad(this, this.gl);
         });
         return promise;
     }
@@ -360,6 +368,7 @@ export class Viewer {
         gl.disable(gl.STENCIL_TEST);
         gl.clearColor(1, 1, 1, 1.0);
         gl.clearDepth(1);
+        gl.clearStencil(0);
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
         
@@ -367,7 +376,19 @@ export class Viewer {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         gl.enable(gl.CULL_FACE);
 
-        if (this.modelBounds != null) {
+        for (var renderLayer of this.renderLayers) {
+            renderLayer.prepareRender();
+        }
+
+        let render = (elems, t) => {
+            for (var transparency of (t || [false, true])) {
+                for (var renderLayer of this.renderLayers) {
+                    renderLayer.render(transparency, elems);
+                }
+            }
+        }
+
+        if (this.modelBounds) {
             if (!this.cameraSet) { // HACK to look at model origin as soon as available
                 this.camera.target = [0, 0, 0];
                 this.camera.eye = [0, 1, 0];
@@ -380,19 +401,42 @@ export class Viewer {
                 this.camera.viewFit(this.modelBounds); // Position camera so that entire model bounds are in view
                 this.cameraSet = true;
             }
-        }
-        
-        for (var renderLayer of this.renderLayers) {
-            renderLayer.prepareRender();
-        }
 
-        let render = (elems, t) => {
-            for (var transparency of (t || [false, true])) {
-                for (var renderLayer of this.renderLayers) {
-                    renderLayer.render(transparency, elems);
-                }
-            }
-        }
+            gl.stencilMask(0xff);
+            this.quad2.position(this.modelBounds, [0,1,1,8]);
+            gl.colorMask(false, false, false, false);
+            gl.disable(gl.CULL_FACE);
+            this.quad2.draw();
+            gl.enable(gl.CULL_FACE);
+            gl.depthMask(false);
+
+            gl.enable(gl.STENCIL_TEST);
+            gl.stencilFunc(gl.ALWAYS, 1, 0xff);
+
+            this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
+
+            gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR); // increment on pass
+            gl.cullFace(gl.BACK);
+            render({without: this.invisibleElements}, [false]);
+
+            gl.stencilOp(gl.KEEP, gl.KEEP, gl.DECR); // decrement on pass
+            gl.cullFace(gl.FRONT);
+            render({without: this.invisibleElements}, [false]);
+
+            this.sectionPlaneValues.set(this.sectionPlaneValues2);
+
+            gl.stencilFunc(gl.EQUAL, 1, 0xff);
+            gl.colorMask(true, true, true, true);
+            gl.depthMask(true);
+            gl.clear(gl.DEPTH_BUFFER_BIT);
+            gl.disable(gl.CULL_FACE);
+            this.quad2.draw();
+            gl.enable(gl.CULL_FACE);
+
+            gl.cullFace(gl.BACK);
+            gl.disable(gl.STENCIL_TEST);
+            gl.stencilFunc(gl.ALWAYS, 1, 0xff);
+        }        
 
         if (this.useOrderIndependentTransparency) {
         	  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
