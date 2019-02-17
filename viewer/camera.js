@@ -46,11 +46,21 @@ export class Camera {
         this._constrainPitch = true; // When true, will prevent camera} from being rotated upside-down
 
         this._dirty = true; // Lazy-builds view matrix
+        this._locked = false;
 
         this._modelBounds = null;
 
         // Until there is a proper event handler mechanism, just do it manually.
         this.listeners = [];
+    }
+
+    lock() {
+        this._locked = true;
+    }
+
+    unlock() {
+        this._locked = false;
+        this._build();
     }
 
     _setDirty() {
@@ -92,7 +102,7 @@ export class Camera {
     }
 
     _build() {
-        if (this._dirty) {
+        if (this._dirty && !this._locked && this._modelBounds) {
             vec3.set(this._up, 0,0,1);
             var d = vec3.subtract(vec3.create(), this._target, this._eye);
             vec3.normalize(d, d);

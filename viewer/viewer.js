@@ -362,6 +362,8 @@ export class Viewer {
     }
 
     drawScene(buffers, deltaTime) {
+        this.camera.lock();
+
         let gl = this.gl;
 
         gl.depthMask(true);
@@ -501,6 +503,8 @@ export class Viewer {
                 renderLayer.renderTileBorders();
             }
         }
+
+        this.camera.unlock();
 
 //		this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, this.renderFrameBuffer);
 //		this.gl.bindFramebuffer(this.gl.DRAW_FRAMEBUFFER, this.colorFrameBuffer);
