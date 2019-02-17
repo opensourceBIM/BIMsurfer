@@ -48,7 +48,7 @@ export class WSQuad {
         precision highp float;
         out vec4 fragColor;
         void main() {
-            fragColor = vec4(0.3, 0.3, 0.3, 1.0);
+            fragColor = vec4(0.1, 0.1, 0.1, 1.0);
         }`;
 
         let vs = gl.createShader(gl.VERTEX_SHADER);
@@ -87,7 +87,7 @@ export class WSQuad {
         for (var i = 0; i < 3; ++i) {
             this.placementData[i] = planeEq[3] * planeEq[i] / l;
         }
-        
+
         let X = this.placementData.subarray(4, 7);
         let Y = this.placementData.subarray(8, 11);
         let XY = [X, Y];
@@ -96,12 +96,8 @@ export class WSQuad {
         vec3.cross(Y, X, planeEq)
         vec3.normalize(Y, Y);
         let scale = 0.;
-        // Store aabb calculated} from points
-        let a = vec3.fromValues(+Infinity, +Infinity, +Infinity);
-        let b = vec3.fromValues(-Infinity, -Infinity, -Infinity);
-
+        
         let zero_one = [0,1];
-
         for (let i of zero_one) {
             for (let j of zero_one) {
                 for (let k of zero_one) {
@@ -111,7 +107,7 @@ export class WSQuad {
                     vec3.scale(temp, planeEq, d);
                     vec3.subtract(temp, p, temp);
                     for (let i = 0; i < 2; ++i) {
-                        let d = vec3.dot(temp, XY[i]);
+                        let d = Math.abs(vec3.dot(temp, XY[i]));
                         if (d > scale) {
                             scale = d;
                         }
