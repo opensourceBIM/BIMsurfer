@@ -23,14 +23,19 @@ layout(location=1) out float myOutputAlpha;
 uniform vec4 sectionPlane;
 
 void main(void) {
+#ifndef WITH_LINEPRIMITIVES
+   // Lines are never rendered with the section plane enabled. So this is an
+   // optimization measure rather than anything else.
    if (dot(worldCoords, sectionPlane.xyz) >= sectionPlane.w) {
       discard;
    }
-   #ifdef WITH_PICKING
+#endif
+
+#ifdef WITH_PICKING
    myOutputColor = color;
    myOutputDepth = depth;
-   #else
+#else
    myOutputColor = vec4(color.rgb * color.a, color.a);
    myOutputAlpha = 1.;
-   #endif
+#endif
 }

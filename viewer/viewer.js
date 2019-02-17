@@ -428,7 +428,7 @@ export class Viewer {
             render({without: this.invisibleElements}, [false]);
 
             this.sectionPlaneValues.set(this.sectionPlaneValues2);
-            const eyePlaneDist = Math.abs(vec3.dot(this.camera.eye, this.sectionPlaneValues2) - this.sectionPlaneValues2[3]);
+            const eyePlaneDist = this.lastSectionPlaneAdjustment = Math.abs(vec3.dot(this.camera.eye, this.sectionPlaneValues2) - this.sectionPlaneValues2[3]);
             this.sectionPlaneValues[3] -= 1.e-3 * eyePlaneDist;
 
             gl.stencilFunc(gl.EQUAL, 1, 0xff);
@@ -472,6 +472,9 @@ export class Viewer {
             gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             render({without: this.invisibleElements}, [true]);
         }
+
+        // From now on section plane is disabled.
+        this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
 
         // Selection outlines require face culling to be disabled.
         gl.disable(gl.CULL_FACE);
@@ -537,6 +540,9 @@ export class Viewer {
         if (!canvasPos) {
             throw "param expected: canvasPos";
         }
+
+        this.sectionPlaneValues.set(this.sectionPlaneValues2);
+        this.sectionPlaneValues[3] -= 1.e-3 * this.lastSectionPlaneAdjustment;        
 
         this.pickBuffer.bind();
 
