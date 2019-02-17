@@ -10,7 +10,7 @@ import {Utils} from './utils.js'
 import {SSQuad} from './ssquad.js'
 import {FreezableSet} from './freezableset.js';
 
-import {COLOR_FLOAT_DEPTH, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
+import {COLOR_FLOAT_DEPTH_NORMAL, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 import { WSQuad } from './wsquad.js';
 
 var tmp_unproject = vec3.create();
@@ -311,7 +311,7 @@ export class Viewer {
                 });
             });
 
-            this.pickBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_FLOAT_DEPTH);
+            this.pickBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_FLOAT_DEPTH_NORMAL);
             this.oitBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_ALPHA_DEPTH);
             this.quad = new SSQuad(this.gl);
             this.quad2 = new WSQuad(this, this.gl);
@@ -362,6 +362,10 @@ export class Viewer {
     }
 
     drawScene(buffers, deltaTime) {
+        // Locks the camera so that intermittent mouse events will not
+        // change the matrices until the camera is unlocked again.
+        // @todo This might need some work to make sure events are
+        // processed timely and smoothly.
         this.camera.lock();
 
         let gl = this.gl;
@@ -580,6 +584,8 @@ export class Viewer {
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.projection.projMatrixInverted);
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.viewMatrixInverted);
 //        console.log("Picked @", tmp_unproject[0], tmp_unproject[1], tmp_unproject[2], objectId, viewObject);
+
+        console.log(this.pickBuffer.normal(x, y));
 
         this.pickBuffer.unbind();
         

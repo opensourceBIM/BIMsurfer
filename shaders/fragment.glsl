@@ -5,15 +5,14 @@ in vec3 worldCoords;
 
 #ifdef WITH_PICKING
 flat in uvec4 color;
-layout(location = 0) out uvec4 myOutputColor;
-
 in float depth;
+
+layout(location = 0) out uvec4 myOutputColor;
 layout(location = 1) out float myOutputDepth;
+layout(location = 2) out vec4 myOutputNormal;
 #else
 in vec4 color;
 layout(location = 0) out vec4 myOutputColor;
-
-// out vec4 myOutputColor;
 #endif
 
 #ifndef WITH_PICKING
@@ -34,6 +33,9 @@ void main(void) {
 #ifdef WITH_PICKING
    myOutputColor = color;
    myOutputDepth = depth;
+   // The picking program does not have normal attributes, so we *have* to
+   // use the shader derivatives. @todo reevaluate
+   myOutputNormal.xyz = normalize(cross(dFdx(worldCoords), dFdy(worldCoords)));
 #else
    myOutputColor = vec4(color.rgb * color.a, color.a);
    myOutputAlpha = 1.;
