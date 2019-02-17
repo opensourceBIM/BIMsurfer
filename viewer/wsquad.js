@@ -82,7 +82,12 @@ export class WSQuad {
 
     position(bounds, planeEq) {
         const Z = vec3.fromValues(0,0,1);
-        this.placementData.set([0,0,planeEq[3]]);
+        
+        let l = vec3.len(planeEq);
+        for (var i = 0; i < 3; ++i) {
+            this.placementData[i] = planeEq[3] * planeEq[i] / l;
+        }
+        
         let X = this.placementData.subarray(4, 7);
         let Y = this.placementData.subarray(8, 11);
         let XY = [X, Y];
