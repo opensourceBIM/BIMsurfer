@@ -119,6 +119,7 @@ export class CameraControl {
         switch (e.which) {
             case 1:                
                 if (e.ctrlKey) {
+                    this.mouseDownTime = 0;
                     this.dragMode = DRAG_SECTION;
                     this.viewer.startSectionPlane({canvasPos:[this.lastX, this.lastY]});                    
                 } else {
