@@ -57,11 +57,17 @@ export class Viewer {
         }
 
         this.pickIdCounter = 1;
-        this.sectionPlaneValues = new Float32Array(4);
-        this.sectionPlaneValues2 = new Float32Array(4);
+
+        this.sectionPlaneIsDisabled = true;
+
         this.sectionPlaneValuesDisabled = new Float32Array(4);
         this.sectionPlaneValuesDisabled.set([0,0,0,1]);
-        this.sectionPlaneValues.set([0,1,1,-5000]);
+
+        this.sectionPlaneValues = new Float32Array(4);
+        this.sectionPlaneValues2 = new Float32Array(4);
+        
+        this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
+        // this.sectionPlaneValues.set([0,1,1,-5000]);
         this.sectionPlaneValues2.set(this.sectionPlaneValues);
 
         // Picking ID (unsigned int) -> ViewObject
@@ -410,42 +416,44 @@ export class Viewer {
                 this.cameraSet = true;
             }
 
-            gl.stencilMask(0xff);
-            this.quad2.position(this.modelBounds, this.sectionPlaneValues);
-            gl.colorMask(false, false, false, false);
-            gl.disable(gl.CULL_FACE);
-            this.quad2.draw();
-            gl.enable(gl.CULL_FACE);
-            gl.depthMask(false);
+            if (!this.sectionPlaneIsDisabled) {
+                gl.stencilMask(0xff);
+                this.quad2.position(this.modelBounds, this.sectionPlaneValues);
+                gl.colorMask(false, false, false, false);
+                gl.disable(gl.CULL_FACE);
+                this.quad2.draw();
+                gl.enable(gl.CULL_FACE);
+                gl.depthMask(false);
 
-            gl.enable(gl.STENCIL_TEST);
-            gl.stencilFunc(gl.ALWAYS, 1, 0xff);
+                gl.enable(gl.STENCIL_TEST);
+                gl.stencilFunc(gl.ALWAYS, 1, 0xff);
 
-            this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
+                this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
 
-            gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR); // increment on pass
-            gl.cullFace(gl.BACK);
-            render({without: this.invisibleElements}, [false]);
+                gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR); // increment on pass
+                gl.cullFace(gl.BACK);
+                render({without: this.invisibleElements}, [false]);
 
-            gl.stencilOp(gl.KEEP, gl.KEEP, gl.DECR); // decrement on pass
-            gl.cullFace(gl.FRONT);
-            render({without: this.invisibleElements}, [false]);
+                gl.stencilOp(gl.KEEP, gl.KEEP, gl.DECR); // decrement on pass
+                gl.cullFace(gl.FRONT);
+                render({without: this.invisibleElements}, [false]);
 
-            this.sectionPlaneValues.set(this.sectionPlaneValues2);
-            const eyePlaneDist = this.lastSectionPlaneAdjustment = Math.abs(vec3.dot(this.camera.eye, this.sectionPlaneValues2) - this.sectionPlaneValues2[3]);
-            this.sectionPlaneValues[3] -= 1.e-3 * eyePlaneDist;
+                this.sectionPlaneValues.set(this.sectionPlaneValues2);
+                const eyePlaneDist = this.lastSectionPlaneAdjustment = Math.abs(vec3.dot(this.camera.eye, this.sectionPlaneValues2) - this.sectionPlaneValues2[3]);
+                this.sectionPlaneValues[3] -= 1.e-3 * eyePlaneDist;
 
-            gl.stencilFunc(gl.EQUAL, 1, 0xff);
-            gl.colorMask(true, true, true, true);
-            gl.depthMask(true);
-            gl.clear(gl.DEPTH_BUFFER_BIT);
-            gl.disable(gl.CULL_FACE);
-            this.quad2.draw();
-            gl.enable(gl.CULL_FACE);
+                gl.stencilFunc(gl.EQUAL, 1, 0xff);
+                gl.colorMask(true, true, true, true);
+                gl.depthMask(true);
+                gl.clear(gl.DEPTH_BUFFER_BIT);
+                gl.disable(gl.CULL_FACE);
+                this.quad2.draw();
+                gl.enable(gl.CULL_FACE);
 
-            gl.cullFace(gl.BACK);
-            gl.disable(gl.STENCIL_TEST);
-            gl.stencilFunc(gl.ALWAYS, 1, 0xff);
+                gl.cullFace(gl.BACK);
+                gl.disable(gl.STENCIL_TEST);
+                gl.stencilFunc(gl.ALWAYS, 1, 0xff);
+            }
         }        
 
         if (this.useOrderIndependentTransparency) {
