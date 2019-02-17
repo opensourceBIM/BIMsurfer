@@ -405,7 +405,7 @@ export class Viewer {
             }
 
             gl.stencilMask(0xff);
-            this.quad2.position(this.modelBounds, [0,1,1,8]);
+            this.quad2.position(this.modelBounds, this.sectionPlaneValues);
             gl.colorMask(false, false, false, false);
             gl.disable(gl.CULL_FACE);
             this.quad2.draw();
@@ -426,6 +426,7 @@ export class Viewer {
             render({without: this.invisibleElements}, [false]);
 
             this.sectionPlaneValues.set(this.sectionPlaneValues2);
+            this.sectionPlaneValues[3] -= 10.;
 
             gl.stencilFunc(gl.EQUAL, 1, 0xff);
             gl.colorMask(true, true, true, true);

@@ -129,8 +129,8 @@ export class Camera {
                 }
             });
 
-            if (near < 1.e-5) {
-                near = far / 10000.;
+            if (near < 1.e-3) {
+                near = far / 1000.;
             }
 
             this.perspective.near = near;
