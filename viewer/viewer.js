@@ -535,8 +535,15 @@ export class Viewer {
 //		);
     }
 
-    startMeasurement() {
-
+    startSectionPlane(params) {
+        let p = this.pick({canvasPos: params.canvasPos, select: false});
+        if (p.normal && p.coordinates) {
+            this.sectionPlaneValues.set(p.normal.subarray(0,3));
+            this.sectionPlaneValues[3] = -vec3.dot(p.coordinates, p.normal) - 1000.;
+            this.sectionPlaneValues2.set(this.sectionPlaneValues);
+            this.sectionPlaneIsDisabled = false;
+            this.dirty = true;
+        }
     }
 
     /**
@@ -582,6 +589,7 @@ export class Viewer {
         var pickColor = this.pickBuffer.read(x, y);
         var pickId = pickColor[0] + pickColor[1] * 256 + pickColor[2] * 65536 + pickColor[3] * 16777216;
         var viewObject = this.pickIdToViewObject[pickId];
+        let normal = this.pickBuffer.normal(x, y);
 
         // Don't attempt to read depth if there is no object under the cursor
         // Note that the default depth of 1. corresponds to the far plane, which
@@ -592,8 +600,6 @@ export class Viewer {
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.projection.projMatrixInverted);
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.viewMatrixInverted);
 //        console.log("Picked @", tmp_unproject[0], tmp_unproject[1], tmp_unproject[2], objectId, viewObject);
-
-        console.log(this.pickBuffer.normal(x, y));
 
         this.pickBuffer.unbind();
         
@@ -609,7 +615,7 @@ export class Viewer {
                     this.selectedElements.add(objectId);
                 }
             }
-            return {object: viewObject, coordinates: tmp_unproject};
+            return {object: viewObject, normal: normal, coordinates: tmp_unproject};
         } else if (params.select !== false) {
             this.selectedElements.clear();
         }

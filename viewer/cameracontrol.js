@@ -1,3 +1,7 @@
+export const DRAG_ORBIT = 0xfe01;
+export const DRAG_PAN = 0xfe02;
+export const DRAG_SECTION = 0xfe03;
+
 /**
  Controls the camera with user input.
  */
@@ -17,12 +21,11 @@ export class CameraControl {
         this.mousePos = vec2.create();
         this.mouseDownPos = vec2.create();
         this.over = false; // True when mouse over canvas
-        this.down = false; // True when any mouse button is down
         this.lastX = 0; // Last canvas pos while dragging
         this.lastY = 0;
-        this.mouseDownLeft = false; // Mouse button states
-        this.mouseDownMiddle = false;
-        this.mouseDownRight = false;
+
+        this.mouseDown = false;
+        this.dragMode = DRAG_ORBIT;
 
         this.canvas.oncontextmenu = (e) => {
             e.preventDefault();
@@ -109,16 +112,17 @@ export class CameraControl {
         this.lastX = this.mousePos[0];
         this.lastY = this.mousePos[1];
 
-        this.ctrlDown = e.ctrlKey;
+        this.mouseDown = true;
         this.mouseDownTime = e.timeStamp;
+        this.mouseDownPos.set(this.mousePos);
 
         switch (e.which) {
-            case 1:
-                this.mouseDownLeft = true;
-                this.mouseDownPos.set(this.mousePos);       
+            case 1:                
                 if (e.ctrlKey) {
-                    this.viewer.startMeasurement({canvasPos:[this.lastX, this.lastY]});                    
-                } else {                    
+                    this.dragMode = DRAG_SECTION;
+                    this.viewer.startSectionPlane({canvasPos:[this.lastX, this.lastY]});                    
+                } else {
+                    this.dragMode = DRAG_ORBIT;
                     let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
                     if (picked && picked.coordinates && picked.object) {
                         this.viewer.camera.center = picked.coordinates;
@@ -150,16 +154,12 @@ export class CameraControl {
                 }
                 break;
             case 2:
-                this.mouseDownMiddle = true;
-                break;
-            case 3:
-            	this.mouseDownRight = true;
+                this.dragMode = DRAG_PAN; 
                 break;
             default:
                 break;
         }
         this.over = true;
-        this.down = true;
         e.preventDefault();
     }
 
@@ -172,11 +172,11 @@ export class CameraControl {
         this.getCanvasPosFromEvent(e, this.mousePos);
 
         let dt = e.timeStamp - this.mouseDownTime;
+        this.mouseDown = false;
 
         switch (e.which) {
             case 1:
-            	this.mouseDownLeft = false;
-                if (dt < 500. && this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
+            	if (dt < 500. && this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
                     var viewObject = this.viewer.pick({
                         canvasPos: this.mousePos,
                         shiftKey: e.shiftKey
@@ -187,16 +187,7 @@ export class CameraControl {
                     this.viewer.drawScene();
                 }
                 break;
-            case 2:
-            	this.mouseDownMiddle = false;
-                break;
-            case 3:
-            	this.mouseDownRight = false;
-                break;
-            default:
-                break;
         }
-        this.down = false;
         e.preventDefault();
     }
 
@@ -232,7 +223,7 @@ export class CameraControl {
         if (!this.over) {
             return;
         }
-        if (this.down) {
+        if (this.mouseDown) {
         	this.getCanvasPosFromEvent(e, this.mousePos);
             var x = this.mousePos[0];
             var y = this.mousePos[1];
@@ -240,7 +231,7 @@ export class CameraControl {
             var yDelta = (y - this.lastY);
             this.lastX = x;
             this.lastY = y;
-            if (this.mouseDownLeft) { // Orbiting
+            if (this.dragMode == DRAG_ORBIT) {
                 let f = 0.5;
                 if (xDelta !== 0) {
                 	this.camera.orbitYaw(-xDelta * this.mouseOrbitSensitivity * f);
@@ -249,7 +240,7 @@ export class CameraControl {
                 	this.camera.orbitPitch(yDelta * this.mouseOrbitSensitivity * f);
                 }
                 this.camera.orbitting = true;
-            } else if (this.mouseDownMiddle) { // Panning
+            } else if (this.dragMode == DRAG_PAN) {
                 var f = this.getEyeLookDist() / 600;
                 this.camera.pan([xDelta * f, yDelta * this.mousePanSensitivity * f, 0.0]);
             }
@@ -261,20 +252,7 @@ export class CameraControl {
      * @private
      */
     documentMouseUp(e) {
-        switch (e.which) {
-	        case 1:
-	        	this.mouseDownLeft = false;
-	            break;
-	        case 2:
-	        	this.mouseDownMiddle = false;
-	            break;
-	        case 3:
-	        	this.mouseDownRight = false;
-	            break;
-	        default:
-	            break;
-	    }
-	    this.down = false;
+        this.mouseDown = false;
     }
 
     getEyeLookDist() {
