@@ -61,7 +61,7 @@ export class Viewer {
         this.sectionPlaneValues2 = new Float32Array(4);
         this.sectionPlaneValuesDisabled = new Float32Array(4);
         this.sectionPlaneValuesDisabled.set([0,0,0,1]);
-        this.sectionPlaneValues.set([0,1,1,8]);
+        this.sectionPlaneValues.set([0,1,1,-5000]);
         this.sectionPlaneValues2.set(this.sectionPlaneValues);
 
         // Picking ID (unsigned int) -> ViewObject
@@ -378,6 +378,8 @@ export class Viewer {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         gl.enable(gl.CULL_FACE);
 
+        this.sectionPlaneValues.set(this.sectionPlaneValues2);
+
         for (var renderLayer of this.renderLayers) {
             renderLayer.prepareRender();
         }
@@ -426,7 +428,8 @@ export class Viewer {
             render({without: this.invisibleElements}, [false]);
 
             this.sectionPlaneValues.set(this.sectionPlaneValues2);
-            this.sectionPlaneValues[3] -= 10.;
+            const eyePlaneDist = Math.abs(vec3.dot(this.camera.eye, this.sectionPlaneValues2) - this.sectionPlaneValues2[3]);
+            this.sectionPlaneValues[3] -= 1.e-3 * eyePlaneDist;
 
             gl.stencilFunc(gl.EQUAL, 1, 0xff);
             gl.colorMask(true, true, true, true);
