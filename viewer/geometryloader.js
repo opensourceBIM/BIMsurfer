@@ -328,7 +328,7 @@ export class GeometryLoader {
 		if (this.preparedBuffer.nrIndices == 0) {
 			return;
 		}
-		
+		const previousStartIndex = this.preparedBuffer.indices.writePosition / 4;
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.indices, stream.dataView, stream.pos, totalNrIndices);
 		stream.pos += totalNrIndices * 4;
 		
@@ -355,17 +355,20 @@ export class GeometryLoader {
 			
 			const density = stream.readFloat();
 
-			this.preparedBuffer.geometryIdToMeta.set(oid, [{
-				start: startIndex,
-				length: nrIndices,
-				color: currentColorIndex,
-				colorLength: nrObjectColors
-			}]);
-			
 			var colorPackSize = stream.readInt();
 			var object = createdObjects.get(oid);
 			object.density = density;
 			var type = object.type;
+			
+			const meta = {
+				start: previousStartIndex + startIndex,
+				length: nrIndices,
+				color: currentColorIndex,
+				colorLength: nrObjectColors
+			};
+			console.log(meta, type, this.preparedBuffer.id);
+			this.preparedBuffer.geometryIdToMeta.set(oid, [meta]);
+			
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
 				var defaultColor = DefaultColors[type];
@@ -392,7 +395,7 @@ export class GeometryLoader {
 				currentColorIndex += count;
 			}
 			
-			this.preparedBuffer.geometryIdToIndex.set(oid, startIndex);
+			this.preparedBuffer.geometryIdToIndex.set(oid, previousStartIndex + startIndex);
 		}
 		if (currentColorIndex != nrColors) {
 			console.error(currentColorIndex, nrColors);
