@@ -366,7 +366,6 @@ export class GeometryLoader {
 				color: currentColorIndex,
 				colorLength: nrObjectColors
 			};
-			console.log(meta, type, this.preparedBuffer.id);
 			this.preparedBuffer.geometryIdToMeta.set(oid, [meta]);
 			
 			if (colorPackSize == 0) {
