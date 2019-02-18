@@ -1,3 +1,7 @@
+export const DRAG_ORBIT = 0xfe01;
+export const DRAG_PAN = 0xfe02;
+export const DRAG_SECTION = 0xfe03;
+
 /**
  Controls the camera with user input.
  */
@@ -17,12 +21,11 @@ export class CameraControl {
         this.mousePos = vec2.create();
         this.mouseDownPos = vec2.create();
         this.over = false; // True when mouse over canvas
-        this.down = false; // True when any mouse button is down
         this.lastX = 0; // Last canvas pos while dragging
         this.lastY = 0;
-        this.mouseDownLeft = false; // Mouse button states
-        this.mouseDownMiddle = false;
-        this.mouseDownRight = false;
+
+        this.mouseDown = false;
+        this.dragMode = DRAG_ORBIT;
 
         this.canvas.oncontextmenu = (e) => {
             e.preventDefault();
@@ -109,50 +112,55 @@ export class CameraControl {
         this.lastX = this.mousePos[0];
         this.lastY = this.mousePos[1];
 
+        this.mouseDown = true;
+        this.mouseDownTime = e.timeStamp;
+        this.mouseDownPos.set(this.mousePos);
+
         switch (e.which) {
-            case 1:
-                this.mouseDownLeft = true;
-                this.mouseDownPos.set(this.mousePos);
-                let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
-                if (picked && picked.coordinates && picked.object) {
-                    this.viewer.camera.center = picked.coordinates;
+            case 1:                
+                if (e.ctrlKey) {
+                    this.mouseDownTime = 0;
+                    this.dragMode = DRAG_SECTION;
+                    this.viewer.startSectionPlane({canvasPos:[this.lastX, this.lastY]});                    
                 } else {
-                    // Check if we can 'see' the previous center. If not, pick
-                    // a new point.
-                    let center_vp = vec3.transformMat4(vec3.create(), this.viewer.camera.center, this.viewer.camera.viewProjMatrix);
+                    this.dragMode = DRAG_ORBIT;
+                    let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
+                    if (picked && picked.coordinates && picked.object) {
+                        this.viewer.camera.center = picked.coordinates;
+                    } else {
+                        // Check if we can 'see' the previous center. If not, pick
+                        // a new point.
+                        let center_vp = vec3.transformMat4(vec3.create(), this.viewer.camera.center, this.viewer.camera.viewProjMatrix);
 
-                    let isv = true;
-                    for (let i = 0; i < 3; ++i) {
-                        if (center_vp[i] < -1. || center_vp[i] > 1.) {
-                            isv = false;
-                            break;
+                        let isv = true;
+                        for (let i = 0; i < 3; ++i) {
+                            if (center_vp[i] < -1. || center_vp[i] > 1.) {
+                                isv = false;
+                                break;
+                            }
                         }
-                    }
 
-                    if (!isv) {
-                        let [x,y] = this.mousePos;
-                        vec3.set(center_vp, x / this.viewer.width * 2 - 1, - y / this.viewer.height * 2 + 1, 1.);
-                        vec3.transformMat4(center_vp, center_vp, this.camera.viewProjMatrixInverted);
-                        vec3.subtract(center_vp, center_vp, this.camera.eye);
-                        vec3.normalize(center_vp, center_vp);
-                        vec3.scale(center_vp, center_vp, this.getZoomRate() * 10.);
-                        vec3.add(center_vp, center_vp, this.camera.eye);
-                        console.log("new center", center_vp);
-                        this.viewer.camera.center = center_vp;
+                        if (!isv) {
+                            let [x,y] = this.mousePos;
+                            vec3.set(center_vp, x / this.viewer.width * 2 - 1, - y / this.viewer.height * 2 + 1, 1.);
+                            vec3.transformMat4(center_vp, center_vp, this.camera.viewProjMatrixInverted);
+                            vec3.subtract(center_vp, center_vp, this.camera.eye);
+                            vec3.normalize(center_vp, center_vp);
+                            vec3.scale(center_vp, center_vp, this.getZoomRate() * 10.);
+                            vec3.add(center_vp, center_vp, this.camera.eye);
+                            console.log("new center", center_vp);
+                            this.viewer.camera.center = center_vp;
+                        }
                     }
                 }
                 break;
             case 2:
-                this.mouseDownMiddle = true;
-                break;
-            case 3:
-            	this.mouseDownRight = true;
+                this.dragMode = DRAG_PAN; 
                 break;
             default:
                 break;
         }
         this.over = true;
-        this.down = true;
         e.preventDefault();
     }
 
@@ -163,10 +171,13 @@ export class CameraControl {
         this.camera.orbitting = false;
         this.viewer.overlay.update();
         this.getCanvasPosFromEvent(e, this.mousePos);
+
+        let dt = e.timeStamp - this.mouseDownTime;
+        this.mouseDown = false;
+
         switch (e.which) {
             case 1:
-            	this.mouseDownLeft = false;
-                if (this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
+            	if (dt < 500. && this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
                     var viewObject = this.viewer.pick({
                         canvasPos: this.mousePos,
                         shiftKey: e.shiftKey
@@ -177,16 +188,7 @@ export class CameraControl {
                     this.viewer.drawScene();
                 }
                 break;
-            case 2:
-            	this.mouseDownMiddle = false;
-                break;
-            case 3:
-            	this.mouseDownRight = false;
-                break;
-            default:
-                break;
         }
-        this.down = false;
         e.preventDefault();
     }
 
@@ -222,7 +224,7 @@ export class CameraControl {
         if (!this.over) {
             return;
         }
-        if (this.down) {
+        if (this.mouseDown) {
         	this.getCanvasPosFromEvent(e, this.mousePos);
             var x = this.mousePos[0];
             var y = this.mousePos[1];
@@ -230,7 +232,7 @@ export class CameraControl {
             var yDelta = (y - this.lastY);
             this.lastX = x;
             this.lastY = y;
-            if (this.mouseDownLeft) { // Orbiting
+            if (this.dragMode == DRAG_ORBIT) {
                 let f = 0.5;
                 if (xDelta !== 0) {
                 	this.camera.orbitYaw(-xDelta * this.mouseOrbitSensitivity * f);
@@ -239,7 +241,7 @@ export class CameraControl {
                 	this.camera.orbitPitch(yDelta * this.mouseOrbitSensitivity * f);
                 }
                 this.camera.orbitting = true;
-            } else if (this.mouseDownMiddle) { // Panning
+            } else if (this.dragMode == DRAG_PAN) {
                 var f = this.getEyeLookDist() / 600;
                 this.camera.pan([xDelta * f, yDelta * this.mousePanSensitivity * f, 0.0]);
             }
@@ -251,20 +253,7 @@ export class CameraControl {
      * @private
      */
     documentMouseUp(e) {
-        switch (e.which) {
-	        case 1:
-	        	this.mouseDownLeft = false;
-	            break;
-	        case 2:
-	        	this.mouseDownMiddle = false;
-	            break;
-	        case 3:
-	        	this.mouseDownRight = false;
-	            break;
-	        default:
-	            break;
-	    }
-	    this.down = false;
+        this.mouseDown = false;
     }
 
     getEyeLookDist() {

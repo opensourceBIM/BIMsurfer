@@ -1,4 +1,4 @@
-export const COLOR_FLOAT_DEPTH = 0xff01;
+export const COLOR_FLOAT_DEPTH_NORMAL = 0xff01;
 export const COLOR_ALPHA_DEPTH = 0xff02;
 
 /**
@@ -47,6 +47,9 @@ export class RenderBuffer {
 
         // var ext = gl.getExtension('WEBGL_draw_buffers');
         var ext = gl.getExtension('EXT_color_buffer_float');
+        if (!ext) {
+            throw "EXT_color_buffer_float is required";
+        }
 
         var framebuf = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuf);
@@ -68,9 +71,13 @@ export class RenderBuffer {
             return t;
         }
 
-        if (this.purpose === COLOR_FLOAT_DEPTH) {
+        if (this.purpose === COLOR_FLOAT_DEPTH_NORMAL) {
+            this.attachments.push(gl.COLOR_ATTACHMENT2);
+
             this.colorBuffer = createTexture(gl.RGBA8UI);
             this.depthFloat = createTexture(gl.R32F);
+            // @todo, just have depth in normalBuffer.w?
+            this.normalBuffer = createTexture(gl.RGBA32F);            
         } else if (this.purpose === COLOR_ALPHA_DEPTH) {
             this.colorBuffer = createTexture(gl.RGBA16F);
             this.alphaBuffer = createTexture(gl.R16F);
@@ -137,6 +144,16 @@ export class RenderBuffer {
         var gl = this.gl;
         gl.readBuffer(gl.COLOR_ATTACHMENT1);
         gl.readPixels(x, y, 1, 1, gl.RED, gl.FLOAT, pix);
+        return pix;
+    }
+
+    normal(pickX, pickY) {
+        var x = pickX;
+        var y = this.canvas.height - pickY;
+        var pix = new Float32Array(4);
+        var gl = this.gl;
+        gl.readBuffer(gl.COLOR_ATTACHMENT2);
+        gl.readPixels(x, y, 1, 1, gl.RGBA, gl.FLOAT, pix);
         return pix;
     }
 

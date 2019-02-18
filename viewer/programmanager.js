@@ -69,7 +69,8 @@ export class ProgramManager {
 			uniforms: [
 				"projectionMatrix",
 				"viewNormalMatrix",
-				"viewMatrix"
+				"viewMatrix",
+				"sectionPlane"
 			],
 			uniformBlocks: [
 				"LightData"
@@ -81,7 +82,8 @@ export class ProgramManager {
 				],
 			uniforms: [
 				"projectionMatrix",
-				"viewMatrix"
+				"viewMatrix",
+				"sectionPlane"
 				],
 			uniformBlocks: [
 			]

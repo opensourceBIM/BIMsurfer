@@ -10,7 +10,8 @@ import {Utils} from './utils.js'
 import {SSQuad} from './ssquad.js'
 import {FreezableSet} from './freezableset.js';
 
-import {COLOR_FLOAT_DEPTH, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
+import {COLOR_FLOAT_DEPTH_NORMAL, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
+import { WSQuad } from './wsquad.js';
 
 var tmp_unproject = vec3.create();
 
@@ -56,7 +57,19 @@ export class Viewer {
         }
 
         this.pickIdCounter = 1;
+
+        this.sectionPlaneIsDisabled = true;
+
+        this.sectionPlaneValuesDisabled = new Float32Array(4);
+        this.sectionPlaneValuesDisabled.set([0,0,0,1]);
+
+        this.sectionPlaneValues = new Float32Array(4);
+        this.sectionPlaneValues2 = new Float32Array(4);
         
+        this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
+        // this.sectionPlaneValues.set([0,1,1,-5000]);
+        this.sectionPlaneValues2.set(this.sectionPlaneValues);
+
         // Picking ID (unsigned int) -> ViewObject
         // This is an array now since the picking ids form a continues array
         this.pickIdToViewObject = [];
@@ -304,9 +317,10 @@ export class Viewer {
                 });
             });
 
-            this.pickBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_FLOAT_DEPTH);
+            this.pickBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_FLOAT_DEPTH_NORMAL);
             this.oitBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_ALPHA_DEPTH);
             this.quad = new SSQuad(this.gl);
+            this.quad2 = new WSQuad(this, this.gl);
         });
         return promise;
     }
@@ -354,12 +368,19 @@ export class Viewer {
     }
 
     drawScene(buffers, deltaTime) {
+        // Locks the camera so that intermittent mouse events will not
+        // change the matrices until the camera is unlocked again.
+        // @todo This might need some work to make sure events are
+        // processed timely and smoothly.
+        this.camera.lock();
+
         let gl = this.gl;
 
         gl.depthMask(true);
         gl.disable(gl.STENCIL_TEST);
         gl.clearColor(1, 1, 1, 1.0);
         gl.clearDepth(1);
+        gl.clearStencil(0);
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
         
@@ -367,7 +388,21 @@ export class Viewer {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         gl.enable(gl.CULL_FACE);
 
-        if (this.modelBounds != null) {
+        this.sectionPlaneValues.set(this.sectionPlaneValues2);
+
+        for (var renderLayer of this.renderLayers) {
+            renderLayer.prepareRender();
+        }
+
+        let render = (elems, t) => {
+            for (var transparency of (t || [false, true])) {
+                for (var renderLayer of this.renderLayers) {
+                    renderLayer.render(transparency, elems);
+                }
+            }
+        }
+
+        if (this.modelBounds) {
             if (!this.cameraSet) { // HACK to look at model origin as soon as available
                 this.camera.target = [0, 0, 0];
                 this.camera.eye = [0, 1, 0];
@@ -380,19 +415,46 @@ export class Viewer {
                 this.camera.viewFit(this.modelBounds); // Position camera so that entire model bounds are in view
                 this.cameraSet = true;
             }
-        }
-        
-        for (var renderLayer of this.renderLayers) {
-            renderLayer.prepareRender();
-        }
 
-        let render = (elems, t) => {
-            for (var transparency of (t || [false, true])) {
-                for (var renderLayer of this.renderLayers) {
-                    renderLayer.render(transparency, elems);
-                }
+            if (!this.sectionPlaneIsDisabled) {
+                gl.stencilMask(0xff);
+                this.quad2.position(this.modelBounds, this.sectionPlaneValues);
+                gl.colorMask(false, false, false, false);
+                gl.disable(gl.CULL_FACE);
+                this.quad2.draw();
+                gl.enable(gl.CULL_FACE);
+                gl.depthMask(false);
+
+                gl.enable(gl.STENCIL_TEST);
+                gl.stencilFunc(gl.ALWAYS, 1, 0xff);
+
+                this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
+
+                gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR); // increment on pass
+                gl.cullFace(gl.BACK);
+                render({without: this.invisibleElements}, [false]);
+
+                gl.stencilOp(gl.KEEP, gl.KEEP, gl.DECR); // decrement on pass
+                gl.cullFace(gl.FRONT);
+                render({without: this.invisibleElements}, [false]);
+
+                this.sectionPlaneValues.set(this.sectionPlaneValues2);
+                const eyePlaneDist = this.lastSectionPlaneAdjustment = Math.abs(vec3.dot(this.camera.eye, this.sectionPlaneValues2) - this.sectionPlaneValues2[3]);
+                this.sectionPlaneValues[3] -= 1.e-3 * eyePlaneDist;
+
+                gl.stencilFunc(gl.EQUAL, 1, 0xff);
+                gl.colorMask(true, true, true, true);
+                gl.depthMask(true);
+                gl.clear(gl.DEPTH_BUFFER_BIT);
+                gl.disable(gl.CULL_FACE);
+                this.quad2.draw();
+                gl.enable(gl.CULL_FACE);
+
+                gl.cullFace(gl.BACK);
+                gl.disable(gl.STENCIL_TEST);
+                gl.stencilFunc(gl.ALWAYS, 1, 0xff);
             }
-        }
+        }        
 
         if (this.useOrderIndependentTransparency) {
         	  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -422,6 +484,9 @@ export class Viewer {
             gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             render({without: this.invisibleElements}, [true]);
         }
+
+        // From now on section plane is disabled.
+        this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
 
         // Selection outlines require face culling to be disabled.
         gl.disable(gl.CULL_FACE);
@@ -458,6 +523,8 @@ export class Viewer {
             }
         }
 
+        this.camera.unlock();
+
 //		this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, this.renderFrameBuffer);
 //		this.gl.bindFramebuffer(this.gl.DRAW_FRAMEBUFFER, this.colorFrameBuffer);
 //		this.gl.clearBufferfv(this.gl.COLOR, 0, [0.0, 0.0, 0.0, 1.0]);
@@ -466,6 +533,17 @@ export class Viewer {
 //		    0, 0, this.width, this.height,
 //		    this.gl.COLOR_BUFFER_BIT, this.gl.NEAREST
 //		);
+    }
+
+    startSectionPlane(params) {
+        let p = this.pick({canvasPos: params.canvasPos, select: false});
+        if (p.normal && p.coordinates) {
+            this.sectionPlaneValues.set(p.normal.subarray(0,3));
+            this.sectionPlaneValues[3] = -vec3.dot(p.coordinates, p.normal) - 1000.;
+            this.sectionPlaneValues2.set(this.sectionPlaneValues);
+            this.sectionPlaneIsDisabled = false;
+            this.dirty = true;
+        }
     }
 
     /**
@@ -481,6 +559,9 @@ export class Viewer {
         if (!canvasPos) {
             throw "param expected: canvasPos";
         }
+
+        this.sectionPlaneValues.set(this.sectionPlaneValues2);
+        this.sectionPlaneValues[3] -= 1.e-3 * this.lastSectionPlaneAdjustment;        
 
         this.pickBuffer.bind();
 
@@ -508,6 +589,7 @@ export class Viewer {
         var pickColor = this.pickBuffer.read(x, y);
         var pickId = pickColor[0] + pickColor[1] * 256 + pickColor[2] * 65536 + pickColor[3] * 16777216;
         var viewObject = this.pickIdToViewObject[pickId];
+        let normal = this.pickBuffer.normal(x, y);
 
         // Don't attempt to read depth if there is no object under the cursor
         // Note that the default depth of 1. corresponds to the far plane, which
@@ -533,7 +615,7 @@ export class Viewer {
                     this.selectedElements.add(objectId);
                 }
             }
-            return {object: viewObject, coordinates: tmp_unproject};
+            return {object: viewObject, normal: normal, coordinates: tmp_unproject};
         } else if (params.select !== false) {
             this.selectedElements.clear();
         }
