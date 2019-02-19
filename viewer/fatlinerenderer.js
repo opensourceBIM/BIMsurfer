@@ -112,7 +112,7 @@ export class FatLineRenderer {
 				// This is necessary for line renderings of reused geometries.
 				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(this.croid));
 			} else {
-				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
+				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, viewer.vertexQuantization.inverseVertexQuantizationMatrixWithGlobalTransformation);
 			}
 		}
 

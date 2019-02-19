@@ -110,56 +110,49 @@ export class VertexQuantization {
 		return inverse;
 	}
 	
-	generateMatrices(totalBounds, totalBoundsUntransformed) {
+	generateMatrix(bounds, globalTransformation) {
 		var matrix = mat4.create();
 		var scale = 32768;
-
-		/* Interesting case:
-		 * 
-		 * Some models have their geometry defined perfectly fine (e.a. a 10x10x10 m building), but their transformations matrices place the model 450km offset
-		 * Since we are using both the transformed and the non-transformed bounding boxes to determine the totalBounds, this messes things up
-		 * 
-		 */
+		
+		var min = vec3.fromValues(bounds.min.x, bounds.min.y, bounds.min.z);
+		var max = vec3.fromValues(bounds.max.x, bounds.max.y, bounds.max.z);
+		
+		vec3.transformMat4(min, min, globalTransformation);
+		vec3.transformMat4(max, max, globalTransformation);
 		
 		// Scale the model to make sure all values fit within a 2-byte signed short
 		mat4.scale(matrix, matrix, vec3.fromValues(
-				scale / (totalBounds.max.x - totalBounds.min.x),
-				scale / (totalBounds.max.y - totalBounds.min.y),
-				scale / (totalBounds.max.z - totalBounds.min.z)
+				scale / (max[0] - min[0]),
+				scale / (max[1] - min[1]),
+				scale / (max[2] - min[2])
 		));
 
 		// Move the model with its center to the origin
 		mat4.translate(matrix, matrix, vec3.fromValues(
-				-(totalBounds.max.x + totalBounds.min.x) / 2,
-				-(totalBounds.max.y + totalBounds.min.y) / 2,
-				-(totalBounds.max.z + totalBounds.min.z) / 2
+				-(max[0] + min[0]) / 2,
+				-(max[1] + min[1]) / 2,
+				-(max[2] + min[2]) / 2
 		));
 
+		return matrix;
+	}
+	
+	generateMatrices(totalBounds, totalBoundsUntransformed, globalTransformation) {
+		var matrix = this.generateMatrix(totalBounds, mat4.create());
+		var matrixWithGlobalTransformation = this.generateMatrix(totalBounds, globalTransformation);
+		
 		this.vertexQuantizationMatrix = Utils.toArray(matrix);
+		this.vertexQuantizationMatrixWithGlobalTransformation = Utils.toArray(matrixWithGlobalTransformation);
 
 		var inverse = mat4.create();
 		mat4.invert(inverse, matrix);
-		
 		this.inverseVertexQuantizationMatrix = Utils.toArray(inverse);
-		
-		// Again
-		
-		var matrix = mat4.create();
 
-//		 Scale the model to make sure all values fit within a 2-byte signed short
-		mat4.scale(matrix, matrix, vec3.fromValues(
-				scale / (totalBoundsUntransformed.max.x - totalBoundsUntransformed.min.x),
-				scale / (totalBoundsUntransformed.max.y - totalBoundsUntransformed.min.y),
-				scale / (totalBoundsUntransformed.max.z - totalBoundsUntransformed.min.z)
-		));
+		var inverse = mat4.create();
+		mat4.invert(inverse, matrixWithGlobalTransformation);
+		this.inverseVertexQuantizationMatrixWithGlobalTransformation = Utils.toArray(inverse);
 
-		// Move the model with its center to the origin
-		mat4.translate(matrix, matrix, vec3.fromValues(
-				-(totalBoundsUntransformed.max.x + totalBoundsUntransformed.min.x) / 2,
-				-(totalBoundsUntransformed.max.y + totalBoundsUntransformed.min.y) / 2,
-				-(totalBoundsUntransformed.max.z + totalBoundsUntransformed.min.z) / 2
-		));
-
+		var matrix = this.generateMatrix(totalBoundsUntransformed, mat4.create());
 		this.untransformedVertexQuantizationMatrix = Utils.toArray(matrix);
 	}
 }

@@ -6,6 +6,7 @@ import {Executor} from './executor.js'
 import {GeometryLoader} from "./geometryloader.js"
 import {Stats} from "./stats.js"
 import {DefaultSettings} from "./defaultsettings.js"
+import {Utils} from "./utils.js"
 
 /*
  * The main class you instantiate when creating a viewer that will be loading data} from a BIMserver.
@@ -202,14 +203,6 @@ export class BimServerViewer {
 					modelBoundsTransformed.set(revision.concreteRevisions[i], responses[(responses.length - add) / 2 + i + add].result);
 				}
 				
-				if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
-					this.viewer.vertexQuantization = new VertexQuantization(this.settings);
-					for (var croid of modelBoundsUntransformed.keys()) {
-						this.viewer.vertexQuantization.generateUntransformedMatrices(croid, modelBoundsUntransformed.get(croid));
-					}
-					this.viewer.vertexQuantization.generateMatrices(totalBounds, totalBoundsUntransformed);
-				}
-
 				var bounds = [
 					totalBounds.min.x,
 					totalBounds.min.y,
@@ -218,12 +211,30 @@ export class BimServerViewer {
 					totalBounds.max.y,
 					totalBounds.max.z,
 				];
+				
+				this.globalTransformation = mat4.create();
+				const translation = vec3.fromValues(
+						-(bounds[0] + (bounds[3] - bounds[0]) / 2), 
+						-(bounds[1] + (bounds[4] - bounds[1]) / 2), 
+						-(bounds[2] + (bounds[5] - bounds[2]) / 2));
+				mat4.translate(this.globalTransformation, this.globalTransformation, translation);
 
+				if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
+					this.viewer.vertexQuantization = new VertexQuantization(this.settings);
+					for (var croid of modelBoundsUntransformed.keys()) {
+						this.viewer.vertexQuantization.generateUntransformedMatrices(croid, modelBoundsUntransformed.get(croid));
+					}
+					this.viewer.vertexQuantization.generateMatrices(totalBounds, totalBoundsUntransformed, this.globalTransformation);
+				}
+				
 				this.viewer.stats.inc("Primitives", "Primitives to load (L1)", nrPrimitivesBelow);
 				this.viewer.stats.inc("Primitives", "Primitives to load (L2)", nrPrimitivesAbove);
 
-				this.viewer.setModelBounds(bounds);
-
+				var min = vec3.fromValues(bounds[0], bounds[1], bounds[2]);
+				var max = vec3.fromValues(bounds[3], bounds[4], bounds[5]);
+				vec3.transformMat4(min, min, this.globalTransformation);
+				vec3.transformMat4(max, max, this.globalTransformation);
+				this.viewer.setModelBounds([min[0], min[1], min[2], max[0], max[1], max[2]]);
 				
 				// TODO This is very BIMserver specific, clutters the code, should move somewhere else (maybe GeometryLoader)
 				var fieldsToInclude = ["indices"];
@@ -318,6 +329,10 @@ export class BimServerViewer {
 		var start = performance.now();
 		var executor = new Executor(4);
 
+		const loaderSettings = JSON.parse(JSON.stringify(this.settings.loaderSettings)); // copy
+
+		loaderSettings.globalTransformation = Utils.toArray(this.globalTransformation);
+		
 		var query = {
 			type: {
 				name: "IfcProduct",
@@ -344,16 +359,16 @@ export class BimServerViewer {
 					}
 				}
 			},
-			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
+			loaderSettings: loaderSettings
 		};
 		
 		if (this.settings.loaderSettings.quantizeVertices) {
-			query.loaderSettings.vertexQuantizationMatrix = this.viewer.vertexQuantization.getTransformedVertexQuantizationMatrix();
+			query.loaderSettings.vertexQuantizationMatrix = this.viewer.vertexQuantization.vertexQuantizationMatrixWithGlobalTransformation;
 		}
 		
 		var geometryLoader = new GeometryLoader(0, this.bimServerApi, defaultRenderLayer, [revision.oid], this.settings.loaderSettings, null, this.stats, this.settings, query, null, defaultRenderLayer.gpuBufferManager);
 		if (this.settings.loaderSettings.quantizeVertices) {
-			geometryLoader.unquantizationMatrix = this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix();
+			geometryLoader.unquantizationMatrix = this.viewer.vertexQuantization.inverseVertexQuantizationMatrixWithGlobalTransformation;
 		}
 		defaultRenderLayer.registerLoader(geometryLoader.loaderId);
 		executor.add(geometryLoader).then(() => {
