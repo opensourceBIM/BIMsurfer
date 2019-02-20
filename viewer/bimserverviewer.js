@@ -212,19 +212,20 @@ export class BimServerViewer {
 					totalBounds.max.z,
 				];
 				
-				this.globalTransformation = mat4.create();
+				// globalTransformation is a matrix that puts the complete model close to 0, 0, 0
+				this.viewer.globalTransformation = mat4.create();
 				const translation = vec3.fromValues(
 						-(bounds[0] + (bounds[3] - bounds[0]) / 2), 
 						-(bounds[1] + (bounds[4] - bounds[1]) / 2), 
 						-(bounds[2] + (bounds[5] - bounds[2]) / 2));
-				mat4.translate(this.globalTransformation, this.globalTransformation, translation);
+				mat4.translate(this.viewer.globalTransformation, this.viewer.globalTransformation, translation);
 
 				if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
 					this.viewer.vertexQuantization = new VertexQuantization(this.settings);
 					for (var croid of modelBoundsUntransformed.keys()) {
 						this.viewer.vertexQuantization.generateUntransformedMatrices(croid, modelBoundsUntransformed.get(croid));
 					}
-					this.viewer.vertexQuantization.generateMatrices(totalBounds, totalBoundsUntransformed, this.globalTransformation);
+					this.viewer.vertexQuantization.generateMatrices(totalBounds, totalBoundsUntransformed, this.viewer.globalTransformation);
 				}
 				
 				this.viewer.stats.inc("Primitives", "Primitives to load (L1)", nrPrimitivesBelow);
@@ -232,8 +233,8 @@ export class BimServerViewer {
 
 				var min = vec3.fromValues(bounds[0], bounds[1], bounds[2]);
 				var max = vec3.fromValues(bounds[3], bounds[4], bounds[5]);
-				vec3.transformMat4(min, min, this.globalTransformation);
-				vec3.transformMat4(max, max, this.globalTransformation);
+				vec3.transformMat4(min, min, this.viewer.globalTransformation);
+				vec3.transformMat4(max, max, this.viewer.globalTransformation);
 				this.viewer.setModelBounds([min[0], min[1], min[2], max[0], max[1], max[2]]);
 				
 				// TODO This is very BIMserver specific, clutters the code, should move somewhere else (maybe GeometryLoader)
@@ -331,7 +332,7 @@ export class BimServerViewer {
 
 		const loaderSettings = JSON.parse(JSON.stringify(this.settings.loaderSettings)); // copy
 
-		loaderSettings.globalTransformation = Utils.toArray(this.globalTransformation);
+		loaderSettings.globalTransformation = Utils.toArray(this.viewer.globalTransformation);
 		
 		var query = {
 			type: {

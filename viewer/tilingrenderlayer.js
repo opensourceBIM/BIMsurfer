@@ -16,7 +16,7 @@ export class TilingRenderLayer extends RenderLayer {
 	constructor(viewer, geometryDataToReuse, bounds) {
 		super(viewer, geometryDataToReuse);
 
-		this.octree = new Octree(viewer, bounds, viewer.settings.maxOctreeDepth);
+		this.octree = new Octree(viewer, bounds, viewer.globalTransformation, viewer.settings.maxOctreeDepth);
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
 
 		this.loaderToNode = {};
@@ -69,15 +69,15 @@ export class TilingRenderLayer extends RenderLayer {
 		}
 
 		// 2. Is the complete Tile outside of the view frustum?
-		var isect = this._frustum.intersectsWorldAABB(node.boundsVectors);
+		var isect = this._frustum.intersectsWorldAABB(node.normalizedBoundsVectors);
 
 		if (isect === Frustum.OUTSIDE_FRUSTUM) {
 			return true;
 		}
-
+		
 		// 3. In the tile too far away?
 		var cameraEye = this.viewer.camera.eye;
-		var tileCenter = node.getCenter();
+		var tileCenter = node.normalizedCenter;
 		var sizeFactor = 1 / Math.pow(2, node.level);
 		var closestPotentialDistanceMm = Math.abs(vec3.distance(cameraEye, tileCenter) - node.radius);
 		
@@ -238,7 +238,7 @@ export class TilingRenderLayer extends RenderLayer {
 					// Node has been tried to load, but no objects were returned
 				}
 				if (color != null) {
-					this.lineBoxGeometry.render(color, node.getMatrix(), 0.003);
+					this.lineBoxGeometry.render(color, node.normalizedMatrix, 0.001);
 				}
 			});
 			this.lineBoxGeometry.renderStop();

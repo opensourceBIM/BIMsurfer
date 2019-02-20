@@ -93,7 +93,10 @@ export class TileLoader {
 		
 		node.gpuBufferManager = new GpuBufferManager(this.viewer);
 		
-		var bounds = node.getBounds();
+		const loaderSettings = JSON.parse(JSON.stringify(this.settings.loaderSettings));
+		
+		loaderSettings.globalTransformation = Utils.toArray(this.viewer.globalTransformation);
+		
 		var query = {
 			type: {
 				name: "IfcProduct",
@@ -120,17 +123,16 @@ export class TileLoader {
 					}
 				}
 			},
-			loaderSettings: JSON.parse(JSON.stringify(this.settings.loaderSettings))
+			loaderSettings: loaderSettings
 		};
 		
 		if (this.tilingRenderLayer.viewer.vertexQuantization) {
-			query.loaderSettings.vertexQuantizationMatrix = this.tilingRenderLayer.viewer.vertexQuantization.getTransformedVertexQuantizationMatrix();
+			query.loaderSettings.vertexQuantizationMatrix = this.tilingRenderLayer.viewer.vertexQuantization.vertexQuantizationMatrixWithGlobalTransformation;
 		}
-		
 		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, this.tilingRenderLayer, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, this.tilingRenderLayer.reusedGeometryCache, node.gpuBufferManager);
 		
 		// We now use the total model bounds for the quantization since the prebuilt buffers already applied the transformation, thus no problems are expected for strange bounds
-//		geometryLoader.unquantizationMatrix = this.tilingRenderLayer.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix();
+		geometryLoader.unquantizationMatrix = this.tilingRenderLayer.viewer.vertexQuantization.inverseVertexQuantizationMatrixWithGlobalTransformation;
 		
 		this.tilingRenderLayer.registerLoader(geometryLoader.loaderId);
 		this.tilingRenderLayer.loaderToNode[geometryLoader.loaderId] = node;
