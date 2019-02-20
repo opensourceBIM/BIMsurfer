@@ -11,7 +11,7 @@ export class Address {
 			return href.substring(0, href.indexOf("/apps/bimsurfer3/"));
 		} else {
 			// Return a default
-			console.log(document.location);
+			console.log("Trying to connect to http://localhost:8080, because we don't know where to find BIMserver", document.location);
 			return "http://localhost:8080";
 		}
 	}
