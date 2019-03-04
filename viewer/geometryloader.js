@@ -3,6 +3,8 @@ import {DefaultColors} from "./defaultcolors.js"
 import {RenderLayer} from "./renderlayer.js"
 import {Utils} from "./utils.js"
 
+const PROTOCOL_VERSION = 17;
+
 /**
  * GeometryLoader loads data} from a BIMserver
  */
@@ -86,7 +88,10 @@ export class GeometryLoader {
 		var messageType = stream.readByte();
 		
 		if (messageType == 0) {
-			this.readStart(stream);
+			if (!this.readStart(stream)) {
+				// An error occured, usually version mismatch or missing serializer
+				return false;
+			}
 		} else if (messageType == 6) {
 			this.readEnd(stream);
 		} else {
@@ -134,14 +139,14 @@ export class GeometryLoader {
 		var start = data.readUTF8();
 
 		if (start != "BGS") {
-			console.error("data does not start with BGS (" + start + ")");
+			console.error("Data does not start with BGS (" + start + ")");
 			return false;
 		}
 
 		this.protocolVersion = data.readByte();
 
-		if (this.protocolVersion != 17) {
-			console.error("Unimplemented version");
+		if (this.protocolVersion != PROTOCOL_VERSION) {
+			console.error("Unimplemented version (protocol: " + this.protocolVersion + ", implemented: " + PROTOCOL_VERSION + ").\nUsually this means you need to either:\n\t- Update the BinarySerializers plugin bundle in BIMserver\n\t- Update your version of BIMsurfer 3");
 			return false;
 		}
 
