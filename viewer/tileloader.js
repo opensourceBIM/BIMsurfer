@@ -18,7 +18,7 @@ export class TileLoader {
 		this.roids = roids;
 		this.fieldsToInclude = fieldsToInclude;
 	
-		this.excludedTypes = ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"];
+		this.excludedTypes = viewer.settings.excludedTypes;
 		this.executor = new Executor(64);
 		
 //		if (this.viewer.vertexQuantization) {

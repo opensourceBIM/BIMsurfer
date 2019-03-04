@@ -96,7 +96,6 @@ export class RenderLayer {
 		var loader = this.getLoader(loaderId);
 		var object = {
 			id: objectId,
-			visible: type != "IfcOpeningElement" && type != "IfcSpace",
 			hasTransparency: hasTransparency,
 			matrix: matrix,
             normalMatrix: normalMatrix,
@@ -300,15 +299,8 @@ export class RenderLayer {
 			}
 		}
 		var object = loader.objects.get(objectId);
-		if (object.visible) {
-			this.addGeometry(loader.loaderId, geometry, object);
-			object.geometry.push(geometryId);
-		} else {
-			this.viewer.stats.inc("Primitives", "Nr primitives hidden", geometry.indices.length / 3);
-			if (this.progressListener != null) {
-				this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
-			}
-		}
+		this.addGeometry(loader.loaderId, geometry, object);
+		object.geometry.push(geometryId);
 		if (geometry.isReused) {
 			geometry.reuseMaterialized++;
 			if (geometry.reuseMaterialized == geometry.reused) {

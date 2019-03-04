@@ -80,6 +80,9 @@ export class DefaultSettings {
 				return Promise.resolve(bbs[0]);
 			};
 		}
+		if (settings.excludedTypes == null) {
+			settings.excludedTypes = ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"];
+		}
 		if (settings.loaderSettings.tilingLayerReuse == null) {
 			settings.loaderSettings.tilingLayerReuse = true;
 		}

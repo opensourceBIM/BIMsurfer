@@ -98,8 +98,6 @@ export class BimServerViewer {
 	 * - If this project has no subprojects, we will simply load the latest revision of the project (if available)
 	 * - If this project has subprojects, all latest revisions of all subprojects _that have no subprojects_ will be loaded
 	 * 
-	 * All objects will be loaded except IfcOpeningElement and IfcSpace (these exclusions for now are in the GeometryLoader)
-	 * 
 	 */
 	loadModel(project) {
 		return new Promise((resolve, reject) => {
@@ -126,7 +124,7 @@ export class BimServerViewer {
 			this.bimServerApi.call("ServiceInterface", "getDensityThreshold", {
 				roid: roid,
 				nrTriangles: this.viewer.settings.triangleThresholdDefaultLayer,
-				excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"]
+				excludedTypes: this.settings.excludedTypes
 			}, (densityAtThreshold) => {
 				this.densityAtThreshold = densityAtThreshold;
 				this.densityThreshold = densityAtThreshold.density;
@@ -166,7 +164,7 @@ export class BimServerViewer {
 			if (this.settings.gpuReuse) {
 				requests.push(["ServiceInterface", "getGeometryDataToReuse", {
 					roids: [revision.oid],
-					excludedTypes: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"],
+					excludedTypes: this.settings.excludedTypes,
 					trianglesToSave: 0
 				}]);
 			}
@@ -338,7 +336,7 @@ export class BimServerViewer {
 			type: {
 				name: "IfcProduct",
 				includeAllSubTypes: true,
-				exclude: ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"]
+				exclude: this.settings.excludedTypes
 			},
 			tiles: {
 				ids: [0],
