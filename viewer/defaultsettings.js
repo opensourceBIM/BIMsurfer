@@ -22,7 +22,7 @@ export class DefaultSettings {
 			settings.quantizeColors = true;
 		}
 		if (settings.gpuReuse == null) {
-			settings.gpuReuse = true;
+			settings.gpuReuse = false;
 		}
 		if (settings.loaderSettings == null) {
 			settings.loaderSettings = {};
