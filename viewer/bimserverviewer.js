@@ -426,4 +426,8 @@ export class BimServerViewer {
 	setProgressListener(progressListener) {
 		this.progressListener = progressListener;
 	}
+	
+	addSelectionListener(selectionListener) {
+		this.viewer.addSelectionListener(selectionListener);
+	}
 }

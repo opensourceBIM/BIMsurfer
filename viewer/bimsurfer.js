@@ -201,4 +201,14 @@ export class BimSurfer extends EventHandler {
 			v.resetVisibility();
 		}
 	}
+	
+	/**
+	 * Add a handler which is called when an object is selected in the viewer
+	 *
+	 * @param {{handler: ?Function}} handler Handler (function)
+	 * @memberof BimSurfer
+	 */
+	addSelectedHandler(handler) {
+		this._bimServerViewer.addSelectionListener(handler);
+	}
 }

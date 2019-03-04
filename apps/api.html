@@ -23,7 +23,7 @@
         import {BimSurfer} from "../viewer/bimsurfer.js";
 		import {Address} from "./address.js";
         
-        let surfer = window.bimSurfer = new BimSurfer();
+        var surfer = window.bimSurfer = new BimSurfer();
         surfer.load({
             bimserver: Address.getApiAddress(), 
             username:"admin@bimserver.org",
@@ -31,9 +31,7 @@
             roid:65539,
             domNode:document.querySelector("canvas")
         }).then(generateApiReference).catch(errorHandler);
-    </script>
 
-    <script>
         function generateApiReference() {
 
             var oids = Array.from(bimSurfer._bimServerViewer.viewer.viewObjects.keys());
@@ -77,14 +75,23 @@
                 
                 var cmd = "bimSurfer."+m.name+"("+args+");";
                 n.innerHTML += "<textarea rows=3 id='code"+i+"' spellcheck=false>"+cmd+"\n</textarea>";
-                exec_statement = "eval(document.getElementById(\"code"+i+"\").value)"
+                var exec_statement = "eval(document.getElementById(\"code"+i+"\").value)"
                 if (m.hasResult) {
                     n.innerHTML += "Result:<pre id='result"+i+"' />";
                     exec_statement = "document.getElementById(\"result"+i+"\").innerHTML = stringify(" + exec_statement + ").replace(/,/g, \", \")";
                 }
                 n.innerHTML += "<button onclick='"+exec_statement+"'>run</button>";
             });
-
+            
+            const eventHandlers = document.createElement("div");
+            const onClickTextArea = document.createElement("textarea");
+			onClickTextArea.setAttribute("rows", 10);
+			onClickTextArea.style.overflow = "scroll";
+            surfer.addSelectedHandler((object) => {
+            	onClickTextArea.value = onClickTextArea.value + "\n" + object.oid + " (" + object.type + ") clicked";
+            });
+            eventHandlers.appendChild(onClickTextArea);
+            n.appendChild(eventHandlers);
         }
 
         function stringify(x) {
@@ -105,6 +112,7 @@
         }
 
         function errorHandler(message) {
+        	console.error(message);
             let canvas = document.getElementsByTagName("canvas")[0];
             let error = document.createElement("div");
             error.className = "error";

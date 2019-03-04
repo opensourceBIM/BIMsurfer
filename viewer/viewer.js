@@ -24,6 +24,8 @@ var tmp_unproject = vec3.create();
 const OVERRIDE_FLAG = (1 << 31);
 
 /**
+ * The idea is that this class doesn't know anything about BIMserver, and can possibly be reused in classes other than BimServerViewer
+ * 
  *
  * Main viewer class, too many responsibilities:
  * - Keep track of width/height of viewport
@@ -73,6 +75,8 @@ export class Viewer {
         // Picking ID (unsigned int) -> ViewObject
         // This is an array now since the picking ids form a continues array
         this.pickIdToViewObject = [];
+        
+        this.selectionListeners = [];
         
         this.renderLayers = [];
         this.animationListeners = [];
@@ -699,5 +703,9 @@ export class Viewer {
     resetVisibility() {
         this.setVisibility(this.invisibleElements.keys(), true);
         this.dirty = true;
+    }
+    
+    addSelectionListener(selectionListener) {
+    	this.selectionListeners.push(selectionListener);
     }
 }

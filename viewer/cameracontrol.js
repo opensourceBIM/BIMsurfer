@@ -125,6 +125,9 @@ export class CameraControl {
                 } else {
                     this.dragMode = DRAG_ORBIT;
                     let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
+                    for (const listener of this.viewer.selectionListeners) {
+                    	listener(picked.object);
+                    }
                     if (picked && picked.coordinates && picked.object) {
                         this.viewer.camera.center = picked.coordinates;
                     } else {
