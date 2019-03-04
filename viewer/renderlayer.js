@@ -478,7 +478,7 @@ export class RenderLayer {
 						gl.uniform1ui(programInfo.uniformLocations.containedMeansHidden, subset.hidden ? 1 : 0);
 						this.previousInstanceVisibilityState = instanceVisibilityState;
 					}
-					gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.nrTrianglesToDraw * 3, buffer.indexType, 0, buffer.nrProcessedMatrices);
+					gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.indexBuffer.N, buffer.indexType, 0, buffer.nrProcessedMatrices);
 				}
 			}
 		} else {
