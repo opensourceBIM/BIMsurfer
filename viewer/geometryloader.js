@@ -86,7 +86,7 @@ export class GeometryLoader {
 
 	processMessage(stream) {
 		var messageType = stream.readByte();
-		
+
 		if (messageType == 0) {
 			if (!this.readStart(stream)) {
 				// An error occured, usually version mismatch or missing serializer
@@ -156,6 +156,8 @@ export class GeometryLoader {
 		var boundary = data.readDoubleArray(6);
 
 		this.state.mode = 1;
+		
+		return true;
 	}
 
 	readObject(stream, geometryType) {
