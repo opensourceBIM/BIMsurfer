@@ -23,6 +23,9 @@ export class Perspective {
     }
 
     build() {
+    	if (this.viewer.width == null || this.viewer.height == null) {
+    		throw "Viewer dimensions unknown, cannot continue";
+    	}
         var aspect = this.viewer.width / this.viewer.height;
         mat4.perspective(this._projMatrix, this._fov * Math.PI / 180.0, aspect, this._near, this._far);
         mat4.invert(this._projMatrixInverted, this._projMatrix);
