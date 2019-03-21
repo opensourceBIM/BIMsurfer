@@ -41,6 +41,9 @@ const OVERRIDE_FLAG = (1 << 31);
 export class Viewer {
 
     constructor(canvas, settings, stats, width, height) {
+        this.width = width;
+        this.height = height;
+
         this.stats = stats;
         this.settings = settings;
         this.canvas = canvas;
@@ -53,9 +56,6 @@ export class Viewer {
             alert('Unable to initialize WebGL. Your browser or machine may not support it.');
             return;
         }
-
-        this.width = width;
-        this.height = height;
 
         if (!this.settings.loaderSettings.prepareBuffers) {
         	this.bufferSetPool = new BufferSetPool(1000, this.stats);
