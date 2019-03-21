@@ -301,20 +301,6 @@ export class Viewer {
             this.programManager = new ProgramManager(this.gl, this.settings);
 
             this.programManager.load().then(() => {
-                // It would be really nice to get the BIMsurfer V1 like anti-aliasing, so far I understand this is definitely
-                // possible in WebGL2 but you need to do something with framebuffers/renderbuffers.
-
-//				this.colorFrameBuffer = this.gl.createRenderbuffer();
-//				this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, this.colorFrameBuffer);
-//				this.gl.renderbufferStorageMultisample(this.gl.RENDERBUFFER, 4, this.gl.RGBA8, this.width, this.height);
-//
-//				this.renderFrameBuffer = this.gl.createFramebuffer();
-//				this.renderFrameBuffer = this.gl.createFramebuffer();
-//				
-//				this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.renderFrameBuffer);
-//				this.gl.framebufferRenderbuffer(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.RENDERBUFFER, this.colorFrameBuffer);
-//				this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
-
                 resolve();
                 requestAnimationFrame((now) => {
                     this.render(now);
