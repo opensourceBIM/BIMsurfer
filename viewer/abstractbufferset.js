@@ -1,5 +1,7 @@
 import {FatLineRenderer} from './fatlinerenderer.js'
 
+var bufferSetCounter = 0;
+
 /**
  * @ignore
  */
@@ -8,6 +10,7 @@ export class AbstractBufferSet {
     constructor(viewer) {
     	this.viewer = viewer;
         this.geometryIdToIndex = new Map();
+        this.id = bufferSetCounter++;
     }
 
     joinConsecutiveRanges(ranges) {

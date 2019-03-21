@@ -154,7 +154,7 @@ export class RenderLayer {
 				}
 				vec3.transformMat4(vertex, vertex, object.matrix);
 				if (this.settings.quantizeVertices) {
-					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.getTransformedVertexQuantizationMatrix());
+					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.vertexQuantizationMatrixWithGlobalTransformation);
 				}
 	
 				buffer.positions.set(vertex, buffer.positionsIndex);

@@ -141,7 +141,7 @@ export class DefaultRenderLayer extends RenderLayer {
 			if (this.settings.quantizeVertices) {
 				if (!reuse) {
 					// This is odd, it seems as though the reused shaders also need the vertexQuantizationMatrix, but it seems to work anyways... (same code in pickBuffers)
-					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
+					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.inverseVertexQuantizationMatrixWithGlobalTransformation);
 				}
 			}
 
