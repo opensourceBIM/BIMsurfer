@@ -329,7 +329,7 @@ export class RenderLayer {
 
 		if (this.settings.useObjectColors) {
 			color = [geometry.color.r, geometry.color.g, geometry.color.b, geometry.color.a];
-			colorHash = Utils.hash(JSON.stringify(buffer.color));
+			colorHash = Utils.hash(JSON.stringify(geometry.color));
 		}
 
 		let buffer = new FrozenBufferSet(
@@ -499,6 +499,7 @@ export class RenderLayer {
 				}				
 			} else {
 				// These are the conventional buffersets
+				// TODO Ruben: For bigger models this results in out-of-memory (CPU), not sure why, but creating a new array here probably uses some memory
 				for (var range of buffer.computeVisibleRanges(visibleElements, this.gl)) {
 					this.gl.drawElements(this.gl.TRIANGLES, Math.min(range[1] - range[0], buffer.nrTrianglesToDraw * 3), this.gl.UNSIGNED_INT, range[0] * 4);
 				}
