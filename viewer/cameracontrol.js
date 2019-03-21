@@ -1,3 +1,7 @@
+import * as mat4 from "./glmatrix/mat4.js";
+import * as vec3 from "./glmatrix/vec3.js";
+import * as vec2 from "./glmatrix/vec2.js";
+
 export const DRAG_ORBIT = 0xfe01;
 export const DRAG_PAN = 0xfe02;
 export const DRAG_SECTION = 0xfe03;

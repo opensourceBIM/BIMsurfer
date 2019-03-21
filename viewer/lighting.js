@@ -1,3 +1,6 @@
+import * as mat4 from "./glmatrix/mat4.js";
+import * as vec3 from "./glmatrix/vec3.js";
+
 /**
  * Configures the viewer's light sources.
  * @todo This class's API will probably change as we add ability to configure multiple light sources.

@@ -1,3 +1,6 @@
+import * as mat4 from "./glmatrix/mat4.js";
+import * as vec3 from "./glmatrix/vec3.js";
+
 /**
  * Configures orthographic projection mode for the camera.
  * In this projection mode, an object's size in the rendered image stays constant regardless of its distance} from the camera.

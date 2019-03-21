@@ -1,3 +1,6 @@
+import * as mat4 from "./glmatrix/mat4.js";
+import * as vec3 from "./glmatrix/vec3.js";
+
 import {Viewer} from './viewer.js'
 import {DefaultRenderLayer} from './defaultrenderlayer.js'
 import {TilingRenderLayer} from './tilingrenderlayer.js'

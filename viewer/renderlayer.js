@@ -1,3 +1,6 @@
+import * as mat4 from "./glmatrix/mat4.js";
+import * as vec3 from "./glmatrix/vec3.js";
+
 import {BufferTransformer} from './buffertransformer.js'
 import {Utils} from './utils.js'
 import {GeometryCache} from './geometrycache.js'

@@ -1,3 +1,6 @@
+import * as mat4 from "./glmatrix/mat4.js";
+import * as vec3 from "./glmatrix/vec3.js";
+
 import {ProgramManager} from './programmanager.js'
 import {Lighting} from './lighting.js'
 import {BufferSetPool} from './buffersetpool.js'

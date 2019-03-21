@@ -1,3 +1,7 @@
+import * as mat4 from "./glmatrix/mat4.js";
+import * as mat3 from "./glmatrix/mat3.js";
+import * as vec3 from "./glmatrix/vec3.js";
+
 import {DataInputStream} from "./datainputstream.js"
 import {DefaultColors} from "./defaultcolors.js"
 import {RenderLayer} from "./renderlayer.js"

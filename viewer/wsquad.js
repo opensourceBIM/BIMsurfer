@@ -1,3 +1,6 @@
+import * as mat4 from "./glmatrix/mat4.js";
+import * as vec3 from "./glmatrix/vec3.js";
+
 /**
  * A World-space quadrangle used for rendering a capping polygon for the sectionplane.
  *

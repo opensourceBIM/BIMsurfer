@@ -1,3 +1,6 @@
+import * as mat4 from "./glmatrix/mat4.js";
+import * as vec3 from "./glmatrix/vec3.js";
+
 /**
  * Configures perspective projection mode for the camera.
  * Perspective projection is represented as a viewing frustum, given as six planes, along with a field of view (FOV) angle.
