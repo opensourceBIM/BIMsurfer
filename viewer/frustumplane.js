@@ -1,3 +1,5 @@
+import * as vec3 from "./glmatrix/vec3.js";
+
 /**
  * @ignore
  */
