@@ -58,7 +58,9 @@ export class BimServerViewer {
 			};
 			window.addEventListener("resize", this.resizeHandler, false);
 		} else {
-			this.viewer.setDimensions(width, height);
+			this.canvas.width = this.width;
+			this.canvas.height = this.height;
+			this.viewer.setDimensions(this.width, this.height);
 		}
 	}
 
