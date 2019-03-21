@@ -12,8 +12,10 @@ import {Stats} from "./stats.js"
  * @extends {EventHandler}
  */
 export class BimSurfer extends EventHandler {
-    constructor() {
+    constructor(settings) {
         super();
+        
+        this.settings = settings;
 
         this._api = null;
     }
@@ -59,7 +61,7 @@ export class BimSurfer extends EventHandler {
 		var stats = new Stats();		
 		stats.setParameter("Models", "Name", project.name);
 		
-		this._bimServerViewer = new BimServerViewer(this._api, {viewerBasePath:"../"}, domNode, null, null, stats);
+		this._bimServerViewer = new BimServerViewer(this._api, this.settings, domNode, null, null, stats);
 		
 		this._bimServerViewer.setProgressListener((percentage) => {
 			console.log(percentage + "% loaded")
