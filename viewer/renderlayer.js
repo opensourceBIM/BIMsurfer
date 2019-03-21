@@ -661,13 +661,15 @@ export class RenderLayer {
 			this.viewer.dirty = true;
 		}
 		
-		this.viewer.stats.inc("Primitives", "Nr primitives loaded", buffer.nrIndices / 3);
-		if (this.progressListener != null) {
-			this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
+		if (!buffer.isCopy) {
+			this.viewer.stats.inc("Primitives", "Nr primitives loaded", buffer.nrIndices / 3);
+			if (this.progressListener != null) {
+				this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
+			}
+			this.viewer.stats.inc("Data", "GPU bytes", buffer.bytes);
+			this.viewer.stats.inc("Data", "GPU bytes total", buffer.bytes);
+			this.viewer.stats.inc("Buffers", "Buffer groups");
 		}
-		this.viewer.stats.inc("Data", "GPU bytes", buffer.bytes);
-		this.viewer.stats.inc("Data", "GPU bytes total", buffer.bytes);
-		this.viewer.stats.inc("Buffers", "Buffer groups");
 
 		return newBuffer;
 	}

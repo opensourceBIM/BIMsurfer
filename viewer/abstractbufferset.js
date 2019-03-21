@@ -264,9 +264,9 @@ export class AbstractBufferSet {
                 indices[i] -= minIndex;
             }
 
+            returnDictionary.isCopy = true;
             returnDictionary["indices"] = indices;
             returnDictionary["nrIndices"] = indices.length;
-            
         }
 
 		return returnDictionary;
