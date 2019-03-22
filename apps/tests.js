@@ -69,7 +69,6 @@ export default class Tests {
 		
 		var test = tests[index];
 		var settings = DefaultSettings.create();
-		settings.viewerBasePath = "../";
 		settings.autoResize = false;
 		for (var key in test) {
 			settings[key] = test[key];

@@ -22,7 +22,6 @@ export class Minimal {
 			poid: 196609,
 			// The settings for the viewer
 			viewerSettings: {
-				viewerBasePath: "../"
 				// Not putting anything here will just use the default settings
 			}
 		};

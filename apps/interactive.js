@@ -13,7 +13,6 @@ export class Interactive {
 	constructor() {
 		// You need to change these to something that makes sense
 		this.settings = {
-			viewerBasePath: "../"
 		};
 	}
 

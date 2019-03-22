@@ -69,9 +69,6 @@ export class DefaultSettings {
 		if (settings.loaderSettings.reportProgress == null) {
 			settings.loaderSettings.reportProgress = false;
 		}
-		if (settings.viewerBasePath == null) {
-			settings.viewerBasePath = "./";
-		}
 		if (settings.autoCombineGpuBuffers == null) {
 			settings.autoCombineGpuBuffers = false;
 		}

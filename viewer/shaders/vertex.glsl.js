@@ -1,3 +1,5 @@
+export const VERTEX_SHADER_SOURCE = `
+
 precision mediump int;
 precision mediump float;
 
@@ -180,3 +182,4 @@ void main(void) {
 
     worldCoords = floatVertex.xyz;
 }
+`

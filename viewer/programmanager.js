@@ -1,3 +1,6 @@
+import {VERTEX_SHADER_SOURCE} from "./shaders/vertex.glsl.js";
+import {FRAGMENT_SHADER_SOURCE} from "./shaders/fragment.glsl.js";
+
 export const OBJECT_COLORS = 1;
 export const VERTEX_QUANTIZATION = 2;
 export const NORMAL_QUANTIZATION = 4;
@@ -13,9 +16,7 @@ export class ProgramManager {
 	
 	constructor(gl, settings) {
 		this.gl = gl;
-		this.viewerBasePath = settings.viewerBasePath;
 		this.settings = settings;
-		this.loadedFiles = new Map();
 		this.programs = [];
 		this.promises = [];
 	}
@@ -116,7 +117,7 @@ export class ProgramManager {
 				key |= VERTEX_QUANTIZATION;
 			}
 			
-			this.setupProgram(this.viewerBasePath + "shaders/vertex.glsl", this.viewerBasePath + "shaders/fragment.glsl", {
+			this.setupProgram(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE, {
 				attributes: ["vertexPosition", "nextVertexPosition", "direction"],
 				uniforms: lineUniforms
 			}, this.generateSetup(key), key);
@@ -137,7 +138,7 @@ export class ProgramManager {
 	generateShaders(defaultSetup, key) {
 		var vertexShaderName = this.getVertexShaderName();
 		var fragShaderName = "shaders/fragment.glsl";
-		this.setupProgram(this.viewerBasePath + vertexShaderName, this.viewerBasePath + fragShaderName, defaultSetup, this.generateSetup(key), key);
+		this.setupProgram(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE, defaultSetup, this.generateSetup(key), key);
 	}
 
 	getVertexShaderName() {
@@ -193,88 +194,65 @@ export class ProgramManager {
 		this.programs[key] = program;
 	}
 
-	setupProgram(vertexShader, fragmentShader, defaultSetup, specificSetup, key) {
+	setupProgram(vertexShaderSource, fragmentShaderSource, defaultSetup, specificSetup, key) {
 //		console.log("setupProgram", key, this.keyToJson(key));
 		var p = new Promise((resolve, reject) => {
-			this.loadShaderFile(vertexShader).then((vsSource) => {
-				this.loadShaderFile(fragmentShader).then((fsSource) => {
-					var shaderProgram = this.initShaderProgram(this.gl, vertexShader, vsSource, fragmentShader, fsSource, key);
+			var shaderProgram = this.initShaderProgram(this.gl, "vertex shader", vertexShaderSource, "fragment shader", fragmentShaderSource, key);
 
-					var programInfo = {
-						program: shaderProgram,
-						attribLocations: {},
-						uniformLocations: {},
-						uniformBlocks: {}
-					};
+			var programInfo = {
+				program: shaderProgram,
+				attribLocations: {},
+				uniformLocations: {},
+				uniformBlocks: {}
+			};
 
-					//console.log("----------------------------------------");
-					//console.log("setupProgram (" + vertexShader + ", " + fragmentShader + ")");
+			//console.log("----------------------------------------");
+			//console.log("setupProgram (" + vertexShader + ", " + fragmentShader + ")");
 
-					for (var setup of [defaultSetup, specificSetup]) {
-						if (setup.attributes != null) {
-							//console.log("attributes:");
-							for (var attribute of setup.attributes) {
-								let res = programInfo.attribLocations[attribute] = this.gl.getAttribLocation(shaderProgram, attribute);
-								if (res === -1) {
-									console.error("Missing attribute location", attribute, vertexShader, this.keyToJson(key));
-									debugger;
-								}
-							}
+			for (var setup of [defaultSetup, specificSetup]) {
+				if (setup.attributes != null) {
+					//console.log("attributes:");
+					for (var attribute of setup.attributes) {
+						let res = programInfo.attribLocations[attribute] = this.gl.getAttribLocation(shaderProgram, attribute);
+						if (res === -1) {
+							console.error("Missing attribute location", attribute, vertexShader, this.keyToJson(key));
+							debugger;
 						}
-						if (setup.uniforms != null) {
-							// @todo can also use getUniformIndices()
-							for (var uniform of setup.uniforms) {
-								let res = programInfo.uniformLocations[uniform] = this.gl.getUniformLocation(shaderProgram, uniform);
-								if (res === null) {
-									console.error("Missing uniform location", uniform, vertexShader, this.keyToJson(key));
-									debugger;
-								}
-							}
+					}
+				}
+				if (setup.uniforms != null) {
+					// @todo can also use getUniformIndices()
+					for (var uniform of setup.uniforms) {
+						let res = programInfo.uniformLocations[uniform] = this.gl.getUniformLocation(shaderProgram, uniform);
+						if (res === null) {
+							console.error("Missing uniform location", uniform, vertexShader, this.keyToJson(key));
+							debugger;
 						}
-						if (setup.uniformBlocks != null) {
-							if (setup.uniformBlocks != null) {
-								for (var uniformBlock of setup.uniformBlocks) {
-									let res = programInfo.uniformBlocks[uniformBlock] = this.gl.getUniformBlockIndex(shaderProgram, uniformBlock);
-									if (res == -1) {
-										console.error("Missing uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock], this.keyToJson(key));
-										debugger;
-									} else {
-										this.gl.uniformBlockBinding(shaderProgram, programInfo.uniformBlocks[uniformBlock], 0);
-									}
-								}
+					}
+				}
+				if (setup.uniformBlocks != null) {
+					if (setup.uniformBlocks != null) {
+						for (var uniformBlock of setup.uniformBlocks) {
+							let res = programInfo.uniformBlocks[uniformBlock] = this.gl.getUniformBlockIndex(shaderProgram, uniformBlock);
+							if (res == -1) {
+								console.error("Missing uniformBlock '" + uniformBlock + "' = " + programInfo.uniformBlocks[uniformBlock], this.keyToJson(key));
+								debugger;
+							} else {
+								this.gl.uniformBlockBinding(shaderProgram, programInfo.uniformBlocks[uniformBlock], 0);
 							}
 						}
 					}
-					
-					programInfo.vertexShaderFile = vertexShader;
-					programInfo.fragmentShaderFile = fragmentShader;
+				}
+			}
+			
+			this.setProgram(key, programInfo);
 
-					this.setProgram(key, programInfo);
-
-					resolve(programInfo);
-				});
-			});
+			resolve(programInfo);
 		});
 
 		this.promises.push(p);
 
 		return p;
-	}
-
-	loadShaderFile(filename) {
-		if (this.loadedFiles.has(filename)) {
-			return this.loadedFiles.get(filename);
-		}
-		var promise = new Promise((resolve, reject) => {
-			var request = new XMLHttpRequest();
-			request.open("GET", filename, true);
-			request.addEventListener("load", () => {
-				resolve(request.responseText);
-			});
-			request.send();
-		});
-		this.loadedFiles.set(filename, promise);
-		return promise;
 	}
 
 	initShaderProgram(gl, vsName, vsSource, fsName, fsSource, key) {

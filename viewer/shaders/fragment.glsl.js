@@ -1,3 +1,5 @@
+export const FRAGMENT_SHADER_SOURCE = `
+
 precision mediump int;
 precision mediump float;
 
@@ -41,3 +43,4 @@ void main(void) {
    myOutputAlpha = 1.;
 #endif
 }
+`
