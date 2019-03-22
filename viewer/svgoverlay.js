@@ -20,16 +20,20 @@ export class SvgOverlay {
             margin: 0,
             position: "absolute",
             zIndex: 10000,
-            display: "block"
+            display: "block",
+        	"pointer-events": "none"
         });
-
+        
         document.body.appendChild(svg);
 
         this.resize();
         this.camera.listeners.push(this.update.bind(this));
         this._orbitCenter = this.create("circle", {
             visibility: "hidden",
-            r: 6
+            r: 6,
+            fill: "white",
+        	stroke: "black",
+        	"fill-opacity": 0.4
         });
 
         window.addEventListener("resize", this.resize.bind(this), false);

@@ -15,7 +15,7 @@ export class BimSurfer extends EventHandler {
     constructor(settings) {
         super();
         
-        this.settings = settings;
+        this.settings = settings || {};
 
         this._api = null;
     }

@@ -12,6 +12,7 @@ import {FrozenBufferSet} from './frozenbufferset.js'
 import {Utils} from './utils.js'
 import {SSQuad} from './ssquad.js'
 import {FreezableSet} from './freezableset.js';
+import {DefaultCss} from './defaultcss.js';
 
 import {COLOR_FLOAT_DEPTH_NORMAL, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 import { WSQuad } from './wsquad.js';
@@ -44,6 +45,8 @@ export class Viewer {
         this.width = width;
         this.height = height;
 
+        new DefaultCss().apply(canvas);
+        
         this.stats = stats;
         this.settings = settings;
         this.canvas = canvas;
