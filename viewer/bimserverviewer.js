@@ -65,8 +65,8 @@ export class BimServerViewer {
 	}
 
 	autoResizeCanvas() {
-		this.canvas.width = window.innerWidth;
-		this.canvas.height = window.innerHeight;
+		this.canvas.width = this.canvas.parentElement.offsetWidth;
+		this.canvas.height = this.canvas.parentElement.offsetHeight;
 		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
 	}
 
