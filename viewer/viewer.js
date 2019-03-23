@@ -670,7 +670,8 @@ export class Viewer {
 
     viewFit(ids) {
         let aabb = ids.map(this.viewObjects.get.bind(this.viewObjects))
-            .map((o) => o.aabb)
+        	.filter((o) => o != null && o.globalizedAabb != null)
+            .map((o) => o.globalizedAabb)
             .reduce(Utils.unionAabb, Utils.emptyAabb());
         this.camera.viewFit(aabb);
         this.dirty = true;
