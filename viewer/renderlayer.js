@@ -113,9 +113,12 @@ export class RenderLayer {
 
 		loader.objects.set(oid, object);
 
+		var globalizedAabb = Utils.transformBounds(aabb, this.viewer.globalTransformation);
+		
 		var viewObject = {
             type: type,
 			aabb: aabb,
+			globalizedAabb: globalizedAabb,
 			objectId: objectId,
 			oid: oid,
 			node: node
