@@ -1,3 +1,7 @@
+import * as mat4 from "./glmatrix/mat4.js";
+import * as mat3 from "./glmatrix/mat3.js";
+import * as vec3 from "./glmatrix/vec3.js";
+
 const glTypeToTypedArrayMap = new Map([
 	[WebGL2RenderingContext.BYTE, Int8Array],
 	[WebGL2RenderingContext.SHORT, Int16Array],
@@ -137,6 +141,19 @@ export class Utils {
 		return Utils.createBuffer(gl, data, n, gl.ELEMENT_ARRAY_BUFFER);
 	}
 
+	static transformBounds(inputBounds, transformation) {
+		var minVector = vec3.create();
+		var maxVector = vec3.create();
+		vec3.set(minVector, inputBounds[0], inputBounds[1], inputBounds[2]);
+		vec3.set(maxVector, inputBounds[0] + inputBounds[3], inputBounds[1] + inputBounds[4], inputBounds[2] + inputBounds[5]);
+		
+		var normalizedMinVector = vec3.clone(minVector);
+		var normalizedMaxVector = vec3.clone(maxVector);
+		vec3.transformMat4(normalizedMinVector, normalizedMinVector, transformation);
+		vec3.transformMat4(normalizedMaxVector, normalizedMaxVector, transformation);
+		return [normalizedMinVector[0], normalizedMinVector[1], normalizedMinVector[2], normalizedMaxVector[0] - normalizedMinVector[0], normalizedMaxVector[1] - normalizedMinVector[1], normalizedMaxVector[2] - normalizedMinVector[2]];
+	}
+	
 	static unionAabb(a, b) {
 		let r = new Float32Array(6);
 		for (let i = 0; i < 6; ++i) {
