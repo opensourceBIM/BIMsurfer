@@ -7,6 +7,5 @@ export class DefaultCss {
 		console.log("Applying css", canvas);
 
 		canvas.style.display = "block";
-		canvas.style.position = "absolute";
 	}
 }
