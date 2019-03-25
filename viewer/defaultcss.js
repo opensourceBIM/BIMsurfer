@@ -4,8 +4,6 @@ export class DefaultCss {
 	}
 	
 	apply(canvas) {
-		console.log("Applying css", canvas);
-
 		canvas.style.display = "block";
 	}
 }
