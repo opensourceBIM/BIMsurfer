@@ -168,7 +168,9 @@ export class CameraControl {
                 break;
         }
         this.over = true;
-        e.preventDefault();
+        if (this.dragMode == DRAG_PAN) {
+        	e.preventDefault();
+        }
     }
 
     /**
