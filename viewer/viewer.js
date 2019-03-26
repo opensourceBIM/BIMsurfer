@@ -218,7 +218,11 @@ export class Viewer {
         this.resetColor(elems);
         
         for (let objectId of elems) {
-            this.geometryIdToBufferSet.get(objectId).forEach((bufferSet) => {
+        	const bufferSet = this.geometryIdToBufferSet.get(objectId);
+        	if (bufferSet == null) {
+        		continue;
+        	}
+            bufferSet.forEach((bufferSet) => {
                 let originalColor = bufferSet.setColor(this.gl, objectId, clr);
                 if (originalColor === false) {
                     let copiedBufferSet = bufferSet.copy(this.gl, objectId);
