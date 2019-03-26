@@ -211,6 +211,8 @@ export class Viewer {
                 }
             }
         });
+        
+        this.dirty = true;
     }
 
     setColor(elems, clr) {
