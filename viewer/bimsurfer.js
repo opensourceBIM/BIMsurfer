@@ -141,6 +141,17 @@ export class BimSurfer extends EventHandler {
 		});
 		v.setColor(params.ids, clr);
 	}
+	
+	/**
+	 * Resets the color for the specified elements (to their original color)
+	 *
+	 * @param {{ids: Number[]}} params
+	 * @memberof BimSurfer
+	 */
+	resetColor(params) {
+		let v = this._bimServerViewer.viewer;
+		v.resetColor(params.ids);
+	}
 
 	/**
 	 * Zooms the current camera in or out the fit the specified elements in the viewport
