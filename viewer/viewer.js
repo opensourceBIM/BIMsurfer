@@ -219,77 +219,79 @@ export class Viewer {
         // Reset colors first to clear any potential transparency overrides.
         this.resetColor(elems);
         
-        for (let objectId of elems) {
-        	const bufferSet = this.geometryIdToBufferSet.get(objectId);
-        	if (bufferSet == null) {
-        		continue;
+        this.invisibleElements.batch(() => {
+        	for (let objectId of elems) {
+        		const bufferSet = this.geometryIdToBufferSet.get(objectId);
+        		if (bufferSet == null) {
+        			continue;
+        		}
+        		bufferSet.forEach((bufferSet) => {
+        			let originalColor = bufferSet.setColor(this.gl, objectId, clr);
+        			if (originalColor === false) {
+        				let copiedBufferSet = bufferSet.copy(this.gl, objectId);
+        				let clrSameType, newClrBuffer;
+        				if (copiedBufferSet instanceof FrozenBufferSet) {
+        					clrSameType = new window[copiedBufferSet.colorBuffer.js_type](4);
+        					newClrBuffer = new window[copiedBufferSet.colorBuffer.js_type](copiedBufferSet.colorBuffer.N);
+        					copiedBufferSet.hasTransparency = clr[3] < 1.;
+        				} else {
+        					clrSameType = new copiedBufferSet.colors.constructor(4);
+        					newClrBuffer = copiedBufferSet.colors;
+        					copiedBufferSet.hasTransparency = !bufferSet.hasTransparency;
+        				}
+        				
+        				let factor = clrSameType.constructor.name === "Uint8Array" ? 255. : 1.;
+        				
+        				for (let i = 0; i < 4; ++i) {
+        					clrSameType[i] = clr[i] * factor;
+        				}
+        				
+        				for (let i = 0; i < newClrBuffer.length; i += 4) {
+        					newClrBuffer.set(clrSameType, i);
+        				}                     
+        				
+        				copiedBufferSet.node = bufferSet.node;
+        				
+        				let buffer;
+        				
+        				if (copiedBufferSet instanceof FrozenBufferSet) {
+        					var programInfo = this.programManager.getProgram(this.programManager.createKey(true, false));
+        					var pickProgramInfo = this.programManager.getProgram(this.programManager.createKey(true, true));
+        					
+        					copiedBufferSet.colorBuffer = Utils.createBuffer(this.gl, newClrBuffer, null, null, 4);
+        					
+        					let obj = bufferSet.objects.find(o => o.id === objectId);
+        					bufferSet.setObjects(this.gl, bufferSet.objects.filter(o => o.id !== objectId));
+        					copiedBufferSet.setObjects(this.gl, [obj]);
+        					
+        					copiedBufferSet.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
+        					copiedBufferSet.manager.pushBuffer(copiedBufferSet);
+        					buffer = copiedBufferSet;
+        					
+        					// NB: Single bufferset entry is assumed here, which is the case for now.
+        					this.geometryIdToBufferSet.get(objectId)[0] = buffer;
+        					
+        					this.instancesWithChangedColor.set(objectId, {
+        						object: obj,
+        						original: bufferSet, 
+        						override: copiedBufferSet
+        					});
+        				} else {
+        					buffer = bufferSet.owner.flushBuffer(copiedBufferSet, false);
+        					
+        					// Note that this is an attribute on the bufferSet, but is
+        					// not applied to the actual webgl vertex data.
+        					buffer.objectId = objectId | OVERRIDE_FLAG;
+        					
+        					this.invisibleElements.add(objectId);
+        					this.hiddenDueToSetColor.set(objectId, buffer);
+        				}                    
+        			} else {
+        				this.originalColors.set(objectId, originalColor);
+        			}
+        		});
         	}
-            bufferSet.forEach((bufferSet) => {
-                let originalColor = bufferSet.setColor(this.gl, objectId, clr);
-                if (originalColor === false) {
-                    let copiedBufferSet = bufferSet.copy(this.gl, objectId);
-                    let clrSameType, newClrBuffer;
-                    if (copiedBufferSet instanceof FrozenBufferSet) {
-                        clrSameType = new window[copiedBufferSet.colorBuffer.js_type](4);
-                        newClrBuffer = new window[copiedBufferSet.colorBuffer.js_type](copiedBufferSet.colorBuffer.N);
-                        copiedBufferSet.hasTransparency = clr[3] < 1.;
-                    } else {
-                        clrSameType = new copiedBufferSet.colors.constructor(4);
-                        newClrBuffer = copiedBufferSet.colors;
-                        copiedBufferSet.hasTransparency = !bufferSet.hasTransparency;
-                    }
-
-                    let factor = clrSameType.constructor.name === "Uint8Array" ? 255. : 1.;
-
-                    for (let i = 0; i < 4; ++i) {
-                        clrSameType[i] = clr[i] * factor;
-                    }
-
-                    for (let i = 0; i < newClrBuffer.length; i += 4) {
-                        newClrBuffer.set(clrSameType, i);
-                    }                     
-
-                    copiedBufferSet.node = bufferSet.node;
-
-                    let buffer;
-
-                    if (copiedBufferSet instanceof FrozenBufferSet) {
-            			var programInfo = this.programManager.getProgram(this.programManager.createKey(true, false));
-                        var pickProgramInfo = this.programManager.getProgram(this.programManager.createKey(true, true));
-
-                        copiedBufferSet.colorBuffer = Utils.createBuffer(this.gl, newClrBuffer, null, null, 4);
-
-                        let obj = bufferSet.objects.find(o => o.id === objectId);
-                        bufferSet.setObjects(this.gl, bufferSet.objects.filter(o => o.id !== objectId));
-                        copiedBufferSet.setObjects(this.gl, [obj]);
-
-                        copiedBufferSet.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
-                        copiedBufferSet.manager.pushBuffer(copiedBufferSet);
-                        buffer = copiedBufferSet;
-
-                        // NB: Single bufferset entry is assumed here, which is the case for now.
-                        this.geometryIdToBufferSet.get(objectId)[0] = buffer;
-
-                        this.instancesWithChangedColor.set(objectId, {
-                            object: obj,
-                            original: bufferSet, 
-                            override: copiedBufferSet
-                        });
-                    } else {
-                        buffer = bufferSet.owner.flushBuffer(copiedBufferSet, false);
-
-                        // Note that this is an attribute on the bufferSet, but is
-                        // not applied to the actual webgl vertex data.
-                        buffer.objectId = objectId | OVERRIDE_FLAG;
-
-                        this.invisibleElements.add(objectId);
-                        this.hiddenDueToSetColor.set(objectId, buffer);
-                    }                    
-                } else {
-                    this.originalColors.set(objectId, originalColor);
-                }
-            });
-        }
+        });
 
         this.dirty = true;
     }
