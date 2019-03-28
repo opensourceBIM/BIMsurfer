@@ -507,7 +507,7 @@ export class RenderLayer {
 				if (ext) {
 					// This is available on Chrome Canary 75
 					const visibleRanges = buffer.computeVisibleRangesAsBuffers(visibleElements, this.gl);
-					if (visibleRanges) {
+					if (visibleRanges && visibleRanges.pos > 0) {
 						// TODO add buffer.nrTrianglesToDraw code
 						if (visibleRanges.offsetsBytes == null) {
 							visibleRanges.offsetsBytes = new Int32Array(visibleRanges.pos);

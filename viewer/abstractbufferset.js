@@ -36,10 +36,10 @@ export class AbstractBufferSet {
     		counts: new Int32Array(input.pos),
     		pos: 0
     	};
-		for (let i=0; i<input.pos - 1; i++) {
+		for (var i=0; i<input.pos; i++) {
 			var offset = input.offsets[i];
 			var totalCount = input.counts[i];
-			while (input.offsets[i] + input.counts[i] == input.offsets[i + 1]) {
+			while (i < input.pos && input.offsets[i] + input.counts[i] == input.offsets[i + 1]) {
 				i++;
 				totalCount += input.counts[i];
 			}
@@ -97,9 +97,12 @@ export class AbstractBufferSet {
     	for (var i=0; i<input.pos; i++) {
     		var count = input.counts[i];
     		var offset = input.offsets[i];
-   			complement.offsets[i] = previousIndex;
-   			complement.counts[i] = offset - previousIndex;
-   			complement.pos++;
+    		var newCount = offset - previousIndex;
+    		if (newCount > 0) {
+    			complement.offsets[complement.pos] = previousIndex;
+    			complement.counts[complement.pos] = offset - previousIndex;
+    			complement.pos++;
+    		}
     		previousIndex = offset + count;
     	}
     	return complement;
@@ -316,7 +319,7 @@ export class AbstractBufferSet {
     		c++;
     	}
     	
-//    	result = this.joinConsecutiveRangesAsBuffers(result);
+    	result = this.joinConsecutiveRangesAsBuffers(result);
     	
     	if (exclude) {
     		let complement = this.complementRangesAsBuffers(result);
