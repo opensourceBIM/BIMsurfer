@@ -99,9 +99,9 @@ export class BimSurfer extends EventHandler {
 	setVisibility(params) {
 		let v = this._bimServerViewer.viewer;
 		if (params.ids) {
-			v.setVisibility(params.ids, params.visible);
+			return v.setVisibility(params.ids, params.visible);
 		} else if (params.types) {
-			v.callByType(v.setVisibility, params.types, params.visible);
+			return v.callByType(v.setVisibility, params.types, params.visible);
 		}
 	}
 
@@ -113,7 +113,7 @@ export class BimSurfer extends EventHandler {
 	 */
 	setSelectionState(params) {
 		let v = this._bimServerViewer.viewer;
-		v.setSelectionState(params.ids, params.selected, params.clear);
+		return v.setSelectionState(params.ids, params.selected, params.clear);
 	}
 
 	/**
@@ -139,7 +139,7 @@ export class BimSurfer extends EventHandler {
 			let v = params.color[x];
 			return typeof(v) === "undefined" ? 1. : v;
 		});
-		v.setColor(params.ids, clr);
+		return v.setColor(params.ids, clr);
 	}
 	
 	/**
@@ -150,7 +150,7 @@ export class BimSurfer extends EventHandler {
 	 */
 	resetColor(params) {
 		let v = this._bimServerViewer.viewer;
-		v.resetColor(params.ids);
+		return v.resetColor(params.ids);
 	}
 
 	/**
@@ -161,7 +161,7 @@ export class BimSurfer extends EventHandler {
 	 */
 	viewFit(params) {
 		let v = this._bimServerViewer.viewer;
-		v.viewFit(params.ids);
+		return v.viewFit(params.ids);
 	}
 
 	/**

@@ -35,10 +35,13 @@ export class FreezableSet {
     }
 
     batch(fn) {
-        this._update = false;
-        fn();
-        this._build();
-        this._update = true;
+    	return new Promise((resolve, reject) => {
+    		this._update = false;
+    		fn();
+    		this._build();
+    		this._update = true;
+    		resolve();
+    	});
     }
 }
 
