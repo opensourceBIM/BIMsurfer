@@ -47,7 +47,7 @@ export class AbstractBufferSet {
 			result.counts[result.pos] = totalCount;
 			result.pos++;
 		}
-		console.log("Joined", input.pos, result.pos);
+//		console.log("Joined", input.pos, result.pos);
     	return result;
     }
 
