@@ -342,6 +342,7 @@ export class GeometryLoader {
 			return;
 		}
 		const previousStartIndex = this.preparedBuffer.indices.writePosition / 4;
+		const previousColorIndex = this.preparedBuffer.colors.writePosition;
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.indices, stream.dataView, stream.pos, totalNrIndices);
 		stream.pos += totalNrIndices * 4;
 		
@@ -376,7 +377,7 @@ export class GeometryLoader {
 			const meta = {
 				start: previousStartIndex + startIndex,
 				length: nrIndices,
-				color: currentColorIndex,
+				color: previousColorIndex + currentColorIndex,
 				colorLength: nrObjectColors
 			};
 			this.preparedBuffer.geometryIdToMeta.set(oid, [meta]);
