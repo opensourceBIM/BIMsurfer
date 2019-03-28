@@ -30,6 +30,27 @@ export class AbstractBufferSet {
 		}
     }
 
+    joinConsecutiveRangesAsBuffers(input) {
+    	var result = {
+    		offsets: new Int32Array(input.pos),
+    		counts: new Int32Array(input.pos),
+    		pos: 0
+    	};
+		for (let i=0; i<input.pos - 1; i++) {
+			var offset = input.offsets[i];
+			var totalCount = input.counts[i];
+			while (input.offsets[i] + input.counts[i] == input.offsets[i + 1]) {
+				i++;
+				totalCount += input.counts[i];
+			}
+			result.offsets[result.pos] = offset;
+			result.counts[result.pos] = totalCount;
+			result.pos++;
+		}
+		console.log("Joined", input.pos, result.pos);
+    	return result;
+    }
+
     complementRanges(ranges) {
         // @todo: horribly inefficient, do not try this at home.
         var complement =  [[0, this.nrIndices]];
@@ -56,6 +77,32 @@ export class AbstractBufferSet {
         });
 
         return complement;
+    }
+
+    complementRangesAsBuffers(input) {
+    	if (input.pos == 0) {
+    		// Special case, inverting all
+    		return {
+    			counts: new Int32Array([this.nrIndices]),
+    			offsets: new Int32Array([0]),
+    			pos: 1
+    		}
+    	}
+    	var complement = {
+    		counts: new Int32Array(this.nrIndices),
+    		offsets: new Int32Array(this.nrIndices),
+    		pos: 0
+    	};
+    	var previousIndex = 0;
+    	for (var i=0; i<input.pos; i++) {
+    		var count = input.counts[i];
+    		var offset = input.offsets[i];
+   			complement.offsets[i] = previousIndex;
+   			complement.counts[i] = offset - previousIndex;
+   			complement.pos++;
+    		previousIndex = offset + count;
+    	}
+    	return complement;
     }
 
     createLineRenderer(gl, a, b) {
@@ -215,6 +262,86 @@ export class AbstractBufferSet {
         return ranges;
 	}
 	
+    computeVisibleRangesAsBuffers(ids_with_or_without, gl) {
+    	var ids = Object.values(ids_with_or_without)[0];
+    	var exclude = "without" in ids_with_or_without;
+    	
+    	const ids_str = exclude + ':' +  ids.frozen;
+    	
+    	{
+    		var cache_lookup;
+    		if ((cache_lookup = this.visibleRanges.get(ids_str))) {
+    			return cache_lookup;
+    		}
+    	}
+
+    	if (ids === null || ids.size === 0) {
+    		return {
+    			counts: new Int32Array([this.nrIndices]),
+    			offsets: new Int32Array([0]),
+    			pos: 1
+    		};
+    	}
+
+    	// generator function that yields ranges in this buffer for the selected ids
+    	function* _(geometryIdToIndex) {
+    		var oids;
+    		for (var i of ids) {
+    			if ((oids = geometryIdToIndex.get(i))) {
+    				for (var j = 0; j < oids.length; ++j) {
+    					yield [i, [oids[j].start, oids[j].start + oids[j].length]];
+    				}
+    			}
+    		}
+    	};
+    	
+    	// TODO this.geometryIdToIndex can probably be pre-sorted
+    	const id_ranges = this.geometryIdToIndex
+    	? Array.from(_(this.geometryIdToIndex)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
+    			// If we don't have this mapping, we're dealing with a dedicated
+    			// non-instanced bufferset for one particular overriden object
+    			: [[this.objectId & 0x8FFFFFFF, [0, this.nrIndices]]];
+    	
+    	var result = {
+    		counts: new Int32Array(id_ranges.length),
+    		offsets: new Int32Array(id_ranges.length),
+    		pos: id_ranges.length
+    	};
+    	
+    	var c = 0;
+    	for (const range of id_ranges) {
+    		const realRange = range[1];
+    		result.offsets[c] = realRange[0];
+    		result.counts[c] = realRange[1] - realRange[0];
+    		c++;
+    	}
+    	
+//    	result = this.joinConsecutiveRangesAsBuffers(result);
+    	
+    	if (exclude) {
+    		let complement = this.complementRangesAsBuffers(result);
+    		// store in cache
+    		this.visibleRanges.set(ids_str, complement);
+    		return complement;
+    	}
+    	
+    	// store in cache
+    	this.visibleRanges.set(ids_str, result);
+    	
+    	// Create fat line renderings for these elements. This should (a) 
+    	// not in the draw loop (b) maybe in something like a web worker
+    	id_ranges.forEach((range, i) => {
+    		let [id, [a, b]] = range;
+    		if (this.lineIndexBuffers.has(id)) {
+    			return;
+    		}
+    		let lineRenderer = this.createLineRenderer(gl, a, b);
+    		this.lineIndexBuffers.set(id, lineRenderer);
+    	});
+
+    	return result;
+    }
+    
 	reset() {
 		this.positionsIndex = 0;
 		this.normalsIndex = 0;
