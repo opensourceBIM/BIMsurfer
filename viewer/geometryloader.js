@@ -317,7 +317,6 @@ export class GeometryLoader {
 		this.preparedBuffer.pickColors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
 		
 		this.preparedBuffer.geometryIdToIndex = new Map();
-		this.preparedBuffer.geometryIdToMeta = new Map();
 
 		this.preparedBuffer.loaderId = this.loaderId;
 		this.preparedBuffer.hasTransparency = hasTransparancy;
@@ -380,7 +379,7 @@ export class GeometryLoader {
 				color: previousColorIndex + currentColorIndex,
 				colorLength: nrObjectColors
 			};
-			this.preparedBuffer.geometryIdToMeta.set(oid, [meta]);
+			this.preparedBuffer.geometryIdToIndex.set(oid, [meta]);
 			
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
@@ -407,8 +406,6 @@ export class GeometryLoader {
 				colors32.fill(color32, (currentColorIndex / 4), (currentColorIndex + count) / 4);
 				currentColorIndex += count;
 			}
-			
-			this.preparedBuffer.geometryIdToIndex.set(oid, previousStartIndex + startIndex);
 		}
 		if (currentColorIndex != nrColors) {
 			console.error(currentColorIndex, nrColors);
@@ -443,6 +440,16 @@ export class GeometryLoader {
 		
 		this.preparedBuffer.nrObjectsRead += nrObjects;
 		if (this.preparedBuffer.nrObjectsRead == this.preparedBuffer.nrObjects) {
+			// Making a copy of the map, making sure it's sorted by oid, which will make other things much faster later on
+			var sortedKeys = Array.from(this.preparedBuffer.geometryIdToIndex.keys()).sort((a, b) => {
+	        	// Otherwise a and b will be converted to string first...
+				return a - b;
+			});
+			var newMap = new Map();
+			for (var oid of sortedKeys) {
+				newMap.set(oid, this.preparedBuffer.geometryIdToIndex.get(oid));
+			}
+			this.preparedBuffer.geometryIdToIndex = newMap;
 			this.renderLayer.addCompleteBuffer(this.preparedBuffer, this.gpuBufferManager);
 		}
 		

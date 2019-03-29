@@ -249,7 +249,8 @@ export class RenderLayer {
 					color: originalColorIndex,
 					colorLength: geometry.colors.length
 				});
-				buffer.geometryIdToIndex.set(object.id, li);}
+				buffer.geometryIdToIndex.set(object.id, li);
+			}
 			
 			if (startIndex == 0) {
 				// Small optimization, if this is the first object in the buffer, no need to add the startIndex to each index
@@ -582,7 +583,7 @@ export class RenderLayer {
 			
 			newBuffer.unquantizationMatrix = buffer.unquantizationMatrix;
 
-			newBuffer.geometryIdToIndex = buffer.geometryIdToMeta;
+			newBuffer.geometryIdToIndex = buffer.geometryIdToIndex;
 			
 			newBuffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
 			

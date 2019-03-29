@@ -1,6 +1,6 @@
 import {FatLineRenderer} from './fatlinerenderer.js'
 
-var bufferSetCounter = 0;
+var counter = 1;
 
 /**
  * @ignore
@@ -10,7 +10,8 @@ export class AbstractBufferSet {
     constructor(viewer) {
     	this.viewer = viewer;
         this.geometryIdToIndex = new Map();
-        this.id = bufferSetCounter++;
+        // Unique id per bufferset, easier to use as Map key
+        this.id = counter++;
     }
 
     joinConsecutiveRanges(ranges) {
@@ -30,6 +31,9 @@ export class AbstractBufferSet {
 		}
     }
 
+    /**
+     *  Creates new buffers, but is more efficient than joinConsecutiveRanges, funky buffer layers looks this way because we can directly send it to the GPU with multiDrawElementsWEBGL
+     */
     joinConsecutiveRangesAsBuffers(input) {
     	var result = {
     		offsets: new Int32Array(input.pos),
@@ -78,7 +82,10 @@ export class AbstractBufferSet {
 
         return complement;
     }
-
+    
+    /**
+     * More efficient version of complementRanges, but also creates new buffers.
+     */
     complementRangesAsBuffers(input) {
     	if (input.pos == 0) {
     		// Special case, inverting all
@@ -88,9 +95,10 @@ export class AbstractBufferSet {
     			pos: 1
     		}
     	}
+    	var maxNrRanges = this.geometryIdToIndex.size / 2;
     	var complement = {
-    		counts: new Int32Array(this.nrIndices),
-    		offsets: new Int32Array(this.nrIndices),
+    		counts: new Int32Array(maxNrRanges),
+    		offsets: new Int32Array(maxNrRanges),
     		pos: 0
     	};
     	var previousIndex = 0;
@@ -105,7 +113,43 @@ export class AbstractBufferSet {
     		}
     		previousIndex = offset + count;
     	}
+    	// TODO trim buffers?
+//    	console.log(complement.pos, complement.counts.length);
     	return complement;
+    }
+
+    /**
+     * When changing colors, a lot of data is read from the GPU. It seems as though all of this reading is sync, making it a bottle-neck 
+     * When wrapping abstractbufferset calls that read from the GPU buffer in batchGpuRead, the complete bufferset is read into memory once, and is removed afterwards  
+     */
+    batchGpuRead(gl, fn) {
+    	this.batchGpuBuffers = {
+			indices: new Uint32Array(this.nrIndices)
+    	};
+
+        var restoreElementBinding = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, this.batchGpuBuffers.indices, 0, this.nrIndices);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, restoreElementBinding);
+
+        let toCopy = ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"];
+        
+        for (var name of toCopy) {
+            let buffer = this[name];
+            let bytes_per_elem = window[buffer.js_type].BYTES_PER_ELEMENT;
+            let gpu_data = new window[buffer.js_type]((this.nrPositions / 3) * buffer.components);
+
+            this.batchGpuBuffers[name] = gpu_data;
+            
+            var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.getBufferSubData(gl.ARRAY_BUFFER, 0, gpu_data, 0, gpu_data.length);
+            gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
+        }
+
+        fn();
+        
+        this.batchGpuBuffers = null;
     }
 
     createLineRenderer(gl, a, b) {
@@ -203,6 +247,47 @@ export class AbstractBufferSet {
         return ranges;
     }
     
+    // generator function that yields ranges in this buffer for the selected ids
+    * _(geometryIdToIndex, ids) {
+        var oids;
+        for (var i of ids) {
+    		if ((oids = geometryIdToIndex.get(i))) {
+    			for (var j = 0; j < oids.length; ++j) {
+    				yield [i, [oids[j].start, oids[j].start + oids[j].length]];
+    			}
+    		}
+        }
+    }
+
+    /**
+     * Generator function that yields ranges in this buffer for the selected ids
+     * This one tries to do better than _ by utilizing the fact (requirement) that both geometryIdToIndex and ids are numerically ordered beforehand
+     * Basically it only iterates through both iterators only once. Could be even faster with a real TreeMap, but we don't have it available
+     */
+    * findUnion(geometryIdToIndex, ids) {
+    	var iterator1 = geometryIdToIndex.keys();
+    	var iterator2 = ids._set[Symbol.iterator]();
+    	var next1 = iterator1.next();
+    	var next2 = iterator2.next();
+    	while (!next1.done && !next2.done) {
+    		if (next1.value == next2.value) {
+    			const i = next1.value;
+    			var oids = geometryIdToIndex.get(i);
+    			for (var j = 0; j < oids.length; ++j) {
+    				yield [i, [oids[j].start, oids[j].start + oids[j].length]];
+    			}
+    			next1 = iterator1.next();
+    			next2 = iterator2.next();
+    		} else {
+    			if (next1.value < next2.value) {
+    				next1 = iterator1.next();
+    			} else {
+    				next2 = iterator2.next();
+    			}
+    		}
+    	}
+    }
+    
     computeVisibleRanges(ids_with_or_without, gl) {
 		var ids = Object.values(ids_with_or_without)[0];
 		var exclude = "without" in ids_with_or_without;
@@ -220,20 +305,8 @@ export class AbstractBufferSet {
             return [[0, this.nrIndices]];
         }
 
-        // generator function that yields ranges in this buffer for the selected ids
-        function* _(geometryIdToIndex) {
-            var oids;
-            for (var i of ids) {
-                if ((oids = geometryIdToIndex.get(i))) {
-                    for (var j = 0; j < oids.length; ++j) {
-                        yield [i, [oids[j].start, oids[j].start + oids[j].length]];
-                    }
-                }
-            }
-        };
-
         const id_ranges = this.geometryIdToIndex
-            ? Array.from(_(this.geometryIdToIndex)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
+            ? Array.from(this._(this.geometryIdToIndex, ids)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
             // If we don't have this mapping, we're dealing with a dedicated
             // non-instanced bufferset for one particular overriden object
             : [[this.objectId & 0x8FFFFFFF, [0, this.nrIndices]]];
@@ -286,21 +359,8 @@ export class AbstractBufferSet {
     		};
     	}
 
-    	// generator function that yields ranges in this buffer for the selected ids
-    	function* _(geometryIdToIndex) {
-    		var oids;
-    		for (var i of ids) {
-    			if ((oids = geometryIdToIndex.get(i))) {
-    				for (var j = 0; j < oids.length; ++j) {
-    					yield [i, [oids[j].start, oids[j].start + oids[j].length]];
-    				}
-    			}
-    		}
-    	};
-    	
-    	// TODO this.geometryIdToIndex can probably be pre-sorted
     	const id_ranges = this.geometryIdToIndex
-    	? Array.from(_(this.geometryIdToIndex)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
+    	? Array.from(this.findUnion(this.geometryIdToIndex, ids)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
     			// If we don't have this mapping, we're dealing with a dedicated
     			// non-instanced bufferset for one particular overriden object
     			: [[this.objectId & 0x8FFFFFFF, [0, this.nrIndices]]];
@@ -363,43 +423,80 @@ export class AbstractBufferSet {
         if (this.objects) {
             return this.copyEmpty();
         } else {
-            let idx = this.geometryIdToIndex.get(objectId)[0];
-            let [offset, length] = [idx.start, idx.length];
+        	if (this.batchGpuBuffers) {
+        		let idx = this.geometryIdToIndex.get(objectId)[0];
+        		let [offset, length] = [idx.start, idx.length];
+        		
+        		const indices = new Uint32Array(length);
+        		for (var i=0; i<length; i++) {
+        			indices[i] = this.batchGpuBuffers.indices[offset + i];
+        		}
+        		
+        		let [minIndex, maxIndex] = [Math.min.apply(null, indices), Math.max.apply(null, indices)];
+        		let numVertices = maxIndex - minIndex + 1;
+        		
+        		let toCopy = ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"];
+        		
+        		for (var name of toCopy) {
+        			let buffer = this[name];
+        			let gpu_data = this.batchGpuBuffers[name];
+        			let new_gpu_data = new window[buffer.js_type](numVertices * buffer.components);
 
-            const indices = new Uint32Array(length);
-
-            var restoreElementBinding = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-            gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, offset * 4, indices, 0, indices.length);
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, restoreElementBinding);
-
-            let [minIndex, maxIndex] = [Math.min.apply(null, indices), Math.max.apply(null, indices)];
-            let numVertices = maxIndex - minIndex + 1;
-
-            let toCopy = ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"];
-            
-            toCopy.forEach((name) => {
-                let buffer = this[name];
-                let bytes_per_elem = window[buffer.js_type].BYTES_PER_ELEMENT;
-                let gpu_data = new window[buffer.js_type](numVertices * buffer.components);
-
-                var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
-                gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-                gl.getBufferSubData(gl.ARRAY_BUFFER, minIndex * bytes_per_elem * buffer.components, gpu_data, 0, gpu_data.length);
-                gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
-
-                let shortName = name.replace("Buffer", "") + "s";
-                returnDictionary[shortName] = gpu_data;
-                returnDictionary["nr" + shortName.substr(0,1).toUpperCase() + shortName.substr(1)] = gpu_data.length;
-            });
-
-            for (let i = 0; i < indices.length; ++i) {
-                indices[i] -= minIndex;
-            }
-
-            returnDictionary.isCopy = true;
-            returnDictionary["indices"] = indices;
-            returnDictionary["nrIndices"] = indices.length;
+        			for (var i=0; i<numVertices * buffer.components; i++) {
+        				new_gpu_data[i] = gpu_data[minIndex * 3 + i];
+            		}
+        			
+        			let shortName = name.replace("Buffer", "") + "s";
+        			returnDictionary[shortName] = new_gpu_data;
+        			returnDictionary["nr" + shortName.substr(0,1).toUpperCase() + shortName.substr(1)] = new_gpu_data.length;
+        		}
+        		
+        		for (let i = 0; i < indices.length; ++i) {
+        			indices[i] -= minIndex;
+        		}
+        		
+        		returnDictionary.isCopy = true;
+        		returnDictionary["indices"] = indices;
+        		returnDictionary["nrIndices"] = indices.length;
+        	} else {
+        		let idx = this.geometryIdToIndex.get(objectId)[0];
+        		let [offset, length] = [idx.start, idx.length];
+        		
+        		const indices = new Uint32Array(length);
+        		
+        		var restoreElementBinding = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
+        		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        		gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, offset * 4, indices, 0, indices.length);
+        		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, restoreElementBinding);
+        		
+        		let [minIndex, maxIndex] = [Math.min.apply(null, indices), Math.max.apply(null, indices)];
+        		let numVertices = maxIndex - minIndex + 1;
+        		
+        		let toCopy = ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"];
+        		
+        		toCopy.forEach((name) => {
+        			let buffer = this[name];
+        			let bytes_per_elem = window[buffer.js_type].BYTES_PER_ELEMENT;
+        			let gpu_data = new window[buffer.js_type](numVertices * buffer.components);
+        			
+        			var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+        			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        			gl.getBufferSubData(gl.ARRAY_BUFFER, minIndex * bytes_per_elem * buffer.components, gpu_data, 0, gpu_data.length);
+        			gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
+        			
+        			let shortName = name.replace("Buffer", "") + "s";
+        			returnDictionary[shortName] = gpu_data;
+        			returnDictionary["nr" + shortName.substr(0,1).toUpperCase() + shortName.substr(1)] = gpu_data.length;
+        		});
+        		
+        		for (let i = 0; i < indices.length; ++i) {
+        			indices[i] -= minIndex;
+        		}
+        		
+        		returnDictionary.isCopy = true;
+        		returnDictionary["indices"] = indices;
+        		returnDictionary["nrIndices"] = indices.length;
+        	}
         }
 
 		return returnDictionary;
@@ -428,7 +525,7 @@ export class AbstractBufferSet {
 			newColors = clr;
 		}
 
-		this.geometryIdToIndex.get(objectId).forEach((idx) => {
+		for (var idx of this.geometryIdToIndex.get(objectId)) {
 			let [offet, length] = [idx.color, idx.colorLength];
 			let bytes_per_elem = window[this.colorBuffer.js_type].BYTES_PER_ELEMENT;
 			
@@ -442,12 +539,19 @@ export class AbstractBufferSet {
 				}
 			}
 
-			var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
-			gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
-			gl.getBufferSubData(gl.ARRAY_BUFFER, offet * bytes_per_elem, oldColors, 0, length);
-			gl.bufferSubData(gl.ARRAY_BUFFER, offet * bytes_per_elem, newColors, 0, length);
-			gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
-		});
+    		var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+    		gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+        	if (this.batchGpuBuffers) {
+        		let gpu_data = this.batchGpuBuffers.colorBuffer;
+    			for (var i=0; i<length; i++) {
+    				oldColors[i] = gpu_data[offet + i];
+        		}
+        	} else {
+        		gl.getBufferSubData(gl.ARRAY_BUFFER, offet * bytes_per_elem, oldColors, 0, length);
+        	}
+    		gl.bufferSubData(gl.ARRAY_BUFFER, offet * bytes_per_elem, newColors, 0, length);
+    		gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
+		}
 
 		return oldColors;
 	}

@@ -17,7 +17,12 @@ export class FreezableSet {
 
     _build() {
         let a = Array.from(this._set);
-        a.sort();
+        a.sort((a, b) => {
+        	// Otherwise a and b will be converted to string first...
+        	return a - b;
+        });
+        // Store the sorted set (Sets do maintain insertion order)
+        this._set = new Set(a);
         this._string = a.join(",");
     }
 
@@ -37,10 +42,11 @@ export class FreezableSet {
     batch(fn) {
     	return new Promise((resolve, reject) => {
     		this._update = false;
-    		fn();
-    		this._build();
-    		this._update = true;
-    		resolve();
+    		fn().then(() => {
+    			this._build();
+    			this._update = true;
+    			resolve();
+    		});
     	});
     }
 }
