@@ -242,30 +242,33 @@ export class RenderLayer {
 				buffer.pickColorsIndex += 4;
 			}
 
-			{var li = (buffer.geometryIdToIndex.get(object.id) || []);
-				li.push({
-					start: buffer.indicesIndex, 
-					length: geometry.indices.length,
-					color: originalColorIndex,
-					colorLength: geometry.colors.length
-				});
-				buffer.geometryIdToIndex.set(object.id, li);
-			}
+			var li = (buffer.geometryIdToIndex.get(object.id) || []);
+			var idx = {
+				start: buffer.indicesIndex, 
+				length: geometry.indices.length,
+				color: originalColorIndex,
+				colorLength: geometry.colors.length
+			};
+			li.push(idx);
+			buffer.geometryIdToIndex.set(object.id, li);
 			
-			if (startIndex == 0) {
-				// Small optimization, if this is the first object in the buffer, no need to add the startIndex to each index
-				buffer.indices.set(geometry.indices, 0);
-				buffer.indicesIndex = geometry.indices.length;
-			} else {
-				var index = Array(3);
-				for (var i=0; i<geometry.indices.length; i+=3) {
-					index[0] = geometry.indices[i + 0] + startIndex;
-					index[1] = geometry.indices[i + 1] + startIndex;
-					index[2] = geometry.indices[i + 2] + startIndex;
-					
-					buffer.indices.set(index, buffer.indicesIndex);
-					buffer.indicesIndex += 3;
+			var index = Array(3);
+			for (var i=0; i<geometry.indices.length; i+=3) {
+				index[0] = geometry.indices[i + 0] + startIndex;
+				index[1] = geometry.indices[i + 1] + startIndex;
+				index[2] = geometry.indices[i + 2] + startIndex;
+
+				for (var j=0; j<3; j++) {
+					if (idx.minIndex == null || index[j] < idx.minIndex) {
+						idx.minIndex = index[j];
+					}
+					if (idx.maxIndex == null || index[j] > idx.maxIndex) {
+						idx.maxIndex = index[j];
+					}
 				}
+				
+				buffer.indices.set(index, buffer.indicesIndex);
+				buffer.indicesIndex += 3;
 			}
 		} catch (e) {
 			console.error(e);
@@ -274,6 +277,8 @@ export class RenderLayer {
 			throw e;
 		}
 
+		buffer.geometryIdToIndex = Utils.sortMapKeys(buffer.geometryIdToIndex);
+		
 		buffer.nrIndices += geometry.indices.length;
 		buffer.bytes += geometry.bytes;
 		
