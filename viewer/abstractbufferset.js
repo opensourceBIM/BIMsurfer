@@ -102,7 +102,16 @@ export class AbstractBufferSet {
     		pos: 0
     	};
     	var previousIndex = 0;
-    	for (var i=0; i<input.pos; i++) {
+    	for (var i=0; i<=input.pos; i++) {
+    		if (i == input.pos) {
+    			if (offset + count != this.nrIndices) {
+    				// Complement the last range
+        			complement.offsets[complement.pos] = previousIndex;
+        			complement.counts[complement.pos] = this.nrIndices - previousIndex;
+        			complement.pos++;
+    			}
+    			continue;
+    		}
     		var count = input.counts[i];
     		var offset = input.offsets[i];
     		var newCount = offset - previousIndex;
@@ -122,7 +131,12 @@ export class AbstractBufferSet {
      * When changing colors, a lot of data is read from the GPU. It seems as though all of this reading is sync, making it a bottle-neck 
      * When wrapping abstractbufferset calls that read from the GPU buffer in batchGpuRead, the complete bufferset is read into memory once, and is removed afterwards  
      */
-    batchGpuRead(gl, fn) {
+    batchGpuRead(gl, oids, fn) {
+    	if (oids.length < 10) {
+    		// Arbitrary number (10), but don't bactch when the amount of changed objects is less than this
+    		fn();
+    		return;
+    	}
     	this.batchGpuBuffers = {
 			indices: new Uint32Array(this.nrIndices)
     	};
@@ -302,6 +316,7 @@ export class AbstractBufferSet {
         }
 
         if (ids === null || ids.size === 0) {
+        	// TODO maybe cache this as well, since it's called each render loop?
             return [[0, this.nrIndices]];
         }
 
@@ -432,7 +447,8 @@ export class AbstractBufferSet {
         			indices[i] = this.batchGpuBuffers.indices[offset + i];
         		}
         		
-        		let [minIndex, maxIndex] = [Math.min.apply(null, indices), Math.max.apply(null, indices)];
+        		let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
+        		
         		let numVertices = maxIndex - minIndex + 1;
         		
         		let toCopy = ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"];
@@ -469,7 +485,7 @@ export class AbstractBufferSet {
         		gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, offset * 4, indices, 0, indices.length);
         		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, restoreElementBinding);
         		
-        		let [minIndex, maxIndex] = [Math.min.apply(null, indices), Math.max.apply(null, indices)];
+        		let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
         		let numVertices = maxIndex - minIndex + 1;
         		
         		let toCopy = ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"];
