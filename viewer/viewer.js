@@ -152,7 +152,6 @@ export class Viewer {
         
         let fn = (visible ? this.invisibleElements.delete : this.invisibleElements.add).bind(this.invisibleElements);
         return this.invisibleElements.batch(() => {
-        
             elems.forEach((i) => {
                 fn(i);
                 // Show/hide transparently-adjusted counterpart (even though it might not exist)
@@ -199,7 +198,7 @@ export class Viewer {
     resetColorAlreadyBatched(elems, bufferSetsToUpdate) {
     	for (let [bufferSetId, bufferSetObject] of bufferSetsToUpdate) {
     		var bufferSet = bufferSetObject.bufferSet;
-    		bufferSet.batchGpuRead(this.gl, () => {
+    		bufferSet.batchGpuRead(this.gl, bufferSetObject.oids, () => {
 	    		for (let objectId of bufferSetObject.oids) {
 	    			if (this.hiddenDueToSetColor.has(objectId)) {
 	    				this.invisibleElements.delete(objectId);
@@ -260,7 +259,7 @@ export class Viewer {
 					var bufferSet = bufferSetObject.bufferSet;
 					var oids = bufferSetObject.oids;
 					console.log("Updating " + oids.length);
-					bufferSet.batchGpuRead(this.gl, () => {
+					bufferSet.batchGpuRead(this.gl, bufferSetObject.oids, () => {
 						for (const objectId of oids) {
 							let originalColor = bufferSet.setColor(this.gl, objectId, clr);
 							if (originalColor === false) {
