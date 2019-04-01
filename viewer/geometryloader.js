@@ -30,7 +30,6 @@ export class GeometryLoader {
 
 		this.state = {};
 		this.objectAddedListeners = [];
-		this.prepareReceived = false;
 		this.geometryIds = new Map();
 		this.dataToInfo = new Map();
 		
@@ -364,6 +363,8 @@ export class GeometryLoader {
 			var startIndex = stream.readInt();
 			var nrIndices = stream.readInt();
 			var nrVertices = stream.readInt();
+			var minIndex = stream.readInt();
+			var maxIndex = stream.readInt();
 			var nrObjectColors = nrVertices / 3 * 4;
 			
 			const density = stream.readFloat();
@@ -377,7 +378,9 @@ export class GeometryLoader {
 				start: previousStartIndex + startIndex,
 				length: nrIndices,
 				color: previousColorIndex + currentColorIndex,
-				colorLength: nrObjectColors
+				colorLength: nrObjectColors,
+				minIndex: minIndex,
+				maxIndex: maxIndex
 			};
 			this.preparedBuffer.geometryIdToIndex.set(oid, [meta]);
 			
@@ -441,15 +444,7 @@ export class GeometryLoader {
 		this.preparedBuffer.nrObjectsRead += nrObjects;
 		if (this.preparedBuffer.nrObjectsRead == this.preparedBuffer.nrObjects) {
 			// Making a copy of the map, making sure it's sorted by oid, which will make other things much faster later on
-			var sortedKeys = Array.from(this.preparedBuffer.geometryIdToIndex.keys()).sort((a, b) => {
-	        	// Otherwise a and b will be converted to string first...
-				return a - b;
-			});
-			var newMap = new Map();
-			for (var oid of sortedKeys) {
-				newMap.set(oid, this.preparedBuffer.geometryIdToIndex.get(oid));
-			}
-			this.preparedBuffer.geometryIdToIndex = newMap;
+			this.preparedBuffer.geometryIdToIndex = Utils.sortMapKeys(this.preparedBuffer.geometryIdToIndex);
 			this.renderLayer.addCompleteBuffer(this.preparedBuffer, this.gpuBufferManager);
 		}
 		

@@ -167,4 +167,16 @@ export class Utils {
 		let i = Infinity;
 		return new Float32Array([i,i,i,-i,-i,-i]);
 	}
+	
+	static sortMapKeys(inputMap) {
+		var sortedKeys = Array.from(inputMap.keys()).sort((a, b) => {
+        	// Otherwise a and b will be converted to string first...
+			return a - b;
+		});
+		var newMap = new Map();
+		for (var oid of sortedKeys) {
+			newMap.set(oid, inputMap.get(oid));
+		}
+		return newMap;
+	}
 }
