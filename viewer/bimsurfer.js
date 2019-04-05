@@ -70,6 +70,25 @@ export class BimSurfer extends EventHandler {
 		return this._bimServerViewer.loadModel(project);
 	}
 
+	/**
+	 * @private
+	 * @param {Object} project Project meta-data object
+	 * @param {HTMLElement} domNode The parent HTMLElement in which to create a CANVAS for WebGL rendering
+	 * @return
+	 * @memberof BimSurfer
+	 */
+	loadRevision(roid, domNode) {
+		var stats = new Stats();		
+		
+		this._bimServerViewer = new BimServerViewer(this._api, this.settings, domNode, null, null, stats);
+		
+		this._bimServerViewer.setProgressListener((percentage) => {
+			console.log(percentage + "% loaded")
+		});
+		
+		return this._bimServerViewer.loadRevisionByRoid(roid);
+	}
+
     /**
 	 * Loads a BIMserver project into the specified domNode for rendering.
 	 * 
@@ -223,5 +242,9 @@ export class BimSurfer extends EventHandler {
 	 */
 	addSelectedHandler(handler) {
 		this._bimServerViewer.addSelectionListener(handler);
+	}
+	
+	cleanup() {
+		this._bimServerViewer.cleanup();
 	}
 }
