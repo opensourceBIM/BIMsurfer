@@ -172,9 +172,11 @@ export class Stats {
 	
 	cleanup() {
 		var stats = document.getElementById("stats");
-		while (stats.firstChild) {
-			stats.removeChild(stats.firstChild);
+		if (stats != null) {
+			while (stats.firstChild) {
+				stats.removeChild(stats.firstChild);
+			}
+			this.dirty = true;
 		}
-		this.dirty = true;
 	}
 }
