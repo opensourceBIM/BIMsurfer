@@ -71,25 +71,21 @@ export class BimServerViewer {
 	}
 
 	loadRevisionByRoid(roid) {
-		var promise = new Promise((resolve, reject) => {
-			this.loadingResolve = resolve;
-			this.totalStart = performance.now();
-			
-			this.viewer.init().then(() => {
+		return this.viewer.init().then(() => {
+			return new Promise((resolve, reject) => {
 				this.bimServerApi.call("ServiceInterface", "listBoundingBoxes", {
 					roids: [roid]
 				}, (bbs) => {
 					if (bbs.length > 1) {
 						this.settings.regionSelector(bbs).then((bb) => {
-							this.genDensityThreshold(roid, bb);
+							this.genDensityThreshold(roid, bb).then(resolve);
 						});
 					} else {
-						this.genDensityThreshold(roid, bbs[0]);
+						this.genDensityThreshold(roid, bbs[0]).then(resolve);
 					}
 				});
 			});
 		});
-		return promise;
 	}
 	
 	loadRevision(revision) {
@@ -295,9 +291,6 @@ export class BimServerViewer {
 						this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
 						if (this.viewer.bufferSetPool != null) {
 							this.viewer.bufferSetPool.cleanup();
-						}
-						if (this.loadingResolve != null) {
-							this.loadingResolve();
 						}
 						this.viewer.dirty = true;
 
