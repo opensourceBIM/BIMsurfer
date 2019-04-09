@@ -35,7 +35,7 @@ export class BimServerViewer {
 		this.stats = stats;
 		this.width = width || canvas.offsetWidth;
 		this.height = height || canvas.offsetHeight;
-		this.layers = [];
+		this.layers = new Map();
 		
 		this.settings = DefaultSettings.create(settings);
 
@@ -70,18 +70,49 @@ export class BimServerViewer {
 		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
 	}
 
+	init() {
+		return this.viewer.init();
+	}
+	
 	loadRevisionByRoid(roid) {
+		return new Promise((resolve, reject) => {
+			this.bimServerApi.call("ServiceInterface", "listBoundingBoxes", {
+				roids: [roid]
+			}, (bbs) => {
+				if (bbs.length > 1) {
+					this.settings.regionSelector(bbs).then((bb) => {
+						this.genDensityThreshold([roid], bb).then(resolve);
+					});
+				} else {
+					this.genDensityThreshold([roid], bbs[0]).then(resolve);
+				}
+			});
+		});
+	}
+	
+	unloadRevisionByRoid(roid) {
+		const layerSet = this.layers.get(roid);
+		for (var layer of layerSet) {
+			this.viewer.renderLayers.delete(layer);
+		}
+		this.layers.delete(roid);
+		this.viewer.dirty = true;
+		
+		// TODO probably a good idea to also shrink the model bounds
+	}
+
+	loadRevisionsByRoids(roids) {
 		return this.viewer.init().then(() => {
 			return new Promise((resolve, reject) => {
 				this.bimServerApi.call("ServiceInterface", "listBoundingBoxes", {
-					roids: [roid]
+					roids: roids
 				}, (bbs) => {
 					if (bbs.length > 1) {
 						this.settings.regionSelector(bbs).then((bb) => {
-							this.genDensityThreshold(roid, bb).then(resolve);
+							this.genDensityThreshold(roids, bb).then(resolve);
 						});
 					} else {
-						this.genDensityThreshold(roid, bbs[0]).then(resolve);
+						this.genDensityThreshold(roids, bbs[0]).then(resolve);
 					}
 				});
 			});
@@ -110,20 +141,21 @@ export class BimServerViewer {
 				}, (bbs) => {
 					if (bbs.length > 1) {
 						this.settings.regionSelector(bbs).then((bb) => {
-							this.genDensityThreshold(project.lastRevisionId, bb).then(resolve);
+							this.genDensityThreshold([project.lastRevisionId], bb).then(resolve);
 						});
 					} else {
-						this.genDensityThreshold(project.lastRevisionId, bbs[0]).then(resolve);
+						this.genDensityThreshold([project.lastRevisionId], bbs[0]).then(resolve);
 					}
 				});
 			});
 		});
 	}
 
-	genDensityThreshold(roid, bb) {
+	genDensityThreshold(roids, bb) {
+		var roid = roids[0];
 		return new Promise((resolve, reject) => {
 			this.bimServerApi.call("ServiceInterface", "getDensityThreshold", {
-				roid: roid,
+				roids: roids,
 				nrTriangles: this.viewer.settings.triangleThresholdDefaultLayer,
 				excludedTypes: this.settings.excludedTypes
 			}, (densityAtThreshold) => {
@@ -212,12 +244,14 @@ export class BimServerViewer {
 				];
 				
 				// globalTransformation is a matrix that puts the complete model close to 0, 0, 0
-				this.viewer.globalTransformation = mat4.create();
-				const translation = vec3.fromValues(
-						-(bounds[0] + (bounds[3] - bounds[0]) / 2), 
-						-(bounds[1] + (bounds[4] - bounds[1]) / 2), 
-						-(bounds[2] + (bounds[5] - bounds[2]) / 2));
-				mat4.translate(this.viewer.globalTransformation, this.viewer.globalTransformation, translation);
+				if (this.viewer.globalTransformation == null) {
+					this.viewer.globalTransformation = mat4.create();
+					const translation = vec3.fromValues(
+							-(bounds[0] + (bounds[3] - bounds[0]) / 2), 
+							-(bounds[1] + (bounds[4] - bounds[1]) / 2), 
+							-(bounds[2] + (bounds[5] - bounds[2]) / 2));
+					mat4.translate(this.viewer.globalTransformation, this.viewer.globalTransformation, translation);
+				}
 
 				if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
 					this.viewer.vertexQuantization = new VertexQuantization(this.settings);
@@ -264,10 +298,14 @@ export class BimServerViewer {
 				}
 				
 				var promise = Promise.resolve();
+				
+				const layerSet = new Set();
+				this.layers.set(revision.oid, layerSet);
+				
 				if (this.viewer.settings.defaultLayerEnabled && nrPrimitivesBelow) {
 					var defaultRenderLayer = new DefaultRenderLayer(this.viewer, this.geometryDataIdsToReuse);
-					this.layers.push(defaultRenderLayer);
-					this.viewer.renderLayers.push(defaultRenderLayer);
+					layerSet.add(defaultRenderLayer);
+					this.viewer.renderLayers.add(defaultRenderLayer);
 
 					defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
 						var percentage = 100 * nrPrimitivesLoaded / nrPrimitivesBelow;
@@ -282,8 +320,8 @@ export class BimServerViewer {
 					var tilingPromise = Promise.resolve();
 					if (this.viewer.settings.tilingLayerEnabled && nrPrimitivesAbove > 0) {
 						var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.geometryDataIdsToReuse, bounds);
-						this.layers.push(tilingRenderLayer);
-						this.viewer.renderLayers.push(tilingRenderLayer);
+						layerSet.add(tilingRenderLayer);
+						this.viewer.renderLayers.add(tilingRenderLayer);
 						
 						tilingPromise = this.loadTilingLayer(tilingRenderLayer, revision, bounds, fieldsToInclude);
 					}
