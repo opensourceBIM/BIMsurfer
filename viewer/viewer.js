@@ -84,7 +84,7 @@ export class Viewer {
         
         this.selectionListeners = [];
         
-        this.renderLayers = [];
+        this.renderLayers = new Set();
         this.animationListeners = [];
         this.colorRestore = [];
         this.geometryIdToBufferSet = new Map();
@@ -674,8 +674,18 @@ export class Viewer {
     }
 
     setModelBounds(modelBounds) {
-        this.modelBounds = modelBounds;
-        this.camera.setModelBounds(modelBounds);
+    	if (this.modelBounds != null) {
+    		// "Merge"
+    		this.modelBounds[0] = Math.min(this.modelBounds[0], modelBounds[0]);
+    		this.modelBounds[1] = Math.min(this.modelBounds[1], modelBounds[1]);
+    		this.modelBounds[2] = Math.min(this.modelBounds[2], modelBounds[2]);
+    		this.modelBounds[3] = Math.max(this.modelBounds[3], modelBounds[3]);
+    		this.modelBounds[4] = Math.max(this.modelBounds[4], modelBounds[4]);
+    		this.modelBounds[5] = Math.max(this.modelBounds[5], modelBounds[5]);
+    	} else {
+    		this.modelBounds = modelBounds;
+    	}
+        this.camera.setModelBounds(this.modelBounds);
         this.updateViewport();
     }
 
