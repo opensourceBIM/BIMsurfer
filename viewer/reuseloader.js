@@ -1,4 +1,4 @@
-import {GeometryLoader} from './geometryloader.js'
+import {BimserverGeometryLoader} from './bimservergeometryloader.js'
 import {RenderLayer} from './renderlayer.js'
 
 /**
@@ -41,7 +41,7 @@ export class ReuseLoader {
 		// The returned data (GeometryData) objects should be processed as normal, not as a preparedBuffer
 		query.loaderSettings.prepareBuffers = false;
 
-		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, this, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, null);
+		var geometryLoader = new BimserverGeometryLoader(this.loaderCounter++, this.bimServerApi, this, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, null);
 		var p = geometryLoader.start();
 		p.then(() => {
 			var end = performance.now();
@@ -50,7 +50,7 @@ export class ReuseLoader {
 	}
 	
 	/*
-	 * This class acts as if it's a RenderLayer, the createGeometry is called} from the GeometryLoader
+	 * This class acts as if it's a RenderLayer, the createGeometry is called} from the BimserverGeometryLoader
 	 * We just store the incoming geometry in the (global) GeometryCache
 	 */
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
