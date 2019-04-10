@@ -87,8 +87,13 @@ export class AbstractBufferSet {
      * When wrapping abstractbufferset calls that read from the GPU buffer in batchGpuRead, the complete bufferset is read into memory once, and is removed afterwards  
      */
     batchGpuRead(gl, oids, fn) {
-    	if (oids.length < 10) {
-    		// Arbitrary number (10), but don't bactch when the amount of changed objects is less than this
+    	if (this.objects) {
+    		// Reuse, no need to batch
+            fn();
+            return;
+    	}
+    	if (oids.length <= 1) {
+    		// Only changing one object (or wronly sending empty oids) -> no batching
     		fn();
     		return;
     	}
