@@ -195,7 +195,7 @@ export class Utils {
 				}
 			};
 			xhr.onerror = reject;
-			xhr.send(params);
+			xhr.send(null);
 		});
 	}
 }

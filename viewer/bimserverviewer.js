@@ -6,6 +6,7 @@ import {DefaultRenderLayer} from './defaultrenderlayer.js'
 import {TilingRenderLayer} from './tilingrenderlayer.js'
 import {VertexQuantization} from './vertexquantization.js'
 import {Executor} from './executor.js'
+import {GeometryLoader} from "./geometryloader.js"
 import {BimserverGeometryLoader} from "./bimservergeometryloader.js"
 import {Stats} from "./stats.js"
 import {DefaultSettings} from "./defaultsettings.js"
@@ -70,8 +71,14 @@ export class BimServerViewer {
 			let stream = new DataInputStream(buffer);
 			let loader = new GeometryLoader();
 			let layer = new DefaultRenderLayer(this.viewer);
-			this.viewer.renderLayers.push(layer);
+			let gpuBufferManager = Array.from(this.viewer.renderLayers)[0].gpuBufferManager;
+			this.viewer.renderLayers.add(layer);
+			loader.loaderSettings = {
+				quantizeVertices: false
+			};
+			loader.settings = loader.loaderSettings;
 			loader.renderLayer = layer;
+			loader.gpuBufferManager = gpuBufferManager;
 			loader.processPreparedBufferInit(stream, false);
 			loader.processPreparedBuffer(stream, false);
 		})
@@ -371,7 +378,6 @@ export class BimServerViewer {
 	
 	loadDefaultLayer(defaultRenderLayer, revision, totalBounds, fieldsToInclude) {
 //		document.getElementById("progress").style.display = "block";
-
 		var startLayer1 = performance.now();
 
 		var start = performance.now();
