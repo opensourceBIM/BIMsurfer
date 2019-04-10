@@ -87,7 +87,9 @@
 			onClickTextArea.setAttribute("rows", 10);
 			onClickTextArea.style.overflow = "scroll";
             surfer.addSelectedHandler((object) => {
-            	onClickTextArea.value = onClickTextArea.value + "\n" + object.oid + " (" + object.type + ") clicked";
+                if (object !== null) {
+                    onClickTextArea.value = onClickTextArea.value + "\n" + object.oid + " (" + object.type + ") clicked";
+                }
             });
             eventHandlers.appendChild(onClickTextArea);
             n.appendChild(eventHandlers);
