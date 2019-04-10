@@ -14,23 +14,6 @@ export class AbstractBufferSet {
         this.id = counter++;
     }
 
-    joinConsecutiveRanges(ranges) {
-        while (true) {
-			var removed = false;
-			for (let i = 0; i < ranges.length - 1; ++i) {
-				let a = ranges[i];
-				let b = ranges[i+1];
-				if (a[1] == b[0]) {
-					ranges.splice(i, 2, [a[0], b[1]]);
-					removed = true;
-				}
-			}
-			if (!removed) {
-				break;
-			}
-		}
-    }
-
     /**
      *  Creates new buffers, but is more efficient than joinConsecutiveRanges, funky buffer layers looks this way because we can directly send it to the GPU with multiDrawElementsWEBGL
      */
@@ -53,34 +36,6 @@ export class AbstractBufferSet {
 		}
 //		console.log("Joined", input.pos, result.pos);
     	return result;
-    }
-
-    complementRanges(ranges) {
-        // @todo: horribly inefficient, do not try this at home.
-        var complement =  [[0, this.nrIndices]];
-        ranges.forEach((range)=>{
-            let [a, b] = range;
-            const break_out_foreach = {};
-            try {
-                complement.forEach((originalRange, i)=>{
-                    let [o, p] = originalRange;
-                    if (a >= o && a <= p) {
-                        if (o == a) {
-                            complement[i][0] = b;
-                        } else {
-                            complement.splice(i, 1, [o, a], [b, p]);
-                        }							
-                        throw break_out_foreach;
-                    }
-                });
-            } catch (e) {
-                if (e !== break_out_foreach) {
-                    throw e;
-                }
-            }
-        });
-
-        return complement;
     }
     
     /**
@@ -301,57 +256,6 @@ export class AbstractBufferSet {
     		}
     	}
     }
-    
-    computeVisibleRanges(ids_with_or_without, gl) {
-		var ids = Object.values(ids_with_or_without)[0];
-		var exclude = "without" in ids_with_or_without;
-
-		const ids_str = exclude + ':' +  ids.frozen;
-
-        {
-            var cache_lookup;
-            if ((cache_lookup = this.visibleRanges.get(ids_str))) {
-                return cache_lookup;
-            }
-        }
-
-        if (ids === null || ids.size === 0) {
-        	// TODO maybe cache this as well, since it's called each render loop?
-            return [[0, this.nrIndices]];
-        }
-
-        const id_ranges = this.geometryIdToIndex
-            ? Array.from(this._(this.geometryIdToIndex, ids)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
-            // If we don't have this mapping, we're dealing with a dedicated
-            // non-instanced bufferset for one particular overriden object
-            : [[this.objectId & 0x8FFFFFFF, [0, this.nrIndices]]];
-		const ranges = id_ranges.map((arr) => {return arr[1];});
-
-		this.joinConsecutiveRanges(ranges);
-
-		if (exclude) {
-            let complement = this.complementRanges(ranges);
-			// store in cache
-			this.visibleRanges.set(ids_str, complement);
-			return complement;
-		}		
-
-        // store in cache
-        this.visibleRanges.set(ids_str, ranges);
-
-        // Create fat line renderings for these elements. This should (a) 
-        // not in the draw loop (b) maybe in something like a web worker
-        id_ranges.forEach((range, i) => {
-            let [id, [a, b]] = range;
-            if (this.lineIndexBuffers.has(id)) {
-                return;
-            }
-			let lineRenderer = this.createLineRenderer(gl, a, b);
-            this.lineIndexBuffers.set(id, lineRenderer);
-        });
-       
-        return ranges;
-	}
 	
     computeVisibleRangesAsBuffers(ids_with_or_without, gl) {
     	var ids = Object.values(ids_with_or_without)[0];
