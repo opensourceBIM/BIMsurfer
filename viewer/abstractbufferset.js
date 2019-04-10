@@ -346,7 +346,9 @@ export class AbstractBufferSet {
         		let idx = this.geometryIdToIndex.get(objectId)[0];
         		let [offset, length] = [idx.start, idx.length];
         		
-        		const indices = new Uint32Array(length);
+				const indices = new Uint32Array(length);
+				
+				// @todo this can probably be a combination of subarray() and set()
         		for (var i=0; i<length; i++) {
         			indices[i] = this.batchGpuBuffers.indices[offset + i];
         		}
@@ -362,6 +364,7 @@ export class AbstractBufferSet {
         			let gpu_data = this.batchGpuBuffers[name];
         			let new_gpu_data = new window[buffer.js_type](numVertices * buffer.components);
 
+					// @todo this can probably be a combination of subarray() and set()
         			for (var i=0; i<numVertices * buffer.components; i++) {
         				new_gpu_data[i] = gpu_data[minIndex * 3 + i];
             		}
@@ -462,7 +465,8 @@ export class AbstractBufferSet {
     		var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
     		gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
         	if (this.batchGpuBuffers) {
-        		let gpu_data = this.batchGpuBuffers.colorBuffer;
+				let gpu_data = this.batchGpuBuffers.colorBuffer;
+				// @todo this can probably be a combination of subarray() and set()
     			for (var i=0; i<length; i++) {
     				oldColors[i] = gpu_data[offet + i];
         		}
