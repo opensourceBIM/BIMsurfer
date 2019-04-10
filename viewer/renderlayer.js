@@ -525,7 +525,7 @@ export class RenderLayer {
 
 					if (WEBGL_multi_draw) {
 						// This is available on Chrome Canary 75					
-						ext.multiDrawElementsWEBGL(this.gl.TRIANGLES, visibleRanges.counts, 0, this.gl.UNSIGNED_INT, visibleRanges.offsetsBytes, 0, visibleRanges.pos);
+						WEBGL_multi_draw.multiDrawElementsWEBGL(this.gl.TRIANGLES, visibleRanges.counts, 0, this.gl.UNSIGNED_INT, visibleRanges.offsetsBytes, 0, visibleRanges.pos);
 					} else {
 						// A manual loop using the same range data
 						for (let i = 0; i < visibleRanges.counts.length; ++i) {
