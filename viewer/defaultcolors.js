@@ -1,5 +1,5 @@
 /**
- * Default colors, only used by the GeometryLoader when no default color is given by the serializer
+ * Default colors, only used by the BimserverGeometryLoader when no default color is given by the serializer
  */
 export const DefaultColors = {
 	IfcSpace: {r: 0.137255, g: 0.403922, b: 0.870588, a: 1.0},

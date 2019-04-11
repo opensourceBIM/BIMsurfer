@@ -7,13 +7,15 @@ import {TilingRenderLayer} from './tilingrenderlayer.js'
 import {VertexQuantization} from './vertexquantization.js'
 import {Executor} from './executor.js'
 import {GeometryLoader} from "./geometryloader.js"
+import {BimserverGeometryLoader} from "./bimservergeometryloader.js"
 import {Stats} from "./stats.js"
 import {DefaultSettings} from "./defaultsettings.js"
 import {Utils} from "./utils.js"
+import {DataInputStream} from "./datainputstream.js";
 
 /*
  * The main class you instantiate when creating a viewer that will be loading data} from a BIMserver.
- * This will eventually become a public API
+ * This will eventually become a pueblic API
  */
 
 /**
@@ -63,6 +65,24 @@ export class BimServerViewer {
 			this.canvas.height = this.height;
 			this.viewer.setDimensions(this.width, this.height);
 		}
+	}
+
+	loadAnnotationsFromPreparedBufferUrl(url) {
+		Utils.request({url: url, binary: true}).then((buffer)=>{
+			let stream = new DataInputStream(buffer);
+			let loader = new GeometryLoader();
+			let layer = new DefaultRenderLayer(this.viewer);
+			let gpuBufferManager = Array.from(this.viewer.renderLayers)[0].gpuBufferManager;
+			this.viewer.renderLayers.add(layer);
+			loader.loaderSettings = {
+				quantizeVertices: false
+			};
+			loader.settings = loader.loaderSettings;
+			loader.renderLayer = layer;
+			loader.gpuBufferManager = gpuBufferManager;
+			loader.processPreparedBufferInit(stream, false);
+			loader.processPreparedBuffer(stream, false);
+		})
 	}
 
 	autoResizeCanvas() {
@@ -272,7 +292,7 @@ export class BimServerViewer {
 				vec3.transformMat4(max, max, this.viewer.globalTransformation);
 				this.viewer.setModelBounds([min[0], min[1], min[2], max[0], max[1], max[2]]);
 				
-				// TODO This is very BIMserver specific, clutters the code, should move somewhere else (maybe GeometryLoader)
+				// TODO This is very BIMserver specific, clutters the code, should move somewhere else (maybe BimserverGeometryLoader)
 				var fieldsToInclude = ["indices"];
 				fieldsToInclude.push("colorPack");
 				if (this.settings.loaderSettings.quantizeNormals) {
@@ -360,7 +380,6 @@ export class BimServerViewer {
 	
 	loadDefaultLayer(defaultRenderLayer, revision, totalBounds, fieldsToInclude) {
 //		document.getElementById("progress").style.display = "block";
-
 		var startLayer1 = performance.now();
 
 		var start = performance.now();
@@ -403,7 +422,7 @@ export class BimServerViewer {
 			query.loaderSettings.vertexQuantizationMatrix = this.viewer.vertexQuantization.vertexQuantizationMatrixWithGlobalTransformation;
 		}
 		
-		var geometryLoader = new GeometryLoader(0, this.bimServerApi, defaultRenderLayer, [revision.oid], this.settings.loaderSettings, null, this.stats, this.settings, query, null, defaultRenderLayer.gpuBufferManager);
+		var geometryLoader = new BimserverGeometryLoader(0, this.bimServerApi, defaultRenderLayer, [revision.oid], this.settings.loaderSettings, null, this.stats, this.settings, query, null, defaultRenderLayer.gpuBufferManager);
 		if (this.settings.loaderSettings.quantizeVertices) {
 			geometryLoader.unquantizationMatrix = this.viewer.vertexQuantization.inverseVertexQuantizationMatrixWithGlobalTransformation;
 		}

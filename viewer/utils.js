@@ -179,4 +179,23 @@ export class Utils {
 		}
 		return newMap;
 	}
+
+	static request(options) {
+		return new Promise(function (resolve, reject) {
+			var xhr = new XMLHttpRequest();
+			xhr.open(options.method || "GET", options.url);
+			if (options.binary) {
+				xhr.responseType = "arraybuffer";
+			}
+			xhr.onload = function () {
+				if (this.status >= 200 && this.status < 300) {
+					resolve(xhr.response);
+				} else {
+					reject();
+				}
+			};
+			xhr.onerror = reject;
+			xhr.send(null);
+		});
+	}
 }

@@ -1,7 +1,7 @@
 import {Executor} from './executor.js'
 import {Utils} from './utils.js'
 import {GpuBufferManager} from './gpubuffermanager.js'
-import {GeometryLoader} from "./geometryloader.js"
+import {BimserverGeometryLoader} from "./bimservergeometryloader.js"
 
 /**
  * Loads tiles. Needs to be initialized first (initialize method).
@@ -129,7 +129,7 @@ export class TileLoader {
 		if (this.tilingRenderLayer.viewer.vertexQuantization) {
 			query.loaderSettings.vertexQuantizationMatrix = this.tilingRenderLayer.viewer.vertexQuantization.vertexQuantizationMatrixWithGlobalTransformation;
 		}
-		var geometryLoader = new GeometryLoader(this.loaderCounter++, this.bimServerApi, this.tilingRenderLayer, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, this.tilingRenderLayer.reusedGeometryCache, node.gpuBufferManager);
+		var geometryLoader = new BimserverGeometryLoader(this.loaderCounter++, this.bimServerApi, this.tilingRenderLayer, this.roids, this.settings.loaderSettings, this.quantizationMap, this.viewer.stats, this.settings, query, this.tilingRenderLayer.reusedGeometryCache, node.gpuBufferManager);
 		
 		// We now use the total model bounds for the quantization since the prebuilt buffers already applied the transformation, thus no problems are expected for strange bounds
 		geometryLoader.unquantizationMatrix = this.tilingRenderLayer.viewer.vertexQuantization.inverseVertexQuantizationMatrixWithGlobalTransformation;

@@ -11,10 +11,10 @@ export class GeometryCache {
 		// GeometryData ID -> geometry
 		this.loaded = new Map();
 
-		// GeometryData ID -> Set of GeometryLoader
+		// GeometryData ID -> Set of BimserverGeometryLoader
 		this.toload = new Map();
 
-		// GeometryData ID -> Set of GeometryLoader
+		// GeometryData ID -> Set of BimserverGeometryLoader
 		this.loading = new Map();
 	}
 
