@@ -33,6 +33,7 @@ export class BimServerViewer {
 		this.settings = settings;
 		this.bimServerApi = bimServerApi;
 		this.stats = stats;
+		
 		this.width = width || canvas.offsetWidth;
 		this.height = height || canvas.offsetHeight;
 		this.layers = new Map();
@@ -65,6 +66,7 @@ export class BimServerViewer {
 	}
 
 	autoResizeCanvas() {
+		console.log("auto resize",this.canvas.offsetWidth, this.canvas.offsetHeight);
 		this.canvas.width = this.canvas.offsetWidth;
 		this.canvas.height = this.canvas.offsetHeight;
 		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
