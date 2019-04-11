@@ -1,6 +1,5 @@
 import { Utils } from "./utils.js"
 import { RenderLayer } from "./renderlayer.js"
-import { DefaultColors } from "./defaultcolors.js"
 
 export class GeometryLoader {
 	processPreparedBufferInit(stream, hasTransparancy) {
@@ -104,9 +103,9 @@ export class GeometryLoader {
 
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
-				var defaultColor = DefaultColors[object.type];
+				var defaultColor = this.renderLayer.viewer.defaultColors[object.type];
 				if (defaultColor == null) {
-					defaultColor = DefaultColors.DEFAULT;
+					defaultColor = this.renderLayer.viewer.defaultColors.DEFAULT;
 				}
 				if (defaultColor.asInt == null) {
 					// Cache the integer version
