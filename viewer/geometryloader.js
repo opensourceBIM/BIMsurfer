@@ -3,7 +3,6 @@ import * as mat3 from "./glmatrix/mat3.js";
 import * as vec3 from "./glmatrix/vec3.js";
 
 import {DataInputStream} from "./datainputstream.js"
-import {DefaultColors} from "./defaultcolors.js"
 import {RenderLayer} from "./renderlayer.js"
 import {Utils} from "./utils.js"
 
@@ -386,9 +385,9 @@ export class GeometryLoader {
 			
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
-				var defaultColor = DefaultColors[type];
+				var defaultColor = this.renderLayer.viewer.defaultColors[type];
 				if (defaultColor == null) {
-					defaultColor = DefaultColors.DEFAULT;
+					defaultColor = this.renderLayer.viewer.defaultColors.DEFAULT;
 				}
 				if (defaultColor.asInt == null) {
 					// Cache the integer version
@@ -523,7 +522,7 @@ export class GeometryLoader {
 		if (b == 1) {
 			var color = {r: stream.readFloat(), g: stream.readFloat(), b: stream.readFloat(), a: stream.readFloat()};
 		} else {
-			var defaultColor = DefaultColors[type];
+			var defaultColor = this.renderLayer.viewer.defaultColors[type];
 			if (defaultColor == null) {
 				var color = {
 					r: 0,

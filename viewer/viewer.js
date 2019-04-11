@@ -13,6 +13,7 @@ import {Utils} from './utils.js'
 import {SSQuad} from './ssquad.js'
 import {FreezableSet} from './freezableset.js';
 import {DefaultCss} from './defaultcss.js';
+import {DefaultColors} from "./defaultcolors.js"
 
 import {COLOR_FLOAT_DEPTH_NORMAL, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 import { WSQuad } from './wsquad.js';
@@ -46,6 +47,8 @@ export class Viewer {
         this.height = height;
 
         new DefaultCss().apply(canvas);
+        
+        this.defaultColors = settings.defaultColors ? settings.defaultColors : DefaultColors;
         
         this.stats = stats;
         this.settings = settings;
@@ -118,7 +121,9 @@ export class Viewer {
         var self = this;
 //        window._debugViewer = this;  // HACK for console debugging
 
-        document.addEventListener("keypress", (evt) => {
+        // Tabindex required to be able add a keypress listener to canvas
+        canvas.setAttribute("tabindex", "0");
+        canvas.addEventListener("keypress", (evt) => {
             if (evt.key === 'H') {
                 this.resetVisibility();
             } else if (evt.key === 'h') {
@@ -178,6 +183,11 @@ export class Viewer {
             for (let e of elems) {
                 fn(e);
             }
+            
+            for (const listener of this.selectionListeners) {
+            	listener(elems);
+            }
+            
             this.dirty = true;
             return Promise.resolve();
         });
@@ -258,7 +268,6 @@ export class Viewer {
 				for (let [bufferSetId, bufferSetObject] of bufferSetsToUpdate) {
 					var bufferSet = bufferSetObject.bufferSet;
 					var oids = bufferSetObject.oids;
-					console.log("Updating " + oids.length);
 					bufferSet.batchGpuRead(this.gl, bufferSetObject.oids, () => {
 						for (const objectId of oids) {
 							let originalColor = bufferSet.setColor(this.gl, objectId, clr);
@@ -654,10 +663,16 @@ export class Viewer {
                 } else {
                     this.selectedElements.add(objectId);
                 }
+                for (const listener of this.selectionListeners) {
+                	listener(Array.from(this.selectedElements._originalOrderSet));
+                }
             }
             return {object: viewObject, normal: normal, coordinates: tmp_unproject};
         } else if (params.select !== false) {
             this.selectedElements.clear();
+            for (const listener of this.selectionListeners) {
+            	listener([]);
+            }
         }
 
         return {object: null, coordinates: tmp_unproject};
