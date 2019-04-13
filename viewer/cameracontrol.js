@@ -260,6 +260,8 @@ export class CameraControl {
      */
     documentMouseUp(e) {
         this.mouseDown = false;
+    	// Potential end-of-pan
+    	this.camera.updateLowVolumeListeners();
     }
 
     getEyeLookDist() {

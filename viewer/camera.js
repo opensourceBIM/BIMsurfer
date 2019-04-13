@@ -56,6 +56,7 @@ export class Camera {
 
         // Until there is a proper event handler mechanism, just do it manually.
         this.listeners = [];
+        this.lowVolumeListeners = [];
     }
 
     lock() {
@@ -115,7 +116,7 @@ export class Camera {
 
             mat4.lookAt(this._viewMatrix, this._eye, this._target, this._up);
             mat4.identity(tempMat4);
-            mat4.multiply(this._viewMatrix, tempMat4, this._viewMatrix);
+            mat4.multiply(this._viewMatrix, tempMat4, this._viewMatrix); // Why?
             mat3.fromMat4(tempMat4b, this._viewMatrix);
             mat3.invert(tempMat4b, tempMat4b);
             mat3.transpose(this._viewNormalMatrix, tempMat4b);
@@ -256,6 +257,9 @@ export class Camera {
     set eye(eye) {
         this._eye.set(eye || [0.0, 0.0, -10.0]);
         this._setDirty();
+    	for (var listener of this.lowVolumeListeners) {
+    		listener();
+    	}
     }
 
     /**
@@ -273,6 +277,9 @@ export class Camera {
     set target(target) {
         this._target.set(target || [0.0, 0.0, 0.0]);
         this._setDirty();
+    	for (var listener of this.lowVolumeListeners) {
+    		listener();
+    	}
     }
 
     /**
@@ -415,6 +422,15 @@ export class Camera {
         return this._worldForward;
     }
 
+    set orbitting(orbitting) {
+    	if (this._orbitting != orbitting) {
+        	for (var listener of this.lowVolumeListeners) {
+        		listener();
+        	}
+    	}
+    	this._orbitting = orbitting;
+    }
+    
     /**
      Rotates the eye position about the target position, pivoting around the up vector.
 
@@ -570,6 +586,14 @@ export class Camera {
         vec3.add(this._target, this._target, tempVec3);
 
         this._setDirty();
+
+        this.updateLowVolumeListeners();
+    }
+    
+    updateLowVolumeListeners() {
+        for (var listener of this.lowVolumeListeners) {
+        	listener();
+        }
     }
 
     /**
