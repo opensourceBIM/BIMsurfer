@@ -137,5 +137,6 @@ export class WSQuad {
 
         gl.bindVertexArray(this.vao);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
+        gl.bindVertexArray(null);
     }
 }

@@ -84,5 +84,6 @@ export class SSQuad {
         gl.bindVertexArray(this.vao);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
+        gl.bindVertexArray(null);
     }
 }
