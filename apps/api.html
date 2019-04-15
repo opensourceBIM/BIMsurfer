@@ -20,16 +20,22 @@
 
     <script type="module">
         import {BimSurfer} from "../viewer/bimsurfer.js";
+		import {BimServerClient} from "../../bimserverjavascriptapi/bimserverclient.js"
 		import {Address} from "./address.js";
+		import {Credentials} from "./credentials.js"
         
         var surfer = window.bimSurfer = new BimSurfer();
-        surfer.load({
-            bimserver: Address.getApiAddress(), 
-            username:"admin@bimserver.org",
-            password:"admin",
-            roid:65539,
-            domNode:document.querySelector("canvas")
-        }).then(generateApiReference).catch(errorHandler);
+
+		var api = new BimServerClient(Address.getApiAddress());
+		api.init().then(() => {
+			new Credentials(api).getCredentials().then(() => {
+        	surfer.load({
+	            api: api, 
+            	roid:65539,
+            	domNode:document.querySelector("canvas")
+        	}).then(generateApiReference).catch(errorHandler);
+			});
+		});
 
         function generateApiReference() {
 
