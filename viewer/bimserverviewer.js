@@ -1,13 +1,13 @@
 import * as mat4 from "./glmatrix/mat4.js";
 import * as vec3 from "./glmatrix/vec3.js";
 
+import {GeometryLoader} from "./geometryloader.js"
+import {BimserverGeometryLoader} from "./bimservergeometryloader.js"
 import {Viewer} from './viewer.js'
 import {DefaultRenderLayer} from './defaultrenderlayer.js'
 import {TilingRenderLayer} from './tilingrenderlayer.js'
 import {VertexQuantization} from './vertexquantization.js'
 import {Executor} from './executor.js'
-import {GeometryLoader} from "./geometryloader.js"
-import {BimserverGeometryLoader} from "./bimservergeometryloader.js"
 import {Stats} from "./stats.js"
 import {DefaultSettings} from "./defaultsettings.js"
 import {Utils} from "./utils.js"

@@ -198,4 +198,33 @@ export class Utils {
 			xhr.send(null);
 		});
 	}
+	
+	static calculateBytesUsed(settings, nrVertices, nrColors, nrIndices, nrNormals) {
+		var bytes = 0;
+		if (settings.quantizeVertices) {
+			bytes += nrVertices * 2;
+		} else {
+			bytes += nrVertices * 4;
+		}
+		if (nrColors != null) {
+			if (settings.quantizeColors) {
+				bytes += nrColors;
+			} else {
+				bytes += nrColors * 4;
+			}
+		}
+		// Pick buffers
+		bytes += (nrVertices / 3) * 4;
+		if (nrIndices < 65536 && settings.useSmallIndicesIfPossible) {
+			bytes += nrIndices * 2;
+		} else {
+			bytes += nrIndices * 4;
+		}
+		if (settings.quantizeNormals) {
+			bytes += nrNormals;
+		} else {
+			bytes += nrNormals * 4;
+		}
+		return bytes;
+	}
 }

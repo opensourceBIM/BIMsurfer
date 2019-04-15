@@ -2,15 +2,14 @@ import * as mat4 from "./glmatrix/mat4.js";
 import * as mat3 from "./glmatrix/mat3.js";
 import * as vec3 from "./glmatrix/vec3.js";
 
-import {DataInputStream} from "./datainputstream.js"
 import {GeometryLoader} from "./geometryloader.js"
-import {RenderLayer} from "./renderlayer.js"
+import {DataInputStream} from "./datainputstream.js"
 import {Utils} from "./utils.js"
 
 const PROTOCOL_VERSION = 17;
 
 /**
- * GeometryLoader loads data} from a BIMserver
+ * GeometryLoader loads data from a BIMserver
  */
 export class BimserverGeometryLoader extends GeometryLoader {
 
