@@ -1,6 +1,10 @@
 import { Utils } from "./utils.js"
 import { RenderLayer } from "./renderlayer.js"
 import { DefaultColors } from "./defaultcolors.js"
+import * as vec4 from "./glmatrix/vec4.js";
+
+// temporary for emergency quantization
+const v4 = vec4.create();
 
 export class GeometryLoader {
 	processPreparedBufferInit(stream, hasTransparancy) {
@@ -36,7 +40,7 @@ export class GeometryLoader {
 		stream.align8();
 	}
 
-	processPreparedBuffer(stream, hasTransparancy) {
+	processPreparedBuffer(stream, hasTransparancy, forceUnquantized) {
 		const nrObjects = stream.readInt();
 		const totalNrIndices = stream.readInt();
 		const positionsIndex = stream.readInt();
@@ -134,8 +138,30 @@ export class GeometryLoader {
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.colors, colors, 0, nrColors);
 
 		if (this.loaderSettings.quantizeVertices) {
-			Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, stream.dataView, stream.pos, positionsIndex);
-			stream.pos += positionsIndex * 2;
+			if (forceUnquantized) {
+				// we need to do some alignment here
+				const floats = new Float32Array(positionsIndex);
+				const aligned_u8 = new Uint8Array(floats.buffer);
+				const unaligned_u8 = new Uint8Array(stream.dataView.buffer, stream.pos, aligned_u8.length);
+				stream.pos += aligned_u8.length;
+				aligned_u8.set(unaligned_u8);
+				
+				// now we can quantize the input
+				// admittedly there was code for this in BufferTransformer, but it was commented out?
+				const m4 = bimServerViewer.viewer.vertexQuantization.vertexQuantizationMatrix;
+				for (var i = 0; i < floats.length; i += 3) {
+					v4.set(floats.subarray(i, i + 3));
+					v4[3] = 1.0;
+					vec4.transformMat4(v4, v4, m4);
+					floats.set(v4.subarray(0, 3), i);
+				}
+				const quantized = new Int16Array(floats);
+
+				Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, quantized, 0, quantized.length);
+			} else {
+				Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, stream.dataView, stream.pos, positionsIndex);
+				stream.pos += positionsIndex * 2;
+			}		
 		} else {
 			Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, stream.dataView, stream.pos, positionsIndex);
 			stream.pos += positionsIndex * 4;

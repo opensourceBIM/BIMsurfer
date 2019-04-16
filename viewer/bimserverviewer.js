@@ -74,13 +74,14 @@ export class BimServerViewer {
 			let gpuBufferManager = Array.from(this.viewer.renderLayers)[0].gpuBufferManager;
 			this.viewer.renderLayers.add(layer);
 			loader.loaderSettings = {
-				quantizeVertices: false
+				quantizeVertices: true
 			};
 			loader.settings = loader.loaderSettings;
 			loader.renderLayer = layer;
 			loader.gpuBufferManager = gpuBufferManager;
+			loader.unquantizationMatrix = this.viewer.vertexQuantization.inverseVertexQuantizationMatrixWithGlobalTransformation; // mat4.identity(mat4.create());
 			loader.processPreparedBufferInit(stream, false);
-			loader.processPreparedBuffer(stream, false);
+			loader.processPreparedBuffer(stream, false, true);
 		})
 	}
 
