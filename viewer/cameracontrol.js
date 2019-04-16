@@ -129,9 +129,6 @@ export class CameraControl {
                 } else {
                     this.dragMode = DRAG_ORBIT;
                     let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
-                    for (const listener of this.viewer.selectionListeners) {
-                    	listener(picked.object);
-                    }
                     if (picked && picked.coordinates && picked.object) {
                         this.viewer.camera.center = picked.coordinates;
                     } else {
@@ -168,7 +165,7 @@ export class CameraControl {
                 break;
         }
         this.over = true;
-        if (this.dragMode == DRAG_PAN) {
+        if (this.dragMode == DRAG_PAN || e.shiftKey) {
         	e.preventDefault();
         }
     }
@@ -263,6 +260,8 @@ export class CameraControl {
      */
     documentMouseUp(e) {
         this.mouseDown = false;
+    	// Potential end-of-pan
+    	this.camera.updateLowVolumeListeners();
     }
 
     getEyeLookDist() {

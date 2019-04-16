@@ -1,6 +1,4 @@
 import { Utils } from "./utils.js"
-import { RenderLayer } from "./renderlayer.js"
-import { DefaultColors } from "./defaultcolors.js"
 import * as vec4 from "./glmatrix/vec4.js";
 
 // temporary for emergency quantization
@@ -35,7 +33,7 @@ export class GeometryLoader {
 			this.preparedBuffer.unquantizationMatrix = this.unquantizationMatrix;
 		}
 
-		this.preparedBuffer.bytes = RenderLayer.calculateBytesUsed(this.settings, this.preparedBuffer.positionsIndex, this.preparedBuffer.nrColors, this.preparedBuffer.nrIndices, this.preparedBuffer.normalsIndex);
+		this.preparedBuffer.bytes = Utils.calculateBytesUsed(this.settings, this.preparedBuffer.positionsIndex, this.preparedBuffer.nrColors, this.preparedBuffer.nrIndices, this.preparedBuffer.normalsIndex);
 		
 		stream.align8();
 	}
@@ -108,9 +106,9 @@ export class GeometryLoader {
 
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
-				var defaultColor = DefaultColors[object.type];
+				var defaultColor = this.renderLayer.viewer.defaultColors[object.type];
 				if (defaultColor == null) {
-					defaultColor = DefaultColors.DEFAULT;
+					defaultColor = this.renderLayer.viewer.defaultColors.DEFAULT;
 				}
 				if (defaultColor.asInt == null) {
 					// Cache the integer version

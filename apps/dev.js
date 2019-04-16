@@ -5,6 +5,7 @@ import {Stats} from "../viewer/stats.js"
 import {Settings} from "../viewer/settings.js"
 import {ProjectTreeModel} from "../viewer/projecttreemodel.js"
 import {TreeView} from "../viewer/treeview.js"
+import {Credentials} from "./credentials.js"
 
 /*
  * This class is where the applications starts, it's a mess, needs to go when we change this into an API
@@ -35,9 +36,8 @@ export class Dev {
 		this.settings.drawTileBorders = true;
 		
 		this.api = new BimServerClient(Address.getApiAddress());
-//		this.api = new BimServerClient("https://epic.logic-labs.nl");
 		this.api.init(() => {
-			this.api.login("admin@bimserver.org", "admin", () => {
+			new Credentials(this.api).getCredentials().then(() => {
 				this.loadProjects();
 			});
 		});

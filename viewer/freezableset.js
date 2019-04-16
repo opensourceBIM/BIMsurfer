@@ -10,13 +10,14 @@
  */
 export class FreezableSet {
     constructor() {
+    	this._originalOrderSet = new Set();
         this._set = new Set();
         this._update = true;
         this._build();
     }
 
     _build() {
-        let a = Array.from(this._set);
+        let a = Array.from(this._originalOrderSet);
         a.sort((a, b) => {
         	// Otherwise a and b will be converted to string first...
         	return a - b;
@@ -36,7 +37,7 @@ export class FreezableSet {
 
     get size() {
         // Don't know link} from Set.prototype, see if() below
-        return this._set.size;
+        return this._originalOrderSet.size;
     }
 
     batch(fn) {
@@ -56,7 +57,7 @@ let props = Object.getOwnPropertyDescriptors(Set.prototype);
 Object.getOwnPropertyNames(Set.prototype).forEach((name) => {
     if (!props[name].get) {
         FreezableSet.prototype[name] = function(...args) {
-            let r = this._set[name](...args);
+            let r = this._originalOrderSet[name](...args);
             // Rebuild the string representation after every modification
             if (this._update && name !== 'has') {
                 this._build();

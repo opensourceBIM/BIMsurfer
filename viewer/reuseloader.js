@@ -1,5 +1,5 @@
 import {BimserverGeometryLoader} from './bimservergeometryloader.js'
-import {RenderLayer} from './renderlayer.js'
+import {Utils} from './utils.js'
 
 /**
  * When loading Tiles, there is sometimes geometry (GeometryData) that is reused in other Tiles as well, in that case it is omitted in the stream, to be loaded later.
@@ -55,7 +55,7 @@ export class ReuseLoader {
 	 */
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
 		this.nrReused++;
-		var bytes = RenderLayer.calculateBytesUsed(this.settings, positions.length, colors.length, indices.length, normals.length);
+		var bytes = Utils.calculateBytesUsed(this.settings, positions.length, colors.length, indices.length, normals.length);
 		this.bytesReused += bytes;
 		var geometry = {
 				id: geometryId,

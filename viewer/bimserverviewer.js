@@ -1,13 +1,13 @@
 import * as mat4 from "./glmatrix/mat4.js";
 import * as vec3 from "./glmatrix/vec3.js";
 
+import {GeometryLoader} from "./geometryloader.js"
+import {BimserverGeometryLoader} from "./bimservergeometryloader.js"
 import {Viewer} from './viewer.js'
 import {DefaultRenderLayer} from './defaultrenderlayer.js'
 import {TilingRenderLayer} from './tilingrenderlayer.js'
 import {VertexQuantization} from './vertexquantization.js'
 import {Executor} from './executor.js'
-import {GeometryLoader} from "./geometryloader.js"
-import {BimserverGeometryLoader} from "./bimservergeometryloader.js"
 import {Stats} from "./stats.js"
 import {DefaultSettings} from "./defaultsettings.js"
 import {Utils} from "./utils.js"
@@ -35,6 +35,7 @@ export class BimServerViewer {
 		this.settings = settings;
 		this.bimServerApi = bimServerApi;
 		this.stats = stats;
+		
 		this.width = width || canvas.offsetWidth;
 		this.height = height || canvas.offsetHeight;
 		this.layers = new Map();
@@ -86,6 +87,7 @@ export class BimServerViewer {
 	}
 
 	autoResizeCanvas() {
+		console.log("auto resize",this.canvas.offsetWidth, this.canvas.offsetHeight);
 		this.canvas.width = this.canvas.offsetWidth;
 		this.canvas.height = this.canvas.offsetHeight;
 		this.viewer.setDimensions(this.canvas.width, this.canvas.height);

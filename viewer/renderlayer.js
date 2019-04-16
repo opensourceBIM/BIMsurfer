@@ -39,7 +39,7 @@ export class RenderLayer {
 	}
 
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
-		var bytesUsed = RenderLayer.calculateBytesUsed(this.settings, positions.length, colors.length, indices.length, normals.length);
+		var bytesUsed = Utils.calculateBytesUsed(this.settings, positions.length, colors.length, indices.length, normals.length);
 		var geometry = {
 				id: geometryId,
 				roid: roid,
@@ -70,35 +70,6 @@ export class RenderLayer {
 		return geometry;
 	}
 	
-	static calculateBytesUsed(settings, nrVertices, nrColors, nrIndices, nrNormals) {
-		var bytes = 0;
-		if (settings.quantizeVertices) {
-			bytes += nrVertices * 2;
-		} else {
-			bytes += nrVertices * 4;
-		}
-		if (nrColors != null) {
-			if (settings.quantizeColors) {
-				bytes += nrColors;
-			} else {
-				bytes += nrColors * 4;
-			}
-		}
-		// Pick buffers
-		bytes += (nrVertices / 3) * 4;
-		if (nrIndices < 65536 && settings.useSmallIndicesIfPossible) {
-			bytes += nrIndices * 2;
-		} else {
-			bytes += nrIndices * 4;
-		}
-		if (settings.quantizeNormals) {
-			bytes += nrNormals;
-		} else {
-			bytes += nrNormals * 4;
-		}
-		return bytes;
-	}
-
 	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager, node) {
 		var loader = this.getLoader(loaderId);
 		var object = {
