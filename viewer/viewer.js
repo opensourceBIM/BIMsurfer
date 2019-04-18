@@ -184,12 +184,12 @@ export class Viewer {
                 fn(e);
             }
             
-            for (const listener of this.selectionListeners) {
-            	listener(elems);
-            }
-            
             this.dirty = true;
             return Promise.resolve();
+        }).then(() => {
+        	for (const listener of this.selectionListeners) {
+        		listener(this.selectedElements);
+        	}
         });
     }
 
@@ -603,7 +603,6 @@ export class Viewer {
      @return {*} Information about the object that was picked, if any.
      */
     pick(params) { // Returns info on the object at the given canvas coordinates
-
         var canvasPos = params.canvasPos;
         if (!canvasPos) {
             throw "param expected: canvasPos";
