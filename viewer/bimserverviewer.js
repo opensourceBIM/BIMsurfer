@@ -36,8 +36,8 @@ export class BimServerViewer {
 		this.bimServerApi = bimServerApi;
 		this.stats = stats;
 		
-		this.width = width || canvas.offsetWidth;
-		this.height = height || canvas.offsetHeight;
+		this.width = width || canvas.clientWidth;
+		this.height = height || canvas.clientHeight;
 		this.layers = new Map();
 		
 		this.settings = DefaultSettings.create(settings);
@@ -64,6 +64,10 @@ export class BimServerViewer {
 			this.canvas.width = this.width;
 			this.canvas.height = this.height;
 			this.viewer.setDimensions(this.width, this.height);
+			this.resizeHandler = () => {
+				this.autoResizeCanvas();
+			};
+			window.addEventListener("resize", this.resizeHandler, false);
 		}
 	}
 
@@ -75,21 +79,20 @@ export class BimServerViewer {
 			let gpuBufferManager = Array.from(this.viewer.renderLayers)[0].gpuBufferManager;
 			this.viewer.renderLayers.add(layer);
 			loader.loaderSettings = {
-				quantizeVertices: true
+				quantizeVertices: false
 			};
 			loader.settings = loader.loaderSettings;
 			loader.renderLayer = layer;
 			loader.gpuBufferManager = gpuBufferManager;
-			loader.unquantizationMatrix = this.viewer.vertexQuantization.inverseVertexQuantizationMatrixWithGlobalTransformation; // mat4.identity(mat4.create());
 			loader.processPreparedBufferInit(stream, false);
-			loader.processPreparedBuffer(stream, false, true);
+			loader.processPreparedBuffer(stream, false);
 		})
 	}
 
 	autoResizeCanvas() {
-		console.log("auto resize",this.canvas.offsetWidth, this.canvas.offsetHeight);
-		this.canvas.width = this.canvas.offsetWidth;
-		this.canvas.height = this.canvas.offsetHeight;
+		console.log("resize");
+		this.canvas.width = this.canvas.clientWidth;
+		this.canvas.height = this.canvas.clientHeight;
 		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
 	}
 
