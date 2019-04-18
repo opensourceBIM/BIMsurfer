@@ -76,16 +76,21 @@ export class CameraControl {
             canvasPos[0] = event.x;
             canvasPos[1] = event.y;
         } else {
-            var element = event.target;
+//            var element = event.target;
             var totalOffsetLeft = 0;
             var totalOffsetTop = 0;
-            while (element.offsetParent) {
-                totalOffsetLeft += element.offsetLeft;
-                totalOffsetTop += element.offsetTop;
-                element = element.offsetParent;
-            }
+//            while (element.offsetParent) {
+//                totalOffsetLeft += element.offsetLeft;
+//                totalOffsetTop += element.offsetTop;
+//                element = element.offsetParent;
+//            }
+            
+            var rect = event.target.getBoundingClientRect();
+            totalOffsetLeft = rect.left;
+            totalOffsetTop = rect.top;
             canvasPos[0] = event.pageX - totalOffsetLeft;
             canvasPos[1] = event.pageY - totalOffsetTop;
+            return [event.offsetX, event.offsetY];
         }
         return canvasPos;
     }
