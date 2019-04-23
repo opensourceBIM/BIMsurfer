@@ -1,17 +1,17 @@
 import * as mat4 from "./glmatrix/mat4.js";
 import * as vec3 from "./glmatrix/vec3.js";
 
-import {GeometryLoader} from "./geometryloader.js"
-import {BimserverGeometryLoader} from "./bimservergeometryloader.js"
-import {Viewer} from './viewer.js'
-import {DefaultRenderLayer} from './defaultrenderlayer.js'
-import {TilingRenderLayer} from './tilingrenderlayer.js'
-import {VertexQuantization} from './vertexquantization.js'
-import {Executor} from './executor.js'
-import {Stats} from "./stats.js"
-import {DefaultSettings} from "./defaultsettings.js"
-import {Utils} from "./utils.js"
-import {DataInputStream} from "./datainputstream.js";
+import {GeometryLoader} from "./geometryloader.js";
+import {BimserverGeometryLoader} from "./bimservergeometryloader.js";
+import {Viewer} from "./viewer.js";
+import {DefaultRenderLayer} from "./defaultrenderlayer.js";
+import {TilingRenderLayer} from "./tilingrenderlayer.js";
+import {VertexQuantization} from "./vertexquantization.js";
+import {Executor} from "./executor.js";
+import {Stats} from "./stats.js";
+import {DefaultSettings} from "./defaultsettings.js";
+import {Utils} from "./utils.js";
+import {DataInputStream} from "./datainputstream.js";;
 
 /*
  * The main class you instantiate when creating a viewer that will be loading data} from a BIMserver.
@@ -118,8 +118,10 @@ export class BimServerViewer {
 	
 	unloadRevisionByRoid(roid) {
 		const layerSet = this.layers.get(roid);
-		for (var layer of layerSet) {
-			this.viewer.renderLayers.delete(layer);
+		if (layerSet) {
+			for (var layer of layerSet) {
+				this.viewer.renderLayers.delete(layer);
+			}
 		}
 		this.layers.delete(roid);
 		this.viewer.dirty = true;
@@ -280,7 +282,9 @@ export class BimServerViewer {
 				}
 
 				if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
-					this.viewer.vertexQuantization = new VertexQuantization(this.settings);
+					if (this.viewer.vertexQuantization == null) {
+						this.viewer.vertexQuantization = new VertexQuantization(this.settings);
+					}
 					for (var croid of modelBoundsUntransformed.keys()) {
 						this.viewer.vertexQuantization.generateUntransformedMatrices(croid, modelBoundsUntransformed.get(croid));
 					}
