@@ -1,4 +1,4 @@
-import {FatLineRenderer} from './fatlinerenderer.js'
+import {FatLineRenderer} from "./fatlinerenderer.js";
 
 /**
  * Simple (reusable) class to draw a linebox

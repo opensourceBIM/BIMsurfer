@@ -1,4 +1,4 @@
-import {BufferManager} from './buffermanager.js'
+import {BufferManager} from "./buffermanager.js";
 
 /**
  * A buffer manager that keeps track of only 2 buffers, one opaque and one with transparent data.

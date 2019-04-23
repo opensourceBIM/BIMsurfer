@@ -1,4 +1,4 @@
-import {TreeModel} from './treemodel.js'
+import {TreeModel} from "./treemodel.js";
 
 /**
  * A quick and dirty tree model, this is used in both the dev.js and interactive.js apps

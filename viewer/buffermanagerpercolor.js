@@ -1,4 +1,4 @@
-import {BufferManager} from './buffermanager.js'
+import {BufferManager} from "./buffermanager.js";
 
 /**
  * Buffer manager that keeps track of one buffer per color. This buffer is used when useObjectColor is on.

@@ -1,5 +1,5 @@
 import {AbstractBufferSet} from "./abstractbufferset.js";
-import {Utils} from "./utils.js"
+import {Utils} from "./utils.js";
 
 /**
  * @ignore

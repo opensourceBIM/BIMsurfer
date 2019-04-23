@@ -1,7 +1,7 @@
-import {Utils} from './utils.js'
-import {ProgramManager} from './programmanager.js'
-import {VERTEX_QUANTIZATION} from './programmanager.js'
-import {LINE_PRIMITIVES} from './programmanager.js'
+import {Utils} from "./utils.js";
+import {ProgramManager} from "./programmanager.js";
+import {VERTEX_QUANTIZATION} from "./programmanager.js";
+import {LINE_PRIMITIVES} from "./programmanager.js";
 
 /**
  *

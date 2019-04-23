@@ -1,4 +1,4 @@
-import {BufferSet} from './bufferset.js';
+import {BufferSet} from "./bufferset.js";
 
 /**
  * BufferManager keeps track of (CPU side) buffers, these buffers are eventually flushed to the GPU.

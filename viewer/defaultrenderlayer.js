@@ -1,9 +1,9 @@
-import {BufferManagerTransparencyOnly} from './buffermanagertransparencyonly.js'
-import {BufferManagerPerColor} from './buffermanagerpercolor.js'
-import {Utils} from './utils.js'
-import {VertexQuantization} from './vertexquantization.js'
-import {RenderLayer} from './renderlayer.js'
-import {GpuBufferManager} from './gpubuffermanager.js'
+import {BufferManagerTransparencyOnly} from "./buffermanagertransparencyonly.js";
+import {BufferManagerPerColor} from "./buffermanagerpercolor.js";
+import {Utils} from "./utils.js";
+import {VertexQuantization} from "./vertexquantization.js";
+import {RenderLayer} from "./renderlayer.js";
+import {GpuBufferManager} from "./gpubuffermanager.js";
 
 /**
  * This is the default renderer for what we called the base layer. Usually this layer should be small enough to be rendered at good FPS

@@ -1,7 +1,7 @@
-import {Executor} from './executor.js'
-import {Utils} from './utils.js'
-import {GpuBufferManager} from './gpubuffermanager.js'
-import {BimserverGeometryLoader} from "./bimservergeometryloader.js"
+import {Executor} from "./executor.js";
+import {Utils} from "./utils.js";
+import {GpuBufferManager} from "./gpubuffermanager.js";
+import {BimserverGeometryLoader} from "./bimservergeometryloader.js";
 
 /**
  * Loads tiles. Needs to be initialized first (initialize method).

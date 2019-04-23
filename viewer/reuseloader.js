@@ -1,5 +1,5 @@
-import {BimserverGeometryLoader} from './bimservergeometryloader.js'
-import {Utils} from './utils.js'
+import {BimserverGeometryLoader} from "./bimservergeometryloader.js";
+import {Utils} from "./utils.js";
 
 /**
  * When loading Tiles, there is sometimes geometry (GeometryData) that is reused in other Tiles as well, in that case it is omitted in the stream, to be loaded later.

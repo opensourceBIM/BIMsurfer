@@ -1,19 +1,19 @@
 import * as mat4 from "./glmatrix/mat4.js";
 import * as vec3 from "./glmatrix/vec3.js";
 
-import {ProgramManager} from './programmanager.js'
-import {Lighting} from './lighting.js'
-import {BufferSetPool} from './buffersetpool.js'
-import {Camera} from './camera.js'
-import {CameraControl} from './cameracontrol.js'
-import {RenderBuffer} from './renderbuffer.js'
-import {SvgOverlay} from './svgoverlay.js'
-import {FrozenBufferSet} from './frozenbufferset.js'
-import {Utils} from './utils.js'
-import {SSQuad} from './ssquad.js'
-import {FreezableSet} from './freezableset.js';
-import {DefaultCss} from './defaultcss.js';
-import {DefaultColors} from "./defaultcolors.js"
+import {ProgramManager} from "./programmanager.js";
+import {Lighting} from "./lighting.js";
+import {BufferSetPool} from "./buffersetpool.js";
+import {Camera} from "./camera.js";
+import {CameraControl} from "./cameracontrol.js";
+import {RenderBuffer} from "./renderbuffer.js";
+import {SvgOverlay} from "./svgoverlay.js";
+import {FrozenBufferSet} from "./frozenbufferset.js";
+import {Utils} from "./utils.js";
+import {SSQuad} from "./ssquad.js";
+import {FreezableSet} from "./freezableset.js";
+import {DefaultCss} from "./defaultcss.js";
+import {DefaultColors} from "./defaultcolors.js";
 
 import {COLOR_FLOAT_DEPTH_NORMAL, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 import { WSQuad } from './wsquad.js';

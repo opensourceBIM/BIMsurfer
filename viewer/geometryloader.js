@@ -1,4 +1,4 @@
-import { Utils } from "./utils.js"
+import {Utils} from "./utils.js";
 import * as vec4 from "./glmatrix/vec4.js";
 
 // temporary for emergency quantization

@@ -1,7 +1,7 @@
 import * as mat4 from "./glmatrix/mat4.js";
 import * as vec3 from "./glmatrix/vec3.js";
 
-import {FrustumPlane} from './frustumplane.js'
+import {FrustumPlane} from "./frustumplane.js";
 
 var tempMat4 = mat4.create();
 var tempVec3 = vec3.create();

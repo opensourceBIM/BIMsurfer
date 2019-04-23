@@ -3,7 +3,7 @@ import * as mat3 from "./glmatrix/mat3.js";
 import * as vec3 from "./glmatrix/vec3.js";
 import * as vec4 from "./glmatrix/vec4.js";
 
-import {Utils} from './utils.js'
+import {Utils} from "./utils.js";
 
 /**
  * Octree implementation targeted towards being used in the TilingLayer, could possibly be retrofitted to be a generic Octree to be used in other contexts
