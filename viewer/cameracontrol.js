@@ -266,7 +266,9 @@ export class CameraControl {
     documentMouseUp(e) {
         this.mouseDown = false;
     	// Potential end-of-pan
-    	this.camera.updateLowVolumeListeners();
+        if (this.dragMode == DRAG_PAN) {
+        	this.camera.updateLowVolumeListeners();
+        }
     }
 
     getEyeLookDist() {
