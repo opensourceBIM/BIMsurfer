@@ -100,10 +100,6 @@ class OctreeNode {
 	traverseBreathFirstInternal(fn, level) {
 		if (this.level == level) {
 			var result = fn(this);
-			if (result === false && toSkip != null) {
-				// TODO do something to make sure we are not calling fn for the children of this node
-				toSkip.add(this.id);
-			}
 		}
 		if (this.level >= level) {
 			return;
