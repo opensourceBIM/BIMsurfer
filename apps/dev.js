@@ -77,7 +77,7 @@ export class Dev {
 		
 		stats.setParameter("Models", "Name", project.name);
 		
-		this.bimServerViewer = new BimServerViewer(this.api, this.settings, this.canvas, window.innerWidth, window.innerHeight, stats);
+		this.bimServerViewer = new BimServerViewer(this.settings, this.canvas, window.innerWidth, window.innerHeight, stats);
 		
 		this.bimServerViewer.setProgressListener((percentage) => {
 			document.getElementById("progress").style.display = "block";
@@ -98,7 +98,7 @@ export class Dev {
 		};
 		document.addEventListener("keypress", this.keyPressHandler);
 		
-		this.bimServerViewer.loadModel(project);
+		this.bimServerViewer.loadModel(this.api, project);
 	}
 }
 
