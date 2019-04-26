@@ -129,7 +129,7 @@ export class AbstractBufferSet {
     createLineRenderer(gl, a, b) {
         const lineRenderer = new FatLineRenderer(this.viewer, gl, {
             quantize: this.positionBuffer.js_type !== Float32Array.name
-        });
+        }, this.unquantizationMatrix);
 
         const positions = new window[this.positionBuffer.js_type](this.positionBuffer.N);
         const indices = new window[this.indexBuffer.js_type](b-a);

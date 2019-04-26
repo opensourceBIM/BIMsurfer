@@ -28,7 +28,7 @@ import {LINE_PRIMITIVES} from "./programmanager.js";
  * 
  */
 export class FatLineRenderer {
-    constructor(viewer, gl, settings) {
+    constructor(viewer, gl, settings, unquantizationMatrix) {
     	this.viewer = viewer;
 		settings = settings || {};
 		this.idx = 0;
@@ -40,6 +40,7 @@ export class FatLineRenderer {
 		this.quantize = settings.quantize || false;
 		this.matrixMap = new Map();
 		this.croid = null;
+		this.unquantizationMatrix = unquantizationMatrix;
     }
 
     finalize() {
@@ -112,7 +113,9 @@ export class FatLineRenderer {
 				// This is necessary for line renderings of reused geometries.
 				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(this.croid));
 			} else {
-				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, viewer.vertexQuantization.inverseVertexQuantizationMatrixWithGlobalTransformation);
+				if (this.unquantizationMatrix) {
+					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.unquantizationMatrix);
+				}
 			}
 		}
 
