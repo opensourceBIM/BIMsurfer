@@ -62,7 +62,7 @@ export class Credentials {
 					document.body.appendChild(this.div);
 					this.usernameInput.focus();
 					this.resolve = resolve;
-					localStorage.deleteItem("token")
+					localStorage.removeItem("token")
 				});
 			} else {
 				document.body.appendChild(this.div);
