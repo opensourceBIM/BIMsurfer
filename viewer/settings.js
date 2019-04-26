@@ -32,7 +32,7 @@ export class Settings {
 			}
 		};
 		
-		var settingsObject = localStorage.getItem("settings") == null ? null : localStorage.getItem("settings");
+		var settingsObject = window.localStorage.getItem("settings") == null ? null : window.localStorage.getItem("settings");
 		this.settings = settingsObject == null ? {
 			quantizeNormals: true,
 			quantizeVertices: true,
@@ -64,7 +64,7 @@ export class Settings {
 	}
 	
 	saveSettings() {
-		localStorage.setItem("settings", JSON.stringify(this.settings));
+		window.localStorage.setItem("settings", JSON.stringify(this.settings));
 	}
 	
 	processSettings(parent, settingsDefinition, keyPrefix, settings) {
