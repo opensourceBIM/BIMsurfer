@@ -250,7 +250,7 @@ export class GeometryLoader {
 		this.stats.inc("Network", "Bytes OTL", data.byteLength);
 		var stream = new DataInputStream(data);
 		var channel = stream.readLong();
-		var type = stream.readInt();
+		var type = stream.readLong();
 		if (type == 0) {
 			while (this.processMessage(stream)) {
 				
