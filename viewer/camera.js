@@ -626,7 +626,7 @@ export class Camera {
 
     restore(params) {
         if (params.type) {
-            this.projectionType = type;
+            this.projectionType = params.type;
         }
         if (this._projection instanceof Perspective && params.fovy) {
             this._projection.fov = params.fovy;
