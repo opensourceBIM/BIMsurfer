@@ -100,7 +100,6 @@ export class Utils {
 
 		const b = gl.createBuffer();
 		gl.bindBuffer(bufferType, b);
-		var js_type = js_type ? js_type : zeroDataView.constructor.name;
 		const byteCount = numElements * window[js_type].BYTES_PER_ELEMENT;
 		
 		// Read the WebGL documentation carefully on this, the interpretation of the size argument depends on the type of "data"
