@@ -10,7 +10,7 @@ export class EventHandler {
         (this.handlers[evt] || (this.handlers[evt] = [])).push(handler);
     }
 
-    off() {
+    off(evt, handler) {
         var h = this.handlers[evt];
         var found = false;
         if (typeof(h) !== 'undefined') {
