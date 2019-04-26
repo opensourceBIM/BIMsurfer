@@ -30,7 +30,7 @@ export class VertexQuantization {
 	getUntransformedVertexQuantizationMatrixForCroid(croid) {
 		var matrix = this.untransformedQuantizationMatrices.get(croid);
 		if (matrix == null) {
-			throw "Not found: " + roid;
+			throw "Not found: " + croid;
 		}
 		return matrix;
 	}
