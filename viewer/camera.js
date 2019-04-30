@@ -76,6 +76,9 @@ export class Camera {
     setModelBounds(bounds) {
         this._modelBounds = [];
 
+        this.perspective.setModelBounds(bounds);
+        this.orthographic.setModelBounds(bounds);
+        
         // Store aabb calculated} from points
         let a = vec3.fromValues(+Infinity, +Infinity, +Infinity);
         let b = vec3.fromValues(-Infinity, -Infinity, -Infinity);
@@ -577,6 +580,8 @@ export class Camera {
     zoom(delta, canvasPos) { // Translate 'eye' by given increment on (eye->target) vector
         // @todo: also not efficient
 
+    	this.orthographic.zoom(delta);
+    	
         let [x,y] = canvasPos;
         vec3.set(tempVec3, x / this.viewer.width * 2 - 1, - y / this.viewer.height * 2 + 1, 1.);
         vec3.transformMat4(tempVec3, tempVec3, this.projection.projMatrixInverted);

@@ -11,6 +11,10 @@ export class Projection {
         this._dirty = true;
 	}
 	
+	setModelBounds(modelBounds) {
+		this.modelBounds = modelBounds;
+	}
+	
 	build() {
     	if (this.viewer.width == null || this.viewer.height == null) {
     		throw "Viewer dimensions unknown, cannot continue";

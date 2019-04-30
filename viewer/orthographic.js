@@ -12,19 +12,42 @@ export class Orthographic extends Projection {
 
     constructor(viewer) {
     	super(viewer);
-    	
-        this._left = -1000.0;
-        this._bottom = -1000.0;
-        this._right = 1000.0;
-        this._top = 1000.0;
 
         this._near = 0.1;
         this._far = 5000;
+        this.zoomFactor = 3;
+    }
+    
+	setModelBounds(modelBounds) {
+		super.setModelBounds(modelBounds);
+    }
+    
+    zoom(delta) {
+    	this.zoomFactor += (delta / 10000);
+    	this.build();
     }
 
     build() {
     	super.build();
-   
+
+    	var maxW = 0;
+		for (let i=0; i<3; i++) {
+			let w = this.modelBounds[3 + i] - this.modelBounds[i];
+			if (w > maxW) {
+				maxW = w;
+			}
+		}
+		
+		maxW *= this.zoomFactor;
+		
+        var aspect = this.viewer.width / this.viewer.height;
+        const maxH = maxW / aspect;
+		
+		this._left =  -maxW / 2;
+		this._bottom = -maxH / 2;
+		this._right = maxW / 2;
+		this._top = maxH / 2;
+    	
         mat4.ortho(this._projMatrix, this._left, this._right, this._bottom, this._top, this._near, this._far);
         mat4.invert(this._projMatrixInverted, this._projMatrix);
     }
