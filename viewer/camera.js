@@ -140,6 +140,8 @@ export class Camera {
 
             this.perspective.near = near;
             this.perspective.far = far;
+            this.orthographic.near = near;
+            this.orthographic.far = far;
 
             mat4.invert(this._viewMatrixInverted, this._viewMatrix);
             mat4.multiply(this._viewProjMatrix, this.projMatrix, this._viewMatrix);
@@ -230,6 +232,7 @@ export class Camera {
         } else {
             console.error("Unsupported projectionType: " + projectionType);
         }
+        this.viewer.dirty = true;
     }
 
     /**
