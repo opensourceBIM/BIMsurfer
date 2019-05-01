@@ -499,7 +499,7 @@ export class RenderLayer {
 						WEBGL_multi_draw.multiDrawElementsWEBGL(this.gl.TRIANGLES, visibleRanges.counts, 0, this.gl.UNSIGNED_INT, visibleRanges.offsetsBytes, 0, visibleRanges.pos);
 					} else {
 						// A manual loop using the same range data
-						for (let i = 0; i < visibleRanges.counts.length; ++i) {
+						for (let i = 0; i < visibleRanges.pos; ++i) {
 							this.gl.drawElements(this.gl.TRIANGLES, visibleRanges.counts[i], this.gl.UNSIGNED_INT, visibleRanges.offsetsBytes[i]);
 						}
 					}
@@ -688,6 +688,8 @@ export class RenderLayer {
 		}
 
 		let viewer = bufferManager.viewer;
+
+		var gl = this.gl;
 
 		for (let transparency of false_true) { 
 			for (let reuse of false_true) {
