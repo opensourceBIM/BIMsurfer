@@ -86,72 +86,80 @@ export class AbstractBufferSet {
      * When changing colors, a lot of data is read from the GPU. It seems as though all of this reading is sync, making it a bottle-neck 
      * When wrapping abstractbufferset calls that read from the GPU buffer in batchGpuRead, the complete bufferset is read into memory once, and is removed afterwards  
      */
-    batchGpuRead(gl, oids, fn) {
+    batchGpuRead(gl, toCopy, bounds, fn) {
     	if (this.objects) {
     		// Reuse, no need to batch
             fn();
             return;
     	}
-    	if (oids.length <= 1) {
-    		// Only changing one object (or wronly sending empty oids) -> no batching
-    		fn();
-    		return;
+
+    	if (bounds == null) {
+    		bounds = {
+    			startIndex: 0,
+    			endIndex: this.nrIndices,
+    			minIndex: 0,
+    			maxIndex: this.nrPositions
+    		};
     	}
+    	
     	this.batchGpuBuffers = {
-			indices: new Uint32Array(this.nrIndices)
-    	};
+   			indices: new Uint32Array(bounds.endIndex - bounds.startIndex),
+   			bounds: bounds
+       	};
 
-        var restoreElementBinding = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
+        let restoreElementBinding = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
+        let restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, 0, this.batchGpuBuffers.indices, 0, this.nrIndices);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, restoreElementBinding);
+        gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, bounds.startIndex * 4, this.batchGpuBuffers.indices, 0, bounds.endIndex - bounds.startIndex);
 
-        let toCopy = ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"];
-        
         for (var name of toCopy) {
             let buffer = this[name];
             let bytes_per_elem = window[buffer.js_type].BYTES_PER_ELEMENT;
-            let gpu_data = new window[buffer.js_type]((this.nrPositions / 3) * buffer.components);
+            let gpu_data = new window[buffer.js_type](((bounds.maxIndex - bounds.minIndex) / 3) * buffer.components);
 
             this.batchGpuBuffers[name] = gpu_data;
             
-            var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
             gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-            gl.getBufferSubData(gl.ARRAY_BUFFER, 0, gpu_data, 0, gpu_data.length);
-            gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
+            gl.getBufferSubData(gl.ARRAY_BUFFER, bounds.minIndex * bytes_per_elem, gpu_data, 0, gpu_data.length);
         }
 
         fn();
-        
+
+        // Restoring after fn() because potentially fn is creating linebuffers, should maybe do the same for the other buffers
+        gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, restoreElementBinding);
+
         this.batchGpuBuffers = null;
     }
 
-    createLineRenderer(gl, a, b) {
+    createLineRenderer(gl, objectId, a, b) {
         const lineRenderer = new FatLineRenderer(this.viewer, gl, {
             quantize: this.positionBuffer.js_type !== Float32Array.name
         }, this.unquantizationMatrix);
 
-        const positions = new window[this.positionBuffer.js_type](this.positionBuffer.N);
-        const indices = new window[this.indexBuffer.js_type](b-a);
-        
-        // @todo: get only part of positions [min(indices), max(indices)]
-        var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-        gl.getBufferSubData(gl.ARRAY_BUFFER, 0, positions);
-        
-        var restoreElementBinding = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-        gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, a * 4, indices, 0, indices.length);
-        
         const s = new Set();
         
-        for (let i = 0; i < indices.length; i += 3) {
-            let abc = indices.subarray(i, i + 3);
+		let idx = this.geometryIdToIndex.get(objectId)[0];
+		let [offset, length] = [idx.start, idx.length];
+		
+		let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
 
+		let numVertices = maxIndex - minIndex + 1;
+		let gpu_data = this.batchGpuBuffers["positionBuffer"];
+
+		const bounds = this.batchGpuBuffers.bounds;
+		
+		for (var i=0; i<length; i+=3) {
+            let abc = [
+            	this.batchGpuBuffers.indices[offset - bounds.startIndex + i], 
+            	this.batchGpuBuffers.indices[offset - bounds.startIndex + i + 1], 
+            	this.batchGpuBuffers.indices[offset - bounds.startIndex + i + 2]];
             for (let j = 0; j < 3; ++j) {
-                let ab = [abc[j], abc[(j+1)%3]];
-                ab.sort();
-                let abs = ab.join(":");
+            	const a = abc[j];
+            	const b = abc[(j+1)%3];
+            	const ab = a > b ? [a, b] : [b, a];
+            	const abs = (ab[0] << 16) + ab[1];
 
                 if (s.has(abs)) {
                     s.delete(abs);
@@ -159,19 +167,22 @@ export class AbstractBufferSet {
                     s.add(abs);
                 }
             }
+		}
+		
+        lineRenderer.init(s.size, maxIndex);
+        
+        const mask = ((1 << 16) - 1);
+        for (let e of s) {
+        	const a = e >> 16;
+        	const b = e & mask;
+        	const as = (- bounds.minIndex + a) * 3;
+        	const bs = (- bounds.minIndex + b) * 3;
+            let A = gpu_data.subarray(as, as + 3);
+            let B = gpu_data.subarray(bs, bs + 3);
+            lineRenderer.pushVertices(A, B);
         }
         
-        for (let e of s) {
-            let [a,b] = e.split(":");
-            let A = positions.subarray(a * 3).subarray(0,3);
-            let B = positions.subarray(b * 3).subarray(0,3);
-            lineRenderer.pushVertices(A, B);
-        }			
-
-        lineRenderer.finalize();            
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, restoreElementBinding);
+        lineRenderer.finalize();
 
         return lineRenderer;
     }
@@ -209,7 +220,8 @@ export class AbstractBufferSet {
         this.visibleRanges.set(ids_str, ranges);
 
         if (!exclude && ranges.instanceIds.length && this.lineIndexBuffers.size === 0) {
-            let lineRenderer = this.createLineRenderer(gl, 0, this.indexBuffer.N);
+        	var id = 0; // TODO !!
+            let lineRenderer = this.createLineRenderer(gl, id, 0, this.indexBuffer.N);
             // This will result in a different dequantization matrix later on, not sure why
             lineRenderer.croid = this.croid;
             this.objects.forEach((ob) => {
@@ -314,18 +326,40 @@ export class AbstractBufferSet {
     	
     	// store in cache
     	this.visibleRanges.set(ids_str, result);
-    	
+
     	// Create fat line renderings for these elements. This should (a) 
     	// not in the draw loop (b) maybe in something like a web worker
-    	id_ranges.forEach((range, i) => {
-    		let [id, [a, b]] = range;
-    		if (this.lineIndexBuffers.has(id)) {
-    			return;
+    	
+    	var bounds = {};
+    	for (const idRange of id_ranges) {
+    		const oid = idRange[0];
+    		const range = idRange[1];
+    		let idx = this.geometryIdToIndex.get(oid)[0];
+    		if (bounds.minIndex == null || idx.minIndex < bounds.minIndex) {
+    			bounds.minIndex = idx.minIndex;
     		}
-    		let lineRenderer = this.createLineRenderer(gl, a, b);
-    		this.lineIndexBuffers.set(id, lineRenderer);
+    		if (bounds.maxIndex == null || idx.maxIndex > bounds.maxIndex) {
+    			bounds.maxIndex = idx.maxIndex;
+    		}
+    		if (bounds.startIndex == null || range[0] < bounds.startIndex) {
+    			bounds.startIndex = range[0];
+    		}
+    		if (bounds.endIndex == null || range[1] > bounds.endIndex) {
+    			bounds.endIndex = range[1];
+    		}
+    	}
+    	
+    	this.batchGpuRead(gl, ["positionBuffer"], null, () => {
+    		id_ranges.forEach((range, i) => {
+    			let [id, [a, b]] = range;
+    			if (this.lineIndexBuffers.has(id)) {
+    				return;
+    			}
+    			let lineRenderer = this.createLineRenderer(gl, id, a, b);
+    			this.lineIndexBuffers.set(id, lineRenderer);
+    		});
     	});
-
+    	
     	return result;
     }
     
