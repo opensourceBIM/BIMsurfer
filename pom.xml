@@ -171,6 +171,7 @@
             <checkModificationExclude>apps/minimal.js</checkModificationExclude>
             <checkModificationExclude>apps/tests.js</checkModificationExclude>
             <checkModificationExclude>docs/index.html</checkModificationExclude>
+            <checkModificationExclude>docs/api.html</checkModificationExclude>
           </checkModificationExcludes>
         </configuration>
       </plugin>
