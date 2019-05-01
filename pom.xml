@@ -170,8 +170,8 @@
             <checkModificationExclude>apps/interactive.js</checkModificationExclude>
             <checkModificationExclude>apps/minimal.js</checkModificationExclude>
             <checkModificationExclude>apps/tests.js</checkModificationExclude>
+            <checkModificationExclude>apps/api.html</checkModificationExclude>
             <checkModificationExclude>docs/index.html</checkModificationExclude>
-            <checkModificationExclude>docs/api.html</checkModificationExclude>
           </checkModificationExcludes>
         </configuration>
       </plugin>
