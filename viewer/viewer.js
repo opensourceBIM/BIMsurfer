@@ -208,7 +208,7 @@ export class Viewer {
     resetColorAlreadyBatched(elems, bufferSetsToUpdate) {
     	for (let [bufferSetId, bufferSetObject] of bufferSetsToUpdate) {
     		var bufferSet = bufferSetObject.bufferSet;
-    		bufferSet.batchGpuRead(this.gl, bufferSetObject.oids, () => {
+    		bufferSet.batchGpuRead(this.gl, ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"], null, () => {
 	    		for (let objectId of bufferSetObject.oids) {
 	    			if (this.hiddenDueToSetColor.has(objectId)) {
 	    				this.invisibleElements.delete(objectId);
@@ -268,7 +268,7 @@ export class Viewer {
 				for (let [bufferSetId, bufferSetObject] of bufferSetsToUpdate) {
 					var bufferSet = bufferSetObject.bufferSet;
 					var oids = bufferSetObject.oids;
-					bufferSet.batchGpuRead(this.gl, bufferSetObject.oids, () => {
+					bufferSet.batchGpuRead(this.gl, ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"], null, () => {
 						for (const objectId of oids) {
 							let originalColor = bufferSet.setColor(this.gl, objectId, clr);
 							if (originalColor === false) {
