@@ -268,7 +268,11 @@ export class Viewer {
 				for (let [bufferSetId, bufferSetObject] of bufferSetsToUpdate) {
 					var bufferSet = bufferSetObject.bufferSet;
 					var oids = bufferSetObject.oids;
-					bufferSet.batchGpuRead(this.gl, ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"], null, () => {
+
+					let id_ranges = bufferSet.getIdRanges(oids);
+					let bounds = bufferSet.getBounds(id_ranges);
+					
+					bufferSet.batchGpuRead(this.gl, ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"], bounds, () => {
 						for (const objectId of oids) {
 							let originalColor = bufferSet.setColor(this.gl, objectId, clr);
 							if (originalColor === false) {
