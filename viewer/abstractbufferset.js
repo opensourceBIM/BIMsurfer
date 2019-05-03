@@ -157,62 +157,36 @@ export class AbstractBufferSet {
 		
 		var indexOffset = offset - bounds.startIndex;
 		
+		const s = new Set();
+        
 		for (var i=0; i<length; i+=3) {
             let abc = [
             	this.batchGpuBuffers.indices[indexOffset + i], 
             	this.batchGpuBuffers.indices[indexOffset + i + 1], 
             	this.batchGpuBuffers.indices[indexOffset + i + 2]];
+	
             for (let j = 0; j < 3; ++j) {
-            	let a = abc[j];
-            	let b = abc[(j+1)%3];
-            	if (b < a) {
-            		const c = b;
-            		b = a;
-            		a = c;
-            	}
+                let ab = [abc[j], abc[(j+1)%3]];
+                ab.sort();
+                let abs = ab.join(":");
 
-                if (m.has(a)) {
-                	var d = m.get(a);
-                	if (Array.isArray(d)) {
-                		if (d.includes(b)) {
-                			d.splice(d.indexOf(b));
-                			size--;
-                			if (d.length == 0) {
-                				m.delete(a);
-                				continue;
-                			} else if (d.length == 1) {
-                				m.set(a, d[0]);
-                			}
-                		} else {
-               				d.push(b);
-               				size++;
-                		}
-                	} else if (d === b) {
-                		m.delete(a);
-                		continue;
-                	} else {
-                		m.set(a, [d, b]);
-                		size++;
-                	}
+                if (s.has(abs)) {
+                    s.delete(abs);
                 } else {
-                	m.set(a, b);
-                	size++;
+                    s.add(abs);
                 }
             }
-		}
-		
-        lineRenderer.init(size, maxIndex);
+        }
         
+        lineRenderer.init(s.size, maxIndex);
         const vertexOffset = -bounds.minIndex * 3;
-        for (let a of m.keys()) {
-        	const bs = m.get(a);
-        	for (var b of Array.isArray(bs) ? bs : [bs]) {
-        		const as = vertexOffset + a * 3;
-        		const bs = vertexOffset + b * 3;
-        		let A = gpu_data.subarray(as, as + 3);
-        		let B = gpu_data.subarray(bs, bs + 3);
-        		lineRenderer.pushVertices(A, B);
-        	}
+        for (let e of s) {
+            let [a,b] = e.split(":");
+            const as = vertexOffset + a * 3;
+        	const bs = vertexOffset + b * 3;
+            let A = gpu_data.subarray(as, as + 3);
+    		let B = gpu_data.subarray(bs, bs + 3);
+    		lineRenderer.pushVertices(A, B);
         }
         
         lineRenderer.finalize();
