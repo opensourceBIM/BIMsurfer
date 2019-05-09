@@ -107,6 +107,7 @@ export class Camera {
         vec3.scale(a, a, 0.5);
 
         this._center.set(a);
+        this._dirty = true;
     }
 
     _build() {
