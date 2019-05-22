@@ -28,6 +28,19 @@ var tmp_unproject = vec3.create();
 // set to 1.
 const OVERRIDE_FLAG = (1 << 31);
 
+const X = vec3.fromValues(1., 0., 0.);
+const Y = vec3.fromValues(0., 1., 0.);
+const Z = vec3.fromValues(0., 0., 1.);
+
+const tmp_sectionU = vec3.create();
+const tmp_sectionV = vec3.create();
+
+const tmp_sectionA = vec3.create();
+const tmp_sectionB = vec3.create();
+const tmp_sectionC = vec3.create();
+const tmp_sectionD = vec3.create();
+
+
 /**
  * The idea is that this class doesn't know anything about BIMserver, and can possibly be reused in classes other than BimServerViewer
  * 
@@ -590,11 +603,77 @@ export class Viewer {
 //		);
     }
 
-    startSectionPlane(params) {
+    /*
+    get mouseMode() {
+        return _mouseMode;
+    }
+
+    set mouseMode(mode) {
+        _mouseMode = mode;
+        if (mode === "section") {
+            
+        }
+    }*/
+
+    sectionplanePoly = null;
+
+    removeSectionPlaneWidget() {
+        if (this.sectionplanePoly) {
+            this.sectionplanePoly.destroy();
+            this.sectionplanePoly = null;
+        }
+    }
+
+    positionSectionPlaneWidget(params) {
+        let p = this.pick({canvasPos: params.canvasPos, select: false});
+        if (p.normal && p.coordinates) {
+            let ref = null;
+            if (Math.abs(vec3.dot(p.normal, Z)) < 0.9) {
+                ref = Z;
+            } else {
+                ref = X;
+            }
+            vec3.cross(tmp_sectionU, p.normal, ref);
+            vec3.cross(tmp_sectionV, p.normal, tmp_sectionU);
+            vec3.scale(tmp_sectionU, tmp_sectionU, 500.);
+            vec3.scale(tmp_sectionV, tmp_sectionV, 500.);
+
+            // ---
+            
+            vec3.add(tmp_sectionA, tmp_sectionU, p.coordinates);
+            vec3.add(tmp_sectionB, tmp_sectionU, p.coordinates);
+
+            vec3.negate(tmp_sectionU, tmp_sectionU);
+
+            vec3.add(tmp_sectionC, tmp_sectionU, p.coordinates);
+            vec3.add(tmp_sectionD, tmp_sectionU, p.coordinates);
+
+            // ---
+
+            vec3.add(tmp_sectionA, tmp_sectionV, tmp_sectionA);
+            vec3.add(tmp_sectionC, tmp_sectionV, tmp_sectionC);
+
+            vec3.negate(tmp_sectionV, tmp_sectionV);
+
+            vec3.add(tmp_sectionB, tmp_sectionV, tmp_sectionB);
+            vec3.add(tmp_sectionD, tmp_sectionV, tmp_sectionD);
+
+            // ---
+
+            let ps = [tmp_sectionA, tmp_sectionB, tmp_sectionD, tmp_sectionC, tmp_sectionA];
+            if (this.sectionplanePoly) {
+                this.sectionplanePoly.points = ps;
+            } else {
+                this.sectionplanePoly = this.overlay.createWorldSpacePolyline(ps);
+            }
+        }
+    }
+    
+    enableSectionPlane(params) {
         let p = this.pick({canvasPos: params.canvasPos, select: false});
         if (p.normal && p.coordinates) {
             this.sectionPlaneValues.set(p.normal.subarray(0,3));
-            this.sectionPlaneValues[3] = -vec3.dot(p.coordinates, p.normal) - 1000.;
+            this.sectionPlaneValues[3] = vec3.dot(p.coordinates, p.normal) - 1000.;
             this.sectionPlaneValues2.set(this.sectionPlaneValues);
             this.sectionPlaneIsDisabled = false;
             this.dirty = true;

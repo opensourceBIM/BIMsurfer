@@ -35,6 +35,14 @@ export class CameraControl {
             e.preventDefault();
         };
 
+        document.addEventListener("keydown", this.keyDownHandler = (e) => {
+        	this.keyEvent(e, "down");
+        });
+
+        document.addEventListener("keyup", this.keyUpHandler = (e) => {
+        	this.keyEvent(e, "up");
+        });
+
         this.canvas.addEventListener("mousedown", this.canvasMouseDownHandler = (e) => {
         	this.canvasMouseDown(e);
         });
@@ -112,6 +120,16 @@ export class CameraControl {
         }
     }
 
+    keyEvent(e, state) {
+        if (e.key == "Control") {
+            if (state === "down") {
+                this.viewer.positionSectionPlaneWidget({canvasPos: [this.lastX, this.lastY]});
+            } else {
+                this.viewer.removeSectionPlaneWidget();
+            }            
+        }
+    }
+
     /**
      * @private
      */
@@ -130,7 +148,7 @@ export class CameraControl {
                 if (e.ctrlKey) {
                     this.mouseDownTime = 0;
                     this.dragMode = DRAG_SECTION;
-                    this.viewer.startSectionPlane({canvasPos:[this.lastX, this.lastY]});                    
+                    this.viewer.enableSectionPlane({canvasPos:[this.lastX, this.lastY]});
                 } else {
                     this.dragMode = DRAG_ORBIT;
                     let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
@@ -235,8 +253,11 @@ export class CameraControl {
         if (!this.over) {
             return;
         }
-        if (this.mouseDown) {
-        	this.getCanvasPosFromEvent(e, this.mousePos);
+        if (e.ctrlKey) {
+            this.getCanvasPosFromEvent(e, this.mousePos);
+            this.viewer.positionSectionPlaneWidget({canvasPos: this.mousePos});
+        } else if (this.mouseDown) {
+            this.getCanvasPosFromEvent(e, this.mousePos);
             var x = this.mousePos[0];
             var y = this.mousePos[1];
             var xDelta = (x - this.lastX);
