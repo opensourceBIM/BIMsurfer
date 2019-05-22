@@ -54,7 +54,6 @@ in uvec4 instancePickColors;
 in uvec4 vertexPickColor;
 #endif
 flat out uvec4 color;
-out float depth;
 #else
 uniform LightData {
 	vec3 dir;
@@ -170,7 +169,6 @@ void main(void) {
 #else
     color = vertexPickColor;
 #endif
-    depth = gl_Position.z / gl_Position.w;
 #else
     vec3 viewNormal = normalize(viewNormalMatrix * floatNormal);
     float lambert1 = abs(dot(floatNormal, normalize(lightData.dir)));

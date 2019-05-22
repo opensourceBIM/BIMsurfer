@@ -7,8 +7,6 @@ in vec3 worldCoords;
 
 #ifdef WITH_PICKING
 flat in uvec4 color;
-in float depth;
-
 layout(location = 0) out uvec4 myOutputColor;
 layout(location = 1) out float myOutputDepth;
 layout(location = 2) out vec4 myOutputNormal;
@@ -34,7 +32,7 @@ void main(void) {
 
 #ifdef WITH_PICKING
    myOutputColor = color;
-   myOutputDepth = depth;
+   myOutputDepth = gl_FragCoord.z;
    // The picking program does not have normal attributes, so we *have* to
    // use the shader derivatives. @todo reevaluate
    myOutputNormal.xyz = normalize(cross(dFdx(worldCoords), dFdy(worldCoords)));

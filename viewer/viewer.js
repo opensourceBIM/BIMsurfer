@@ -649,7 +649,10 @@ export class Viewer {
         // Note that the default depth of 1. corresponds to the far plane, which
         // can be quite far away but at least is something that is recognizable
         // in most cases.
-        let z = viewObject ? this.pickBuffer.depth(x,y) : 1.;
+
+        // tfk: I don't know why the pB.d is in [0,1] and needs to be mapped back
+        // to [-1, 1] for multiplication with the inverse projMat.
+        let z = viewObject ? (this.pickBuffer.depth(x,y) * 2. - 1.) : 1.;
         vec3.set(tmp_unproject, x / this.width * 2 - 1, - y / this.height * 2 + 1, z);
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.projection.projMatrixInverted);
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.viewMatrixInverted);
