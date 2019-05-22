@@ -36,19 +36,36 @@ export class SvgOverlay {
         	"fill-opacity": 0.4
         });
 
+        // This is an array of elements that have methods to query their visibility
+        // and update their SVG positioning
+        this.nodes = [{
+            elem: this._orbitCenter,
+            visibilityFunction: () => this.camera.orbitting,
+            updateFunction: () => {
+                let [x, y] = this.transformPoint(this.camera.center);
+                this._orbitCenter.setAttribute("cx", x);
+                this._orbitCenter.setAttribute("cy", y);
+            }
+        }];
+
         window.addEventListener("resize", this.resize.bind(this), false);
     }
 
+    transformPoint(p) {
+        vec3.transformMat4(tmp, p, this.camera.viewProjMatrix);
+        return [+tmp[0] * this.w + this.w, -tmp[1] * this.h + this.h]
+    }
+
     update() {
-    	if (this.camera.orbitting != this.lastOrbitting) {
-    		this._orbitCenter.setAttribute("visibility", this.camera.orbitting ? "visible" : "hidden");
-    		this.lastOrbitting = this.camera.orbitting
-    	}
-        if (this.camera.orbitting) {
-            vec3.transformMat4(tmp, this.camera.center, this.camera.viewProjMatrix);
-            this._orbitCenter.setAttribute("cx", +tmp[0] * this.w + this.w);
-            this._orbitCenter.setAttribute("cy", -tmp[1] * this.h + this.h);
-        }
+        this.nodes.forEach((n) => {
+            let v = n.visibilityFunction();
+            if (v !== n.lastVisibilityState) {
+                n.elem.setAttribute("visibility", v ? "visible" : "hidden");
+            }
+            if (n.lastVisibilityState = v) {
+                n.updateFunction();
+            }            
+        });
     }
 
     create(tag, attrs, style) {

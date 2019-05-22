@@ -57,6 +57,8 @@ export class Camera {
         // Until there is a proper event handler mechanism, just do it manually.
         this.listeners = [];
         this.lowVolumeListeners = [];
+
+        this._orbitting = false;
     }
 
     lock() {
@@ -436,6 +438,10 @@ export class Camera {
         	}
     	}
     	this._orbitting = orbitting;
+    }
+
+    get orbitting() {
+    	return this._orbitting;
     }
     
     /**
