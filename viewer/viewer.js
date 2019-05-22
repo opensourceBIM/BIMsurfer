@@ -1,5 +1,7 @@
 import * as mat4 from "./glmatrix/mat4.js";
+import * as vec2 from "./glmatrix/vec2.js";
 import * as vec3 from "./glmatrix/vec3.js";
+import * as vec4 from "./glmatrix/vec4.js";
 
 import {ProgramManager} from "./programmanager.js";
 import {Lighting} from "./lighting.js";
@@ -39,6 +41,8 @@ const tmp_sectionA = vec3.create();
 const tmp_sectionB = vec3.create();
 const tmp_sectionC = vec3.create();
 const tmp_sectionD = vec3.create();
+
+const tmp_section_dir_2d = vec4.create();
 
 
 /**
@@ -671,13 +675,37 @@ export class Viewer {
     
     enableSectionPlane(params) {
         let p = this.pick({canvasPos: params.canvasPos, select: false});
-        if (p.normal && p.coordinates) {
+        if (p.normal && p.coordinates && p.depth) {
             this.sectionPlaneValues.set(p.normal.subarray(0,3));
-            this.sectionPlaneValues[3] = vec3.dot(p.coordinates, p.normal) - 1000.;
+            this.initialSectionPlaneD = this.sectionPlaneValues[3] = vec3.dot(p.coordinates, p.normal);
             this.sectionPlaneValues2.set(this.sectionPlaneValues);
             this.sectionPlaneIsDisabled = false;
+            this.sectionPlaneDepth = p.depth;
+            let cp = [params.canvasPos[0] / this.width, - params.canvasPos[1] / this.height];
+            this.sectionPlaneDownAt = cp;
             this.dirty = true;
+            return true;
         }
+        return false;
+    }
+
+    disableSectionPlane() {
+        this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
+        this.sectionPlaneValues2.set(this.sectionPlaneValuesDisabled);
+        this.sectionPlaneIsDisabled = true;
+        this.dirty = true;
+    }
+
+    moveSectionPlane(params) {
+        tmp_section_dir_2d.set(this.sectionPlaneValues2);
+        tmp_section_dir_2d[3] = 0.;
+        vec4.transformMat4(tmp_section_dir_2d, tmp_section_dir_2d, this.camera.viewProjMatrix);
+        let cp = [params.canvasPos[0] / this.width, - params.canvasPos[1] / this.height];        
+        vec2.subtract(tmp_section_dir_2d.subarray(2), cp, this.sectionPlaneDownAt);
+        tmp_section_dir_2d[1] /= this.width / this.height;
+        let d = vec2.dot(tmp_section_dir_2d, tmp_section_dir_2d.subarray(2)) * this.sectionPlaneDepth;
+        this.sectionPlaneValues2[3] = this.initialSectionPlaneD + d;
+        this.dirty = true;
     }
 
     /**
@@ -694,7 +722,10 @@ export class Viewer {
         }
 
         this.sectionPlaneValues.set(this.sectionPlaneValues2);
-        this.sectionPlaneValues[3] -= 1.e-3 * this.lastSectionPlaneAdjustment;        
+        if (!this.sectionPlaneIsDisabled) {
+            // tfk: I forgot what this is.
+            this.sectionPlaneValues[3] -= 1.e-3 * this.lastSectionPlaneAdjustment;        
+        }
 
         this.pickBuffer.bind();
 
@@ -734,6 +765,7 @@ export class Viewer {
         let z = viewObject ? (this.pickBuffer.depth(x,y) * 2. - 1.) : 1.;
         vec3.set(tmp_unproject, x / this.width * 2 - 1, - y / this.height * 2 + 1, z);
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.projection.projMatrixInverted);
+        let depth = -tmp_unproject[2];
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.viewMatrixInverted);
 //        console.log("Picked @", tmp_unproject[0], tmp_unproject[1], tmp_unproject[2], objectId, viewObject);
 
@@ -754,7 +786,7 @@ export class Viewer {
                 	listener(Array.from(this.selectedElements._originalOrderSet));
                 }
             }
-            return {object: viewObject, normal: normal, coordinates: tmp_unproject};
+            return {object: viewObject, normal: normal, coordinates: tmp_unproject, depth: depth};
         } else if (params.select !== false) {
             this.selectedElements.clear();
             for (const listener of this.selectionListeners) {
@@ -762,7 +794,7 @@ export class Viewer {
             }
         }
 
-        return {object: null, coordinates: tmp_unproject};
+        return {object: null, coordinates: tmp_unproject, depth: depth};
     }
 
     getPickColor(objectId) { // Converts an integer to a pick color

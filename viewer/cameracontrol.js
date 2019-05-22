@@ -98,7 +98,6 @@ export class CameraControl {
             totalOffsetTop = rect.top;
             canvasPos[0] = event.pageX - totalOffsetLeft;
             canvasPos[1] = event.pageY - totalOffsetTop;
-            return [event.offsetX, event.offsetY];
         }
         return canvasPos;
     }
@@ -123,7 +122,9 @@ export class CameraControl {
     keyEvent(e, state) {
         if (e.key == "Control") {
             if (state === "down") {
-                this.viewer.positionSectionPlaneWidget({canvasPos: [this.lastX, this.lastY]});
+                if (this.viewer.sectionPlaneIsDisabled) {
+                    this.viewer.positionSectionPlaneWidget({canvasPos: [this.lastX, this.lastY]});
+                }
             } else {
                 this.viewer.removeSectionPlaneWidget();
             }            
@@ -147,8 +148,13 @@ export class CameraControl {
             case 1:                
                 if (e.ctrlKey) {
                     this.mouseDownTime = 0;
-                    this.dragMode = DRAG_SECTION;
-                    this.viewer.enableSectionPlane({canvasPos:[this.lastX, this.lastY]});
+                    if (this.viewer.enableSectionPlane({canvasPos:[this.lastX, this.lastY]})) {
+                        this.dragMode = DRAG_SECTION;
+                    } else if (!this.viewer.sectionPlaneIsDisabled){
+                        this.viewer.disableSectionPlane();
+                        this.dragMode = DRAG_ORBIT;
+                    }
+                    this.viewer.removeSectionPlaneWidget();
                 } else {
                     this.dragMode = DRAG_ORBIT;
                     let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
@@ -253,29 +259,32 @@ export class CameraControl {
         if (!this.over) {
             return;
         }
-        if (e.ctrlKey) {
+        if (this.mouseDown || e.ctrlKey) {
             this.getCanvasPosFromEvent(e, this.mousePos);
-            this.viewer.positionSectionPlaneWidget({canvasPos: this.mousePos});
-        } else if (this.mouseDown) {
-            this.getCanvasPosFromEvent(e, this.mousePos);
-            var x = this.mousePos[0];
-            var y = this.mousePos[1];
-            var xDelta = (x - this.lastX);
-            var yDelta = (y - this.lastY);
-            this.lastX = x;
-            this.lastY = y;
-            if (this.dragMode == DRAG_ORBIT) {
-                let f = 0.5;
-                if (xDelta !== 0) {
-                	this.camera.orbitYaw(-xDelta * this.mouseOrbitSensitivity * f);
+            if (this.dragMode == DRAG_SECTION) {
+                this.viewer.moveSectionPlane({canvasPos: this.mousePos});
+            } else if (e.ctrlKey) {
+                this.viewer.positionSectionPlaneWidget({canvasPos: this.mousePos});
+            } else {
+                var x = this.mousePos[0];
+                var y = this.mousePos[1];
+                var xDelta = (x - this.lastX);
+                var yDelta = (y - this.lastY);
+                this.lastX = x;
+                this.lastY = y;
+                if (this.dragMode == DRAG_ORBIT) {
+                    let f = 0.5;
+                    if (xDelta !== 0) {
+                        this.camera.orbitYaw(-xDelta * this.mouseOrbitSensitivity * f);
+                    }
+                    if (yDelta !== 0) {
+                        this.camera.orbitPitch(yDelta * this.mouseOrbitSensitivity * f);
+                    }
+                    this.camera.orbitting = true;
+                } else if (this.dragMode == DRAG_PAN) {
+                    var f = this.getEyeLookDist() / 600;
+                    this.camera.pan([xDelta * f, yDelta * this.mousePanSensitivity * f, 0.0]);
                 }
-                if (yDelta !== 0) {
-                	this.camera.orbitPitch(yDelta * this.mouseOrbitSensitivity * f);
-                }
-                this.camera.orbitting = true;
-            } else if (this.dragMode == DRAG_PAN) {
-                var f = this.getEyeLookDist() / 600;
-                this.camera.pan([xDelta * f, yDelta * this.mousePanSensitivity * f, 0.0]);
             }
         }
         e.preventDefault();
@@ -290,6 +299,7 @@ export class CameraControl {
         if (this.dragMode == DRAG_PAN) {
         	this.camera.updateLowVolumeListeners();
         }
+        this.dragMode = DRAG_ORBIT;
     }
 
     getEyeLookDist() {
