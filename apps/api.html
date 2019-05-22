@@ -29,11 +29,11 @@
 		var api = new BimServerClient(Address.getApiAddress());
 		api.init().then(() => {
 			new Credentials(api).getCredentials().then(() => {
-        	surfer.load({
-	            api: api, 
-            	roid:65539,
-            	domNode:document.querySelector("canvas")
-        	}).then(generateApiReference).catch(errorHandler);
+                surfer.load({
+                    api: api, 
+                    roid:65539,
+                    domNode:document.querySelector("canvas")
+                }).then(generateApiReference).catch(errorHandler);
 			});
 		});
 

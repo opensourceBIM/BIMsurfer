@@ -61,13 +61,13 @@ export class BimSurfer extends EventHandler {
 		var stats = new Stats();		
 		stats.setParameter("Models", "Name", project.name);
 		
-		this._bimServerViewer = new BimServerViewer(this._api, this.settings, domNode, null, null, stats);
+		this._bimServerViewer = new BimServerViewer(this.settings, domNode, null, null, stats);
 		
 		this._bimServerViewer.setProgressListener((percentage) => {
 			console.log(percentage + "% loaded")
 		});
 
-		return this._bimServerViewer.loadModel(project);
+		return this._bimServerViewer.loadModel(this._api, project);
 	}
 
 	/**
@@ -80,7 +80,7 @@ export class BimSurfer extends EventHandler {
 	loadRevision(roid, domNode) {
 		var stats = new Stats();		
 		
-		this._bimServerViewer = new BimServerViewer(this._api, this.settings, domNode, null, null, stats);
+		this._bimServerViewer = new BimServerViewer(this.settings, domNode, null, null, stats);
 		
 		this._bimServerViewer.setProgressListener((percentage) => {
 			console.log(percentage + "% loaded")
