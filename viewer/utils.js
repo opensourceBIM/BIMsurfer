@@ -141,16 +141,10 @@ export class Utils {
 	}
 
 	static transformBounds(inputBounds, transformation) {
-		var minVector = vec3.create();
-		var maxVector = vec3.create();
-		vec3.set(minVector, inputBounds[0], inputBounds[1], inputBounds[2]);
-		vec3.set(maxVector, inputBounds[0] + inputBounds[3], inputBounds[1] + inputBounds[4], inputBounds[2] + inputBounds[5]);
-		
-		var normalizedMinVector = vec3.clone(minVector);
-		var normalizedMaxVector = vec3.clone(maxVector);
-		vec3.transformMat4(normalizedMinVector, normalizedMinVector, transformation);
-		vec3.transformMat4(normalizedMaxVector, normalizedMaxVector, transformation);
-		return [normalizedMinVector[0], normalizedMinVector[1], normalizedMinVector[2], normalizedMaxVector[0] - normalizedMinVector[0], normalizedMaxVector[1] - normalizedMinVector[1], normalizedMaxVector[2] - normalizedMinVector[2]];
+		let newBounds = new Float32Array(6);
+		vec3.transformMat4(newBounds, inputBounds, transformation);
+		vec3.transformMat4(newBounds.subarray(3), inputBounds.subarray(3), transformation);
+		return newBounds;
 	}
 	
 	static unionAabb(a, b) {
