@@ -36,6 +36,8 @@ export class RenderLayer {
 
 		this.loaders = new Map();
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
+		
+		this.postProcessingTransformation = mat4.create();
 	}
 
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
@@ -482,8 +484,6 @@ export class RenderLayer {
 					this.gl.drawElements(this.gl.TRIANGLES, buffer.nrTrianglesToDraw * 3, this.gl.UNSIGNED_INT, 0);
 				}
 			} else {
-				// These are the conventional buffersets
-				// TODO Ruben: For bigger models this results in out-of-memory (CPU), not sure why, but creating a new array here probably uses some memory
 				const visibleRanges = buffer.computeVisibleRangesAsBuffers(visibleElements, this.gl);
 				if (visibleRanges && visibleRanges.pos > 0) {
 					// TODO add buffer.nrTrianglesToDraw code
@@ -495,7 +495,7 @@ export class RenderLayer {
 					}
 
 					if (WEBGL_multi_draw) {
-						// This is available on Chrome Canary 75					
+						// This is available on Chrome Canary 75
 						WEBGL_multi_draw.multiDrawElementsWEBGL(this.gl.TRIANGLES, visibleRanges.counts, 0, this.gl.UNSIGNED_INT, visibleRanges.offsetsBytes, 0, visibleRanges.pos);
 					} else {
 						// A manual loop using the same range data
@@ -701,6 +701,7 @@ export class RenderLayer {
 							if (lines) {
 								// TODO Ruben: renderStart is doing a lot of redundant stuff
 								lines.renderStart(viewer);
+								this.gl.uniformMatrix4fv(lines.programInfo.uniformLocations.postProcessingTransformation, false, this.postProcessingTransformation);
 								lines.render(outlineColor, lines.matrixMap.get(id) || selectionOutlineMatrix, width || 0.005);
 								lines.renderStop();
 							}

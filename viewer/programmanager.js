@@ -70,6 +70,7 @@ export class ProgramManager {
 			uniforms: [
 				"projectionMatrix",
 				"viewNormalMatrix",
+				"postProcessingTransformation",
 				"viewMatrix",
 				"sectionPlane"
 			],
@@ -83,6 +84,7 @@ export class ProgramManager {
 				],
 			uniforms: [
 				"projectionMatrix",
+				"postProcessingTransformation",
 				"viewMatrix",
 				"sectionPlane"
 				],
@@ -107,6 +109,7 @@ export class ProgramManager {
 				"matrix",
 				"inputColor",
 				"projectionMatrix",
+				"postProcessingTransformation",
 				"viewMatrix",
 				"aspect",
 				"thickness"

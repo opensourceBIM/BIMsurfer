@@ -80,14 +80,15 @@ uniform mat3 viewNormalMatrix;
 
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
+uniform mat4 postProcessingTransformation;
 
 out vec3 worldCoords;
 
 void main(void) {
 #ifdef WITH_QUANTIZEVERTICES
-    vec4 floatVertex = vertexQuantizationMatrix * vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
+    vec4 floatVertex = postProcessingTransformation * vertexQuantizationMatrix * vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
 #else
-    vec4 floatVertex = vec4(vertexPosition, 1);
+    vec4 floatVertex = postProcessingTransformation * vec4(vertexPosition, 1);
 #endif
 
 #ifndef WITH_PICKING
@@ -111,7 +112,7 @@ void main(void) {
 #endif
 
 #ifdef WITH_INSTANCING
-    floatVertex = instanceMatrices * floatVertex;
+    floatVertex = postProcessingTransformation *instanceMatrices * floatVertex;
 #ifndef WITH_PICKING
     floatNormal = instanceNormalMatrices * floatNormal;
 #endif
