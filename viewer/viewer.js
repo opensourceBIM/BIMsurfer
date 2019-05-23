@@ -619,7 +619,7 @@ export class Viewer {
         }
     }*/
 
-    sectionplanePoly = null;
+//    sectionplanePoly = null;
 
     removeSectionPlaneWidget() {
         if (this.sectionplanePoly) {
