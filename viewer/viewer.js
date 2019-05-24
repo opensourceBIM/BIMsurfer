@@ -98,6 +98,9 @@ export class Viewer {
         // this.sectionPlaneValues.set([0,1,1,-5000]);
         this.sectionPlaneValues2.set(this.sectionPlaneValues);
 
+        // A SVG canvas overlay polygon to indicate section plane positioning
+        this.sectionplanePoly = null;
+
         // Picking ID (unsigned int) -> ViewObject
         // This is an array now since the picking ids form a continues array
         this.pickIdToViewObject = [];
@@ -606,20 +609,6 @@ export class Viewer {
 //		    this.gl.COLOR_BUFFER_BIT, this.gl.NEAREST
 //		);
     }
-
-    /*
-    get mouseMode() {
-        return _mouseMode;
-    }
-
-    set mouseMode(mode) {
-        _mouseMode = mode;
-        if (mode === "section") {
-            
-        }
-    }*/
-
-//    sectionplanePoly = null;
 
     removeSectionPlaneWidget() {
         if (this.sectionplanePoly) {
