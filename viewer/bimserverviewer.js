@@ -51,7 +51,7 @@ export class BimServerViewer extends AbstractViewer {
 			}
 		}
 		this.layers.delete(roid);
-		this.viewer.dirty = true;
+		this.viewer.dirty = 2;
 		
 		// TODO probably a good idea to also shrink the model bounds
 	}
@@ -273,7 +273,7 @@ export class BimServerViewer extends AbstractViewer {
 				}
 
 				promise.then(() => {
-					this.viewer.dirty = true;
+					this.viewer.dirty = 2;
 					var tilingPromise = Promise.resolve();
 					if (this.viewer.settings.tilingLayerEnabled && nrPrimitivesAbove > 0) {
 						var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.geometryDataIdsToReuse, bounds);
@@ -287,7 +287,7 @@ export class BimServerViewer extends AbstractViewer {
 						if (this.viewer.bufferSetPool != null) {
 							this.viewer.bufferSetPool.cleanup();
 						}
-						this.viewer.dirty = true;
+						this.viewer.dirty = 2;
 
 						resolve();
 					});
@@ -354,7 +354,7 @@ export class BimServerViewer extends AbstractViewer {
 			this.viewer.stats.setParameter("Loading time", "Layer 1", performance.now() - start);
 			defaultRenderLayer.completelyDone();
 			this.viewer.stats.requestUpdate();
-			this.viewer.dirty = true;
+			this.viewer.dirty = 2;
 		});
 		return executor.awaitTermination();
 	}
