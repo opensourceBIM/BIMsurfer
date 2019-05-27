@@ -9,9 +9,10 @@ export class AbstractBufferSet {
     
     constructor(viewer) {
     	this.viewer = viewer;
-        this.geometryIdToIndex = new Map();
         // Unique id per bufferset, easier to use as Map key
         this.id = counter++;
+        
+        this.dirty = true;
     }
 
     /**
@@ -314,6 +315,12 @@ export class AbstractBufferSet {
     }
 	
     computeVisibleRangesAsBuffers(ids_with_or_without, gl) {
+    	if (this.dirty) {
+    		// TODO maybe we can reuse something here?
+//    		console.log("Clearing visible ranges cache", this.visibleRanges.size);
+    		this.visibleRanges.clear();
+    		this.dirty = false;
+    	}
     	var ids = Object.values(ids_with_or_without)[0];
     	var exclude = "without" in ids_with_or_without;
     	
@@ -325,7 +332,7 @@ export class AbstractBufferSet {
     			return cache_lookup;
     		}
     	}
-
+    	
     	if (ids === null || ids.size === 0) {
     		return {
     			counts: new Int32Array([this.nrIndices]),
