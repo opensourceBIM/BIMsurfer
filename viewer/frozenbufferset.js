@@ -54,7 +54,19 @@ export class FrozenBufferSet extends AbstractBufferSet {
         this.instanceNormalMatricesBuffer = null;
         this.instancePickColorsBuffer = null;
     }
+    
+    update(nrIndices, nrPositions, nrNormals, nrColors) {
+        this.nrIndices = nrIndices;
+        this.nrNormals = nrNormals;
+        this.nrPositions = nrPositions;
+        this.nrColors = nrColors;
+        this.dirty = true;
+    }
 
+    finalize() {
+    	
+    }
+    
     // Sets reuse instances
     setObjects(gl, objects) {
         this.objects = objects;
