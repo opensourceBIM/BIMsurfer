@@ -5,6 +5,8 @@ import * as mat3 from "./glmatrix/mat3.js";
 import {Utils} from "./utils.js";
 import {DataInputStream} from "./datainputstream.js";
 
+import {AvlTree} from "./collections/avltree.js";
+
 const PROTOCOL_VERSION = 17;
 
 // temporary for emergency quantization
@@ -51,6 +53,11 @@ export class GeometryLoader {
 		this.preparedBuffer.positionsIndex = stream.readInt();
 		this.preparedBuffer.normalsIndex = stream.readInt();
 		this.preparedBuffer.colorsIndex = stream.readInt();
+		
+		this.preparedBuffer.indicesRead = 0;
+		this.preparedBuffer.positionsRead = 0;
+		this.preparedBuffer.normalsRead = 0;
+		this.preparedBuffer.colorsRead = 0;
 
 		this.preparedBuffer.nrObjectsRead = 0;
 
@@ -62,7 +69,7 @@ export class GeometryLoader {
 		this.preparedBuffer.normals = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, WebGL2RenderingContext.BYTE, "Int8Array");
 		this.preparedBuffer.pickColors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
 
-		this.preparedBuffer.geometryIdToIndex = new Map();
+		this.preparedBuffer.geometryIdToIndex = new AvlTree();
 
 		this.preparedBuffer.loaderId = this.loaderId;
 		this.preparedBuffer.hasTransparency = hasTransparancy;
@@ -72,7 +79,9 @@ export class GeometryLoader {
 		}
 
 		this.preparedBuffer.bytes = Utils.calculateBytesUsed(this.settings, this.preparedBuffer.positionsIndex, this.preparedBuffer.nrColors, this.preparedBuffer.nrIndices, this.preparedBuffer.normalsIndex);
-		
+
+		this.preparedGpuBuffer = this.renderLayer.addCompleteBuffer(this.preparedBuffer, this.gpuBufferManager);
+
 		stream.align8();
 	}
 
@@ -86,6 +95,12 @@ export class GeometryLoader {
 		if (this.preparedBuffer.nrIndices == 0) {
 			return;
 		}
+		
+		this.preparedBuffer.indicesRead += totalNrIndices;
+		this.preparedBuffer.positionsRead += positionsIndex;
+		this.preparedBuffer.normalsRead += normalsIndex;
+		this.preparedBuffer.colorsRead += colorsIndex;
+		
 		const previousStartIndex = this.preparedBuffer.indices.writePosition / 4;
 		const previousColorIndex = this.preparedBuffer.colors.writePosition;
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.indices, stream.dataView, stream.pos, totalNrIndices);
@@ -140,7 +155,9 @@ export class GeometryLoader {
 				minIndex: minIndex,
 				maxIndex: maxIndex
 			};
-			this.preparedBuffer.geometryIdToIndex.set(oid, [meta]);
+			this.preparedBuffer.geometryIdToIndex.put(oid, [meta]);
+			
+			this.renderLayer.viewer.geometryIdToBufferSet.set(oid, [this.preparedGpuBuffer]);
 
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
@@ -167,9 +184,6 @@ export class GeometryLoader {
 				colors32.fill(color32, (currentColorIndex / 4), (currentColorIndex + count) / 4);
 				currentColorIndex += count;
 			}
-		}
-		if (currentColorIndex != nrColors) {
-			console.error(currentColorIndex, nrColors);
 		}
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.colors, colors, 0, nrColors);
 
@@ -220,10 +234,13 @@ export class GeometryLoader {
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.pickColors, pickColors, 0, pickColors.i);
 
 		this.preparedBuffer.nrObjectsRead += nrObjects;
+		
+		this.preparedGpuBuffer.update(this.preparedBuffer.indicesRead, this.preparedBuffer.positionsRead, this.preparedBuffer.normalsRead, this.preparedBuffer.colorsRead);
+		this.renderLayer.viewer.dirty = 1;
+		this.renderLayer.incLoadedTriangles(totalNrIndices / 3);
+		
 		if (this.preparedBuffer.nrObjectsRead == this.preparedBuffer.nrObjects) {
-			// Making a copy of the map, making sure it's sorted by oid, which will make other things much faster later on
-			this.preparedBuffer.geometryIdToIndex = Utils.sortMapKeys(this.preparedBuffer.geometryIdToIndex);
-			this.renderLayer.addCompleteBuffer(this.preparedBuffer, this.gpuBufferManager);
+			this.preparedGpuBuffer.finalize();
 		}
 
 		stream.align8();

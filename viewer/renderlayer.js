@@ -493,7 +493,7 @@ export class RenderLayer {
 							visibleRanges.offsetsBytes[i] = visibleRanges.offsets[i] * 4;
 						}
 					}
-
+					
 					if (WEBGL_multi_draw) {
 						// This is available on Chrome Canary 75
 						WEBGL_multi_draw.multiDrawElementsWEBGL(this.gl.TRIANGLES, visibleRanges.counts, 0, this.gl.UNSIGNED_INT, visibleRanges.offsetsBytes, 0, visibleRanges.pos);
@@ -527,21 +527,15 @@ export class RenderLayer {
         var pickProgramInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(false, true));
 
 		if (!this.settings.fakeLoading) {
-			const positionBuffer = buffer.vertices;
-			const normalBuffer = buffer.normals;
-			const pickColorBuffer = buffer.pickColors;
-			const indexBuffer = buffer.indices;
-			const colorBuffer = buffer.colors;
-
 			newBuffer = new FrozenBufferSet(
 				this.viewer,
 				buffer,
 				
-				positionBuffer,
-				normalBuffer,
-				colorBuffer,
-				pickColorBuffer,
-				indexBuffer,
+				buffer.vertices,
+				buffer.normals,
+				buffer.colors,
+				buffer.pickColors,
+				buffer.indices,
 				
 				null,
 				0,
@@ -567,29 +561,24 @@ export class RenderLayer {
 			newBuffer.geometryIdToIndex = buffer.geometryIdToIndex;
 			
 			newBuffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
-			
-			if (buffer.geometryIdToIndex) {
-				for (var key of buffer.geometryIdToIndex.keys()) {
-					var li = (this.viewer.geometryIdToBufferSet.get(key) || []);
-					li.push(newBuffer);
-					this.viewer.geometryIdToBufferSet.set(key, li);
-				}
-			}			
-			
+					
 			gpuBufferManager.pushBuffer(newBuffer);
-			this.viewer.dirty = true;
 		}
 		
-		this.viewer.stats.inc("Primitives", "Nr primitives loaded", buffer.nrIndices / 3);
-		if (this.progressListener != null) {
-			this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
-		}
+		this.incLoadedTriangles(buffer.indicesRead / 3);
 		this.viewer.stats.inc("Data", "GPU bytes", buffer.bytes);
 		this.viewer.stats.inc("Data", "GPU bytes total", buffer.bytes);
 
 		this.viewer.stats.inc("Models", "Geometries", buffer.nrObjects);
 
 		return newBuffer;
+	}
+	
+	incLoadedTriangles(triangles) {
+		this.viewer.stats.inc("Primitives", "Nr primitives loaded", triangles);
+		if (this.progressListener != null) {
+			this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
+		}
 	}
 	
 	flushBuffer(buffer, gpuBufferManager) {
@@ -663,7 +652,7 @@ export class RenderLayer {
 			}			
 			
 			gpuBufferManager.pushBuffer(newBuffer);
-			this.viewer.dirty = true;
+			this.viewer.dirty = 2;
 		}
 		
 		if (!buffer.isCopy) {

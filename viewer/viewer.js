@@ -138,7 +138,10 @@ export class Viewer {
 
         this.useOrderIndependentTransparency = this.settings.realtimeSettings.orderIndependentTransparency;
 
-        var self = this;
+        // 0 -> Not dirty, 1 -> Kinda dirty, but rate-limit the repaints to 2/sec, 2 -> Really dirty, repaint ASAP
+        this.dirty = 0; 
+        this.lastRepaint = 0;
+        
 //        window._debugViewer = this;  // HACK for console debugging
 
         // Tabindex required to be able add a keypress listener to canvas
@@ -188,7 +191,7 @@ export class Viewer {
                 this.invisibleElements.add(i);
             };
 
-            this.dirty = true;
+            this.dirty = 2;
             return Promise.resolve();
         });
     }
@@ -204,7 +207,7 @@ export class Viewer {
                 fn(e);
             }
             
-            this.dirty = true;
+            this.dirty = 2;
             return Promise.resolve();
         }).then(() => {
         	for (const listener of this.selectionListeners) {
@@ -253,7 +256,7 @@ export class Viewer {
 	    		}
     		});
     	}
-		this.dirty = true;
+		this.dirty = 2;
 		return Promise.resolve();
     }
     
@@ -362,14 +365,14 @@ export class Viewer {
 						}
 					});
 				}
-				this.dirty = true;
+				this.dirty = 2;
 			});
 		});
     }
 
     init() {
         var promise = new Promise((resolve, reject) => {
-            this.dirty = true;
+            this.dirty = 2;
             this.then = 0;
             this.running = true;
             this.firstRun = true;
@@ -408,25 +411,26 @@ export class Viewer {
     }
 
     render(now) {
-        now *= 0.001;
-        const deltaTime = now - this.then;
-        this.then = now;
+        const seconds = now * 0.001;
+        const deltaTime = seconds - this.then;
+        this.then = seconds;
 
         this.fps++;
 
         var wasDirty = this.dirty;
-        if (this.dirty) {
-            this.dirty = false;
+        if (this.dirty == 2 || (this.dirty == 1 && now - this.lastRepaint > 500)) {
+            this.dirty = 0;
             this.drawScene(this.buffers, deltaTime);
+            this.lastRepaint = now;
         }
 
-        if (now - this.timeLast >= 1) {
-            if (wasDirty) {
-                this.stats.setParameter("Rendering", "FPS", Number(this.fps / (now - this.timeLast)).toPrecision(5));
+        if (seconds - this.timeLast >= 1) {
+            if (wasDirty != 0) {
+                this.stats.setParameter("Rendering", "FPS", Number(this.fps / (seconds - this.timeLast)).toPrecision(5));
             } else {
                 this.stats.setParameter("Rendering", "FPS", "Off");
             }
-            this.timeLast = now;
+            this.timeLast = seconds;
             this.fps = 0;
             this.stats.requestUpdate();
             this.stats.update();
@@ -672,7 +676,7 @@ export class Viewer {
             this.sectionPlaneDepth = p.depth;
             let cp = [params.canvasPos[0] / this.width, - params.canvasPos[1] / this.height];
             this.sectionPlaneDownAt = cp;
-            this.dirty = true;
+            this.dirty = 2;
             return true;
         }
         return false;
@@ -682,7 +686,7 @@ export class Viewer {
         this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
         this.sectionPlaneValues2.set(this.sectionPlaneValuesDisabled);
         this.sectionPlaneIsDisabled = true;
-        this.dirty = true;
+        this.dirty = 2;
     }
 
     moveSectionPlane(params) {
@@ -694,7 +698,7 @@ export class Viewer {
         tmp_section_dir_2d[1] /= this.width / this.height;
         let d = vec2.dot(tmp_section_dir_2d, tmp_section_dir_2d.subarray(2)) * this.sectionPlaneDepth;
         this.sectionPlaneValues2[3] = this.initialSectionPlaneD + d;
-        this.dirty = true;
+        this.dirty = 2;
     }
 
     /**
@@ -813,11 +817,11 @@ export class Viewer {
     }
 
     updateViewport() {
-        this.dirty = true;
+        this.dirty = 2;
     }
 
     loadingDone() {
-        this.dirty = true;
+        this.dirty = 2;
     }
 
     cleanup() {
@@ -852,13 +856,13 @@ export class Viewer {
     		.map((o) => o.globalizedAabb)
     		.reduce(Utils.unionAabb, Utils.emptyAabb());
     		this.camera.viewFit(aabb);
-    		this.dirty = true;
+    		this.dirty = 2;
     	});
     }
 
     resetCamera() {
         this.cameraSet = false;
-        this.dirty = true;
+        this.dirty = 2;
     }
 
     resetColors() {
@@ -873,7 +877,7 @@ export class Viewer {
 
     resetVisibility() {
         this.setVisibility(this.invisibleElements.keys(), true);
-        this.dirty = true;
+        this.dirty = 2;
     }
     
     addSelectionListener(selectionListener) {
