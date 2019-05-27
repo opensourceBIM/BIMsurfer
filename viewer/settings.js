@@ -180,7 +180,7 @@ export class Settings {
 	drawTileBorders(value) {
 		if (window.tilingRenderLayer != null) {
 			window.tilingRenderLayer.drawTileBorders = value;
-			window.bimServerViewer.viewer.dirty = true;
+			window.bimServerViewer.viewer.dirty = 2;
 		} else {
 			alert("No tiling layer");
 		}
@@ -188,6 +188,6 @@ export class Settings {
 
 	orderIndependentTransparency(value) {
 		window.bimServerViewer.viewer.useOrderIndependentTransparency = value;
-		window.bimServerViewer.viewer.dirty = true;
+		window.bimServerViewer.viewer.dirty = 2;
 	}
 }

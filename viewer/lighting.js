@@ -23,7 +23,7 @@ export class Lighting {
 
     _setDirty() {
         this._dirty = true;
-        this.viewer.dirty = true;
+        this.viewer.dirty = 2;
     }
     
     _update() {

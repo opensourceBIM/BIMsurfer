@@ -139,7 +139,7 @@ export class TileLoader {
 		geometryLoader.onStart = () => {
 			node.loadingStatus = 2;
 			this.viewer.stats.inc("Tiling", "Loading");
-			this.viewer.dirty = true;
+			this.viewer.dirty = 2;
 		};
 		executor.add(geometryLoader).then(() => {
 			this.viewer.stats.dec("Tiling", "Loading");

@@ -235,7 +235,7 @@ export class AbstractViewer {
 				}
 
 				promise.then(() => {
-					this.viewer.dirty = true;
+					this.viewer.dirty = 2;
 					var tilingPromise = Promise.resolve();
 					if (this.viewer.settings.tilingLayerEnabled && nrPrimitivesAbove > 0) {
 						var tilingRenderLayer = new TilingRenderLayer(this.viewer, this.geometryDataIdsToReuse, bounds);
@@ -249,7 +249,7 @@ export class AbstractViewer {
 						if (this.viewer.bufferSetPool != null) {
 							this.viewer.bufferSetPool.cleanup();
 						}
-						this.viewer.dirty = true;
+						this.viewer.dirty = 2;
 
 						resolve();
 					});
@@ -283,7 +283,7 @@ export class AbstractViewer {
 		var p = tilingLayer.load(api, this.densityThreshold, [revision.oid], fieldsToInclude, (percentage) => {
 //			document.getElementById("progress").style.width = percentage + "%";
 		});
-		this.viewer.dirty = true;
+		this.viewer.dirty = 2;
 		p.then(() => {
 			this.viewer.stats.setParameter("Loading time", "Layer 2", performance.now() - layer2Start);
 			this.viewer.stats.setParameter("Loading time", "Total", performance.now() - this.totalStart);
@@ -303,7 +303,6 @@ export class AbstractViewer {
 	}
 	
 	cleanup() {
-		console.log("resize handler");
 		window.removeEventListener("resize", this.resizeHandler, false);
 		this.viewer.cleanup();
 	}

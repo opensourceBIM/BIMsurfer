@@ -72,7 +72,7 @@ export class Camera {
 
     _setDirty() {
         this._dirty = true;
-        this.viewer.dirty = true;
+        this.viewer.dirty = 2;
     }
 
     setModelBounds(bounds) {
@@ -238,7 +238,7 @@ export class Camera {
         } else {
             console.error("Unsupported projectionType: " + projectionType);
         }
-        this.viewer.dirty = true;
+        this.viewer.dirty = 2;
     }
 
     /**

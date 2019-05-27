@@ -40,7 +40,7 @@ export class TilingRenderLayer extends RenderLayer {
 	
 	showAll() {
 		this.show = "all";
-		this.viewer.dirty = true;
+		this.viewer.dirty = 2;
 	}
 
 	load(bimServerApi, densityThreshold, roids, fieldsToInclude, progressListener) {
@@ -342,7 +342,7 @@ export class TilingRenderLayer extends RenderLayer {
 			node.stats.drawCallsPerFrame -= savedBuffers;
 		}
 
-		this.viewer.dirty = true;
+		this.viewer.dirty = 2;
 		
 		this.removeLoader(loaderId);
 	}
@@ -399,13 +399,13 @@ export class TilingRenderLayer extends RenderLayer {
 		if (node.bufferManager) {
 			node.bufferManager.resetBuffer(buffer);
 		}
-		this.viewer.dirty = true;
+		this.viewer.dirty = 2;
 
 		return gpuBuffer;
 	}
 
 	completelyDone() {
 		this.flushAllBuffers();
-		this.viewer.dirty = true;
+		this.viewer.dirty = 2;
 	}
 }
