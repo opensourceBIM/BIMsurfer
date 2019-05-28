@@ -338,11 +338,13 @@ export class AbstractBufferSet {
     	}
     	
     	if (ids === null || ids.size === 0) {
-    		return {
+    		let result =  {
     			counts: new Int32Array([this.nrIndices]),
     			offsets: new Int32Array([0]),
     			pos: 1
     		};
+    		this.visibleRanges.set(ids_str, result);
+    		return result;
     	}
 
     	var iterator1 = this.geometryIdToIndex.keys();
