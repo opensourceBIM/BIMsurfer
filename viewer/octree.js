@@ -45,8 +45,8 @@ class OctreeNode {
 		mat4.scale(this.matrix, this.matrix, [this.width, this.height, this.depth]);
 
 		this.normalizedMatrix = mat4.create();
-		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, this.globalTranslationVector);
 		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, [this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2]);
+//		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, this.globalTranslationVector);
 		mat4.scale(this.normalizedMatrix, this.normalizedMatrix, [this.width, this.height, this.depth]);
 		
 		this.bounds = [this.x, this.y, this.z, this.width, this.height, this.depth];
@@ -64,7 +64,7 @@ class OctreeNode {
 		this.normalizedBoundsVectors = [normalizedMinVector, normalizedMaxVector];
 		
 		// TODO also keep track of the minimal bounds (usually smaller than the "static" bounds of the node), which can be used for (frustum) occlusion culling
-		// TODO also keep track of the minimal bounds inc. children (useful for hyrachical culling)
+		// TODO also keep track of the minimal bounds inc. children (useful for hierarchical culling)
 		
 		this.quadrants = [];
 		
