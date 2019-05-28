@@ -44,6 +44,11 @@ export class FatLineRenderer {
 		this.nrIndices = 0;
 		
     	this.defaultDirection = new Float32Array([1, 1, -1, -1]);
+    	
+		var key = 0;
+		key |= (this.quantize ? VERTEX_QUANTIZATION : 0);
+		key |= LINE_PRIMITIVES;
+		this.programInfo = this.viewer.programManager.getProgram(key);
     }
     
     init(size, maxIndex) {
@@ -167,32 +172,25 @@ export class FatLineRenderer {
     }
     
     // To minimize GPU calls, renderStart and renderStop can (and have to be) used in order to batch-draw a lot of boxes
-	renderStart(viewer) {
-		var key = 0;
-		key |= (this.quantize ? VERTEX_QUANTIZATION : 0);
-		key |= LINE_PRIMITIVES;
-		var programInfo = this.programInfo = this.programInfo || this.viewer.programManager.getProgram(key);
+	renderStart(viewer, renderLayers) {
+		this.gl.useProgram(this.programInfo.program);
 
-		this.gl.useProgram(programInfo.program);
+		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, viewer.camera.projMatrix);
+		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.viewMatrix, false, viewer.camera.viewMatrix);
+		this.gl.uniform3fv(this.programInfo.uniformLocations.postProcessingTranslation, renderLayers.postProcessingTranslation);
 
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, viewer.camera.projMatrix);
-		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, viewer.camera.viewMatrix);
 		const aspect = viewer.width / viewer.height;
-		this.gl.uniform1f(programInfo.uniformLocations.aspect, aspect);
+		this.gl.uniform1f(this.programInfo.uniformLocations.aspect, aspect);
 
 		if (this.quantize) {
 			if (this.croid) {
 				// This is necessary for line renderings of reused geometries.
-				this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(this.croid));
+				this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.vertexQuantizationMatrix, false, viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(this.croid));
 			} else {
 				if (this.unquantizationMatrix) {
-					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.unquantizationMatrix);
+					this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.vertexQuantizationMatrix, false, this.unquantizationMatrix);
 				}
 			}
-		}
-
-		for (const fn of this.setupFunctions) {
-			fn(programInfo);
 		}
 
 		this.first = true;
@@ -203,6 +201,10 @@ export class FatLineRenderer {
 	}
 
 	render(color, matrix, thickness) {
+		for (const fn of this.setupFunctions) {
+			fn(this.programInfo);
+		}
+
 		this.gl.uniform1f(this.programInfo.uniformLocations.thickness, thickness || 0.005);
 		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.matrix, false, matrix);
 		this.gl.uniform4fv(this.programInfo.uniformLocations.inputColor, color);

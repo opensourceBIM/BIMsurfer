@@ -683,19 +683,24 @@ export class RenderLayer {
 		for (let transparency of false_true) { 
 			for (let reuse of false_true) {
 				var buffers = (node || this).gpuBufferManager.getBuffers(transparency, reuse);
+				var lastLineRenderer = null;
 				for (let buffer of buffers) {
 					for (var id of ids) {
 						if (buffer.lineIndexBuffers) {
 							let lines = buffer.lineIndexBuffers.get(id);
 							if (lines) {
-								// TODO Ruben: renderStart is doing a lot of redundant stuff
-								lines.renderStart(viewer);
-								this.gl.uniform3fv(lines.programInfo.uniformLocations.postProcessingTranslation, this.postProcessingTranslation);
+								if (!lastLineRenderer) {
+									// Kind of a dirty hack to only do the initialization once, we know the init result is the same for all buffers in this set, this improves the render speed when a lot of objects are selected
+									lines.renderStart(viewer, this);
+								}
 								lines.render(outlineColor, lines.matrixMap.get(id) || selectionOutlineMatrix, width || 0.005);
-								lines.renderStop();
+								lastLineRenderer = lines;
 							}
 						}
 					}
+				}
+				if (lastLineRenderer) {
+					lastLineRenderer.renderStop();
 				}
 			}
 		}
