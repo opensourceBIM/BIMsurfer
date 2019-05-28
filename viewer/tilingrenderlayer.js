@@ -190,6 +190,7 @@ export class TilingRenderLayer extends RenderLayer {
 
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
+		this.gl.uniform3fv(programInfo.uniformLocations.postProcessingTranslation, this.postProcessingTranslation);
 		this.gl.uniform4fv(programInfo.uniformLocations.sectionPlane, this.viewer.sectionPlaneValues);
 
 		if (this.settings.quantizeVertices) {
@@ -217,7 +218,7 @@ export class TilingRenderLayer extends RenderLayer {
 	renderTileBorders() {
 		if (this.drawTileBorders) {
 			// The lines are rendered in the transparency-phase only
-			this.lineBoxGeometry.renderStart(this.viewer);
+			this.lineBoxGeometry.renderStart(this.viewer, this);
 			this.octree.traverse((node, level) => {
 				var color = null;
 				if (node.loadingStatus == 0) {
