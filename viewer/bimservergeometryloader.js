@@ -45,8 +45,8 @@ export class BimserverGeometryLoader extends GeometryLoader {
 		});
 	}
 	
-	readEnd(data) {
-		super.readEnd();
+	endOfStream() {
+		super.endOfStream();
 		this.bimServerApi.clearBinaryDataListener(this.topicId);
 		this.bimServerApi.callWithWebsocket("ServiceInterface", "cleanupLongAction", {topicId: this.topicId});
 	}

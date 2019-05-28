@@ -7,7 +7,7 @@ import {DataInputStream} from "./datainputstream.js";
 
 import {AvlTree} from "./collections/avltree.js";
 
-const PROTOCOL_VERSION = 17;
+const PROTOCOL_VERSION = 18;
 
 // temporary for emergency quantization
 const v4 = vec4.create();
@@ -216,7 +216,12 @@ export class GeometryLoader {
 			Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, stream.dataView, stream.pos, positionsIndex);
 			stream.pos += positionsIndex * 4;
 		}
-		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.normals, stream.dataView, stream.pos, ((normalsIndex / 3) * 2));
+		// Debugging
+//		var octNormals = new Int8Array(stream.dataView.buffer, stream.pos, ((normalsIndex / 3) * 2));
+//		for (var i=0; i<octNormals.length; i+=2) {
+//			console.log(Utils.octDecodeVec2([octNormals[i], octNormals[i+1]]));
+//		}
+		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.normals, stream.dataView, stream.pos, ((normalsIndex / 3) * 2), true);
 		stream.pos += ((normalsIndex / 3) * 2);
 
 		if (createdObjects) {
@@ -262,6 +267,17 @@ export class GeometryLoader {
 		stream.align8();
 		return stream.remaining() > 0;
 	}
+
+	endOfStream() {
+		if (this.dataToInfo.size > 0) {
+			// We need to tell the renderlayer that not all data has been loaded
+			this.renderLayer.storeMissingGeometry(this, this.dataToInfo);
+		}
+		if (this.dataToInfo.size == 0) {
+			// Only resolve (and cleanup this loader) when all has been loaded
+			this.resolve();
+		}
+	}
 	
 	binaryDataListener(data) {
 		this.stats.inc("Network", "Bytes OTL", data.byteLength);
@@ -273,6 +289,7 @@ export class GeometryLoader {
 				
 			}
 		} else if (type == 1) {
+			this.endOfStream();
 			// End of stream
 		}
 	}
@@ -590,14 +607,7 @@ export class GeometryLoader {
 	}
 	
 	readEnd(data) {
-		if (this.dataToInfo.size > 0) {
-			// We need to tell the renderlayer that not all data has been loaded
-			this.renderLayer.storeMissingGeometry(this, this.dataToInfo);
-		}
-		if (this.dataToInfo.size == 0) {
-			// Only resolve (and cleanup this loader) when all has been loaded
-			this.resolve();
-		}
+		// This is the end of the binary stream, but there is one more message on the line, which is the end of the wrapping stream..., so that's when we close it all
 	}
 	
 	// This promise is fired as soon as the GeometryLoader is done
