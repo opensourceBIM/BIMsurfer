@@ -160,14 +160,12 @@ export class AbstractViewer {
 					totalBounds.max.z,
 				];
 				
-				// globalTransformation is a matrix that puts the complete model close to 0, 0, 0
-				if (this.viewer.globalTransformation == null) {
-					this.viewer.globalTransformation = mat4.create();
-					const translation = vec3.fromValues(
-							-(bounds[0] + (bounds[3] - bounds[0]) / 2), 
-							-(bounds[1] + (bounds[4] - bounds[1]) / 2), 
-							-(bounds[2] + (bounds[5] - bounds[2]) / 2));
-					mat4.translate(this.viewer.globalTransformation, this.viewer.globalTransformation, translation);
+				// globalTranslationVector is a translation vector that puts the complete model close to 0, 0, 0
+				if (this.viewer.globalTranslationVector == null) {
+					this.viewer.globalTranslationVector = vec3.fromValues(
+						-(bounds[0] + (bounds[3] - bounds[0]) / 2), 
+						-(bounds[1] + (bounds[4] - bounds[1]) / 2), 
+						-(bounds[2] + (bounds[5] - bounds[2]) / 2));
 				}
 
 				if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
@@ -177,7 +175,7 @@ export class AbstractViewer {
 					for (var croid of modelBoundsUntransformed.keys()) {
 						this.viewer.vertexQuantization.generateUntransformedMatrices(croid, modelBoundsUntransformed.get(croid));
 					}
-					this.viewer.vertexQuantization.generateMatrices(totalBounds, totalBoundsUntransformed, this.viewer.globalTransformation);
+					this.viewer.vertexQuantization.generateMatrices(totalBounds, totalBoundsUntransformed, this.viewer.globalTranslationVector);
 				}
 				
 				this.viewer.stats.inc("Primitives", "Primitives to load (L1)", nrPrimitivesBelow);
@@ -185,8 +183,8 @@ export class AbstractViewer {
 
 				var min = vec3.fromValues(bounds[0], bounds[1], bounds[2]);
 				var max = vec3.fromValues(bounds[3], bounds[4], bounds[5]);
-				vec3.transformMat4(min, min, this.viewer.globalTransformation);
-				vec3.transformMat4(max, max, this.viewer.globalTransformation);
+				vec3.add(min, min, this.viewer.globalTranslationVector);
+				vec3.add(max, max, this.viewer.globalTranslationVector);
 				this.viewer.setModelBounds([min[0], min[1], min[2], max[0], max[1], max[2]]);
 				
 				// TODO This is very BIMserver specific, clutters the code, should move somewhere else (maybe BimserverGeometryLoader)

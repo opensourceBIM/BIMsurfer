@@ -136,16 +136,8 @@ export class DefaultRenderLayer extends RenderLayer {
 
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.postProcessingTransformation, false, this.postProcessingTransformation);
+			this.gl.uniform3fv(programInfo.uniformLocations.postProcessingTranslation, this.postProcessingTranslation);
 			this.gl.uniform4fv(programInfo.uniformLocations.sectionPlane, this.viewer.sectionPlaneValues);
-
-			if (this.settings.quantizeVertices) {
-				if (!reuse) {
-					// Ruben 2019-04-26, I think this can be removed now...
-					// This is odd, it seems as though the reused shaders also need the vertexQuantizationMatrix, but it seems to work anyways... (same code in pickBuffers)
-//					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.inverseVertexQuantizationMatrixWithGlobalTransformation);
-				}
-			}
 
 			this.renderFinalBuffers(buffers, programInfo, visibleElements);
 		}

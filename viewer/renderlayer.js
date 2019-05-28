@@ -11,7 +11,7 @@ const outlineColor = new Float32Array([1.0, 0.5, 0.0, 1.0]);
 const false_true = [false, true];
 const UINT32_MAX = (new Uint32Array((new Int32Array([-1])).buffer))[0];
 
-// Chache the extension availability
+// Cache the extension availability
 let WEBGL_multi_draw = null;
 
 /**
@@ -37,7 +37,7 @@ export class RenderLayer {
 		this.loaders = new Map();
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
 		
-		this.postProcessingTransformation = mat4.create();
+		this.postProcessingTranslation = vec3.create();
 	}
 
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
@@ -90,7 +90,7 @@ export class RenderLayer {
 
 		loader.objects.set(oid, object);
 
-		var globalizedAabb = Utils.transformBounds(aabb, this.viewer.globalTransformation);
+		var globalizedAabb = Utils.transformBounds(aabb, this.viewer.globalTranslationVector);
 		
 		var viewObject = {
             type: type,
@@ -137,7 +137,7 @@ export class RenderLayer {
 				}
 				vec3.transformMat4(vertex, vertex, object.matrix);
 				if (this.settings.quantizeVertices) {
-					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.vertexQuantizationMatrixWithGlobalTransformation);
+					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.vertexQuantizationMatrixWithGlobalTranslation);
 				}
 	
 				buffer.positions.set(vertex, buffer.positionsIndex);
@@ -690,7 +690,7 @@ export class RenderLayer {
 							if (lines) {
 								// TODO Ruben: renderStart is doing a lot of redundant stuff
 								lines.renderStart(viewer);
-								this.gl.uniformMatrix4fv(lines.programInfo.uniformLocations.postProcessingTransformation, false, this.postProcessingTransformation);
+								this.gl.uniform3fv(lines.programInfo.uniformLocations.postProcessingTranslation, this.postProcessingTranslation);
 								lines.render(outlineColor, lines.matrixMap.get(id) || selectionOutlineMatrix, width || 0.005);
 								lines.renderStop();
 							}

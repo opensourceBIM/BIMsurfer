@@ -113,15 +113,15 @@ export class VertexQuantization {
 		return inverse;
 	}
 	
-	generateMatrix(bounds, globalTransformation) {
+	generateMatrix(bounds, globalTranslationVector) {
 		var matrix = mat4.create();
 		var scale = 32768;
 		
 		var min = vec3.fromValues(bounds.min.x, bounds.min.y, bounds.min.z);
 		var max = vec3.fromValues(bounds.max.x, bounds.max.y, bounds.max.z);
 		
-		vec3.transformMat4(min, min, globalTransformation);
-		vec3.transformMat4(max, max, globalTransformation);
+		vec3.add(min, min, globalTranslationVector);
+		vec3.add(max, max, globalTranslationVector);
 		
 		// Scale the model to make sure all values fit within a 2-byte signed short
 		mat4.scale(matrix, matrix, vec3.fromValues(
@@ -140,22 +140,22 @@ export class VertexQuantization {
 		return matrix;
 	}
 	
-	generateMatrices(totalBounds, totalBoundsUntransformed, globalTransformation) {
-		var matrix = this.generateMatrix(totalBounds, mat4.create());
-		var matrixWithGlobalTransformation = this.generateMatrix(totalBounds, globalTransformation);
+	generateMatrices(totalBounds, totalBoundsUntransformed, globalTranslationVector) {
+		var matrix = this.generateMatrix(totalBounds, vec3.create());
+		var matrixWithGlobalTranslation = this.generateMatrix(totalBounds, globalTranslationVector);
 		
 		this.vertexQuantizationMatrix = Utils.toArray(matrix);
-		this.vertexQuantizationMatrixWithGlobalTransformation = Utils.toArray(matrixWithGlobalTransformation);
+		this.vertexQuantizationMatrixWithGlobalTranslation = Utils.toArray(matrixWithGlobalTranslation);
 
 		var inverse = mat4.create();
 		mat4.invert(inverse, matrix);
 		this.inverseVertexQuantizationMatrix = Utils.toArray(inverse);
 
 		var inverse = mat4.create();
-		mat4.invert(inverse, matrixWithGlobalTransformation);
-		this.inverseVertexQuantizationMatrixWithGlobalTransformation = Utils.toArray(inverse);
+		mat4.invert(inverse, matrixWithGlobalTranslation);
+		this.inverseVertexQuantizationMatrixWithGlobalTranslation = Utils.toArray(inverse);
 
-		var matrix = this.generateMatrix(totalBoundsUntransformed, mat4.create());
+		var matrix = this.generateMatrix(totalBoundsUntransformed, vec3.create());
 		this.untransformedVertexQuantizationMatrix = Utils.toArray(matrix);
 	}
 }

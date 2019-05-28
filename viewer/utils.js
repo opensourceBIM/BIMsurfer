@@ -49,12 +49,12 @@ export class Utils {
 	}
 	
 	/**
-	 * Converts the given 4x4 mat4 to an array
+	 * Converts the given mat/vec to an array
 	 */
-	static toArray(matrix) {
-		var result = new Array(16);
-		for (var i=0; i<16; i++) {
-			result[i] = matrix[i];
+	static toArray(input) {
+		var result = new Array(input.length);
+		for (var i=0; i<input.length; i++) {
+			result[i] = input[i];
 		}
 		return result;
 	}
@@ -140,10 +140,10 @@ export class Utils {
 		return Utils.createBuffer(gl, data, n, gl.ELEMENT_ARRAY_BUFFER);
 	}
 
-	static transformBounds(inputBounds, transformation) {
+	static transformBounds(inputBounds, translation) {
 		let newBounds = new Float32Array(6);
-		vec3.transformMat4(newBounds, inputBounds, transformation);
-		vec3.transformMat4(newBounds.subarray(3), inputBounds.subarray(3), transformation);
+		vec3.add(newBounds, inputBounds, translation);
+		vec3.add(newBounds.subarray(3), inputBounds.subarray(3), translation);
 		return newBounds;
 	}
 	

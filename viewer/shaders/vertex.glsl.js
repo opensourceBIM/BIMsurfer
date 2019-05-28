@@ -21,7 +21,7 @@ in float direction;
 
 #ifndef WITH_PICKING
 #ifdef WITH_QUANTIZENORMALS
-in ivec3 vertexNormal;
+in ivec2 vertexNormal;
 #else
 in vec3 vertexNormal;
 #endif
@@ -80,20 +80,28 @@ uniform mat3 viewNormalMatrix;
 
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
-uniform mat4 postProcessingTransformation;
+uniform vec3 postProcessingTranslation;
 
 out vec3 worldCoords;
 
+vec3 octDecode(vec2 oct) {
+	vec3 v = vec3(oct.xy, 1.0 - abs(oct.x) - abs(oct.y));
+	if (v.z < 0.0) {
+		v.xy = (1.0 - abs(v.yx)) * vec2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0);
+	}
+	return normalize(v);
+}
+
 void main(void) {
 #ifdef WITH_QUANTIZEVERTICES
-    vec4 floatVertex = postProcessingTransformation * vertexQuantizationMatrix * vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
+    vec4 floatVertex = vec4(postProcessingTranslation, 1) + vertexQuantizationMatrix * vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
 #else
-    vec4 floatVertex = postProcessingTransformation * vec4(vertexPosition, 1);
+    vec4 floatVertex = vec4(postProcessingTranslation, 1) + vec4(vertexPosition, 1);
 #endif
 
 #ifndef WITH_PICKING
 #ifdef WITH_QUANTIZENORMALS
-    vec3 floatNormal = vec3(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0);
+    vec3 floatNormal = octDecode(vec2(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0));
 #else
     vec3 floatNormal = vertexNormal;
 #endif
@@ -112,7 +120,7 @@ void main(void) {
 #endif
 
 #ifdef WITH_INSTANCING
-    floatVertex = postProcessingTransformation *instanceMatrices * floatVertex;
+    floatVertex = vec4(postProcessingTranslation, 1) + instanceMatrices * floatVertex;
 #ifndef WITH_PICKING
     floatNormal = instanceNormalMatrices * floatNormal;
 #endif

@@ -21,7 +21,7 @@ export class TilingRenderLayer extends RenderLayer {
 	constructor(viewer, geometryDataToReuse, bounds) {
 		super(viewer, geometryDataToReuse);
 
-		this.octree = new Octree(viewer, bounds, viewer.globalTransformation, viewer.settings.maxOctreeDepth);
+		this.octree = new Octree(viewer, bounds, viewer.globalTranslationVector, viewer.settings.maxOctreeDepth);
 		this.lineBoxGeometry = new LineBoxGeometry(viewer, viewer.gl);
 
 		this.loaderToNode = {};
