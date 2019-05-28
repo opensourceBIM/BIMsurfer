@@ -12,6 +12,8 @@ export class LineBoxGeometry extends FatLineRenderer {
 		super(viewer, gl, {quantize: false});
 		this.gl = gl;
 		
+		this.init(72, 72);
+		
 		var a = [-0.5, 0.5, -0.5];
 		var b = [0.5, 0.5, -0.5];
 		var c = [0.5, -0.5, -0.5];
