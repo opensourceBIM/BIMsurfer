@@ -160,17 +160,20 @@ export class AbstractBufferSet {
 		
 		const s = new Set();
         
+		const indices = this.batchGpuBuffers.indices;
 		for (var i=0; i<length; i+=3) {
-            let abc = [
-            	this.batchGpuBuffers.indices[indexOffset + i], 
-            	this.batchGpuBuffers.indices[indexOffset + i + 1], 
-            	this.batchGpuBuffers.indices[indexOffset + i + 2]];
-	
             for (let j = 0; j < 3; ++j) {
-                let ab = [abc[j], abc[(j+1)%3]];
-                ab.sort();
-                let abs = ab.join(":");
+            	let a = indices[indexOffset + i + j];
+            	let b = indices[indexOffset + i + (j+1)%3];
+            	
+            	if (a > b) {
+            		const tmp = a;
+            		a = b;
+            		b = tmp;
+            	}
 
+            	// First tried to do this with bit shifting, but bit shifting in JS is 32bit
+            	const abs = a * 67108864 + b; // 2^26=67108864. A maximum of 52 bits is used, staying just under 2^53, which is the max safe int
                 if (s.has(abs)) {
                     s.delete(abs);
                 } else {
@@ -182,7 +185,8 @@ export class AbstractBufferSet {
         lineRenderer.init(s.size, maxIndex);
         const vertexOffset = -bounds.minIndex * 3;
         for (let e of s) {
-            let [a,b] = e.split(":");
+        	const a = Math.floor(e / 67108864);
+        	const b = e - a * 67108864;
             const as = vertexOffset + a * 3;
         	const bs = vertexOffset + b * 3;
             let A = gpu_data.subarray(as, as + 3);
