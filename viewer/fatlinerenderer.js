@@ -121,49 +121,32 @@ export class FatLineRenderer {
     }
 
     pushVertices(a, b) {
-    	if (Array.isArray(this.vertexPosition)) {
-    		// TODO remove this when sure it's not used anymore
-    		debugger;
-    		Array.prototype.push.apply(this.vertexPosition, a);
-    		Array.prototype.push.apply(this.vertexPosition, b);
-    		Array.prototype.push.apply(this.vertexPosition, a);
-    		Array.prototype.push.apply(this.vertexPosition, b);
-    		
-    		Array.prototype.push.apply(this.nextVertexPosition, b);
-    		Array.prototype.push.apply(this.nextVertexPosition, a);
-    		Array.prototype.push.apply(this.nextVertexPosition, b);
-    		Array.prototype.push.apply(this.nextVertexPosition, a);
-    		
-    		Array.prototype.push.apply(this.direction, [1,1,-1,-1]);
-    		
-    		Array.prototype.push.apply(this.indices, [0,1,2,1,3,0].map((i)=>{return i+this.idx;}));
-    	} else {
-    		this.vertexPosition.set(a, this.vertexPosition.pos);
-    		this.vertexPosition.pos += 3;
-    		this.vertexPosition.set(b, this.vertexPosition.pos);
-    		this.vertexPosition.pos += 3;
-    		this.vertexPosition.set(a, this.vertexPosition.pos);
-    		this.vertexPosition.pos += 3;
-    		this.vertexPosition.set(b, this.vertexPosition.pos);
-    		this.vertexPosition.pos += 3;
+		this.vertexPosition.set(a, this.vertexPosition.pos);
+		this.vertexPosition.pos += 3;
+		this.vertexPosition.set(b, this.vertexPosition.pos);
+		this.vertexPosition.pos += 3;
+		this.vertexPosition.set(a, this.vertexPosition.pos);
+		this.vertexPosition.pos += 3;
+		this.vertexPosition.set(b, this.vertexPosition.pos);
+		this.vertexPosition.pos += 3;
 
-    		this.nextVertexPosition.set(b, this.nextVertexPosition.pos);
-    		this.nextVertexPosition.pos += 3;
-    		this.nextVertexPosition.set(a, this.nextVertexPosition.pos);
-    		this.nextVertexPosition.pos += 3;
-    		this.nextVertexPosition.set(b, this.nextVertexPosition.pos);
-    		this.nextVertexPosition.pos += 3;
-    		this.nextVertexPosition.set(a, this.nextVertexPosition.pos);
-    		this.nextVertexPosition.pos += 3;
+		this.nextVertexPosition.set(b, this.nextVertexPosition.pos);
+		this.nextVertexPosition.pos += 3;
+		this.nextVertexPosition.set(a, this.nextVertexPosition.pos);
+		this.nextVertexPosition.pos += 3;
+		this.nextVertexPosition.set(b, this.nextVertexPosition.pos);
+		this.nextVertexPosition.pos += 3;
+		this.nextVertexPosition.set(a, this.nextVertexPosition.pos);
+		this.nextVertexPosition.pos += 3;
 
-    		// This is faster than using .set because that requires us to create an array first
-    		this.indices[this.indices.pos++] = this.idx;
-    		this.indices[this.indices.pos++] = this.idx + 1;
-    		this.indices[this.indices.pos++] = this.idx + 2;
-    		this.indices[this.indices.pos++] = this.idx + 1;
-    		this.indices[this.indices.pos++] = this.idx + 3;
-    		this.indices[this.indices.pos++] = this.idx;
-    	}
+		// This is faster than using .set because that requires us to create an array first
+		this.indices[this.indices.pos++] = this.idx;
+		this.indices[this.indices.pos++] = this.idx + 1;
+		this.indices[this.indices.pos++] = this.idx + 2;
+		this.indices[this.indices.pos++] = this.idx + 1;
+		this.indices[this.indices.pos++] = this.idx + 3;
+		this.indices[this.indices.pos++] = this.idx;
+		
     	this.idx += 4;
 	}
 
@@ -172,12 +155,12 @@ export class FatLineRenderer {
     }
     
     // To minimize GPU calls, renderStart and renderStop can (and have to be) used in order to batch-draw a lot of boxes
-	renderStart(viewer, renderLayers) {
+	renderStart(viewer, renderLayer) {
 		this.gl.useProgram(this.programInfo.program);
 
 		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, viewer.camera.projMatrix);
 		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.viewMatrix, false, viewer.camera.viewMatrix);
-		this.gl.uniform3fv(this.programInfo.uniformLocations.postProcessingTranslation, renderLayers.postProcessingTranslation);
+		this.gl.uniform3fv(this.programInfo.uniformLocations.postProcessingTranslation, renderLayer.postProcessingTranslation);
 
 		const aspect = viewer.width / viewer.height;
 		this.gl.uniform1f(this.programInfo.uniformLocations.aspect, aspect);
