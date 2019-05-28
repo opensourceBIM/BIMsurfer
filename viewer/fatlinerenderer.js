@@ -49,7 +49,10 @@ export class FatLineRenderer {
     init(size, maxIndex) {
     	// This method initializes the arrays as typed arrays with a known size, otherwise the arrays are used
     	
-    	this.indexType = ((maxIndex / 3) < 256) ? this.gl.UNSIGNED_BYTE : this.gl.UNSIGNED_SHORT;
+    	this.indexType = (size * 3 < 256) ? this.gl.UNSIGNED_BYTE : this.gl.UNSIGNED_SHORT;
+    	if (size * 3 > 65536) {
+    		this.indexType = this.gl.UNSIGNED_INT;
+    	}
 		const elemType = this.quantize ? this.gl.SHORT : this.gl.FLOAT;
 		const typedArrFn = Utils.glTypeToTypedArray(elemType);
 		this.vertexPosition = new typedArrFn(size * 12);
@@ -65,7 +68,7 @@ export class FatLineRenderer {
 			this.direction.pos += 4;
 		}
 
-		this.indices = this.indexType == this.gl.UNSIGNED_BYTE ? new Uint8Array(size * 6) : new Uint16Array(size * 6);
+		this.indices = this.indexType == this.gl.UNSIGNED_BYTE ? new Uint8Array(size * 6) : (this.indexType == this.gl.UNSIGNED_SHORT ? new Uint16Array(size * 6) : new Uint32Array(size * 6));
 		this.indices.pos = 0;
 		
 		this.nrIndices = size * 6;
