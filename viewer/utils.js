@@ -220,4 +220,27 @@ export class Utils {
 		}
 		return bytes;
 	}
+	
+	// Decode an oct-encoded normal, not used currently, but was used for debugging
+	octDecodeVec2(oct) {
+       var x = oct[0];
+       var y = oct[1];
+       x /= x < 0 ? 128 : 127;
+       y /= y < 0 ? 128 : 127;
+
+       var z = 1 - Math.abs(x) - Math.abs(y);
+
+       if (z < 0) {
+           x = (1 - Math.abs(y)) * (x >= 0 ? 1 : -1);
+           y = (1 - Math.abs(x)) * (y >= 0 ? 1 : -1);
+       }
+
+       var length = Math.sqrt(x * x + y * y + z * z);
+
+       return [
+           x / length,
+           y / length,
+           z / length
+       ];
+   }
 }
