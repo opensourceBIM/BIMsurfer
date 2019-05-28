@@ -204,8 +204,6 @@ export class BimServerViewer extends AbstractViewer {
 						-(bounds[0] + (bounds[3] - bounds[0]) / 2), 
 						-(bounds[1] + (bounds[4] - bounds[1]) / 2), 
 						-(bounds[2] + (bounds[5] - bounds[2]) / 2));
-					
-					console.log(this.viewer.globalTranslationVector);
 				}
 
 				if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
