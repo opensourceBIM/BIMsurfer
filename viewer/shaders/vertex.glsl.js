@@ -134,9 +134,9 @@ void main(void) {
     vec2 currentScreen = currentProjected.xy / currentProjected.w * aspectVec;
 
 #ifdef WITH_QUANTIZEVERTICES
-    vec4 nextVertexPositionFloat = vertexQuantizationMatrix * vec4(float(nextVertexPosition.x), float(nextVertexPosition.y), float(nextVertexPosition.z), 1);
+    vec4 nextVertexPositionFloat = vec4(postProcessingTranslation, 1) + vertexQuantizationMatrix * vec4(float(nextVertexPosition.x), float(nextVertexPosition.y), float(nextVertexPosition.z), 1);
 #else
-    vec4 nextVertexPositionFloat = vec4(nextVertexPosition, 1);
+    vec4 nextVertexPositionFloat = vec4(postProcessingTranslation, 1) + vec4(nextVertexPosition, 1);
 #endif
 
     vec4 nextProjected = projViewModel * nextVertexPositionFloat;
