@@ -46,7 +46,7 @@ class OctreeNode {
 
 		this.normalizedMatrix = mat4.create();
 		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, [this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2]);
-//		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, this.globalTranslationVector);
+		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, this.globalTranslationVector);
 		mat4.scale(this.normalizedMatrix, this.normalizedMatrix, [this.width, this.height, this.depth]);
 		
 		this.bounds = [this.x, this.y, this.z, this.width, this.height, this.depth];
