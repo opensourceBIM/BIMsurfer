@@ -243,4 +243,26 @@ export class Utils {
            z / length
        ];
    }
+	
+	static getLargestFaceArea(width, height, depth) {
+		var largestFaceArea = width * height;
+		if (width * depth > largestFaceArea) {
+			largestFaceArea = width * depth;
+		}
+		if (this.depth * height > largestFaceArea) {
+			largestFaceArea = depth * height;
+		}
+		return largestFaceArea;
+	}
+	
+	static getLargestEdge(width, height, depth) {
+		let largestEdge = width;
+		if (height > largestEdge) {
+			largestEdge = height;
+		}
+		if (this.depth > largestEdge) {
+			largestEdge = depth;
+		}
+		return largestEdge;
+	}
 }
