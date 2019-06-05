@@ -9,7 +9,7 @@ import {Utils} from "./utils.js";
  * Octree implementation targeted towards being used in the TilingLayer, could possibly be retrofitted to be a generic Octree to be used in other contexts
  */
 class OctreeNode {
-	constructor(viewer, parent, id, x, y, z, width, height, depth, level, globalTranslationVector) {
+	constructor(viewer, parent, id, min, max, level, globalTranslationVector) {
 		this.viewer = viewer;
 		this.parent = parent;
 		this.globalTranslationVector = globalTranslationVector;
@@ -22,71 +22,54 @@ class OctreeNode {
 		
 		this.leaf = true;
 		
-		this.x = x;
-		this.y = y;
-		this.z = z;
+		this.min = min;
+		this.max = max;
+		
+		this.width = max[0] - min[0];
+		this.height = max[1] - min[1];
+		this.depth = max[2] - min[2];
 		
 		this.nrObjects = 0;
 		
-		this.width = width;
-		this.height = height;
-		this.depth = depth;
-		
 		this.level = level;
+		this.sizeFactor = 1 / Math.pow(2, this.level);
 		
-		this.center = vec4.fromValues(this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2, 1);
+		this.center = vec3.create();
+		vec3.add(this.center, this.max, this.min);
+		vec3.div(this.center, this.center, [2, 2, 2]);
 		this.normalizedCenter = vec4.create();
 		vec3.add(this.normalizedCenter, this.center, this.globalTranslationVector);
 		
 		this.radius = (Math.sqrt(Math.pow(this.width, 2) + Math.pow(this.height, 2) + Math.pow(this.depth, 2))) / 2;
 		
 		this.matrix = mat4.create();
-		mat4.translate(this.matrix, this.matrix, [this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2]);
+		mat4.translate(this.matrix, this.matrix, this.center);
 		mat4.scale(this.matrix, this.matrix, [this.width, this.height, this.depth]);
 
 		this.normalizedMatrix = mat4.create();
-		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, [this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2]);
+		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, this.center);
 		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, this.globalTranslationVector);
 		mat4.scale(this.normalizedMatrix, this.normalizedMatrix, [this.width, this.height, this.depth]);
 		
-		this.bounds = [this.x, this.y, this.z, this.width, this.height, this.depth];
+		this.normalizedMinVector = vec3.clone(min);
+		this.normalizedMaxVector = vec3.clone(max);
+		vec3.add(this.normalizedMinVector, this.normalizedMinVector, globalTranslationVector);
+		vec3.add(this.normalizedMaxVector, this.normalizedMaxVector, globalTranslationVector);
 		
-		var minVector = vec3.create();
-		var maxVector = vec3.create();
-		vec3.set(minVector, this.bounds[0], this.bounds[1], this.bounds[2]);
-		vec3.set(maxVector, this.bounds[0] + this.bounds[3], this.bounds[1] + this.bounds[4], this.bounds[2] + this.bounds[5]);
-		this.boundsVectors = [minVector, maxVector];
-		
-		var normalizedMinVector = vec3.clone(minVector);
-		var normalizedMaxVector = vec3.clone(maxVector);
-		vec3.add(normalizedMinVector, normalizedMinVector, globalTranslationVector);
-		vec3.add(normalizedMaxVector, normalizedMaxVector, globalTranslationVector);
-		this.normalizedBoundsVectors = [normalizedMinVector, normalizedMaxVector];
+		this.minmax = [[this.normalizedMinVector[0], this.normalizedMinVector[1], this.normalizedMinVector[2]], [this.normalizedMaxVector[0] - this.normalizedMinVector[0], this.normalizedMaxVector[1] - this.normalizedMinVector[1], this.normalizedMaxVector[2] - this.normalizedMinVector[2]]];
 		
 		// TODO also keep track of the minimal bounds (usually smaller than the "static" bounds of the node), which can be used for (frustum) occlusion culling
 		// TODO also keep track of the minimal bounds inc. children (useful for hierarchical culling)
 		
 		this.quadrants = [];
 		
-		if (this.viewer.vertexQuantization) {
-			this.vertexQuantizationMatrix = Utils.toArray(this.viewer.vertexQuantization.getTransformedQuantizationMatrix(this.bounds));
-			this.vertexUnquantizationMatrix = Utils.toArray(this.viewer.vertexQuantization.getTransformedInverseQuantizationMatrix(this.bounds));
-		}
+//		if (this.viewer.vertexQuantization) {
+//			this.vertexQuantizationMatrix = Utils.toArray(this.viewer.vertexQuantization.getTransformedQuantizationMatrix(this.bounds));
+//			this.vertexUnquantizationMatrix = Utils.toArray(this.viewer.vertexQuantization.getTransformedInverseQuantizationMatrix(this.bounds));
+//		}
 		
-		this.largestFaceArea = width * height;
-		if (width * depth > this.largestFaceArea) {
-			this.largestFaceArea = width * depth;
-		}
-		if (depth * height > this.largestFaceArea) {
-			this.largestFaceArea = depth * height;
-		}
-		this.largestEdge = width;
-		if (height > this.largestEdge) {
-			this.largestEdge = height;
-		}
-		if (depth > this.largestEdge) {
-			this.largestEdge = depth;
-		}
+		this.largestFaceArea = Utils.getLargestFaceArea(this.width, this.height, this.depth);
+		this.largestEdge = Utils.getLargestEdge(this.width, this.height, this.depth);
 	}
 	
 	getBounds() {
@@ -122,9 +105,9 @@ class OctreeNode {
 		}
 	}
 	
-	traverse(fn, onlyLeafs, level) {
+	traverse(fn, onlyLeafs=false, level=0, extraArgument) {
 		if (!onlyLeafs || this.leaf == true) {
-			if (fn(this, level || 0) === false) {
+			if (fn(this, level || 0, extraArgument) === false) {
 				return;
 			}
 		}
@@ -133,7 +116,7 @@ class OctreeNode {
 		}
 		for (var node of this.quadrants) {
 			if (node != null) {
-				node.traverse(fn, onlyLeafs, (level || 0) + 1);
+				node.traverse(fn, onlyLeafs, (level || 0) + 1, extraArgument);
 			}
 		}
 	}
@@ -154,17 +137,41 @@ class OctreeNode {
 		if (quadrant == null) {
 			var newLevel = this.level + 1;
 			var newId = this.id * 8 + localId + 1;
+			let newMin = vec3.clone(this.min);
+			let newMax = vec3.create();
+			let halfWidth = this.width / 2;
+			let halfHeight = this.height / 2;
+			let halfDepth = this.depth / 2;
 			switch (localId) {
-				// TODO put all the redundant stuff in the root
-				case 0: quadrant = new OctreeNode(this.viewer, this, newId, this.x, this.y, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel, this.globalTranslationVector); break;
-				case 1: quadrant = new OctreeNode(this.viewer, this, newId, this.x, this.y, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel, this.globalTranslationVector); break;
-				case 2: quadrant = new OctreeNode(this.viewer, this, newId, this.x, this.y + this.height / 2, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel, this.globalTranslationVector); break;
-				case 3: quadrant = new OctreeNode(this.viewer, this, newId, this.x, this.y + this.height / 2, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel, this.globalTranslationVector); break;
-				case 4: quadrant = new OctreeNode(this.viewer, this, newId, this.x + this.width / 2, this.y, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel, this.globalTranslationVector); break;
-				case 5: quadrant = new OctreeNode(this.viewer, this, newId, this.x + this.width / 2, this.y, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel, this.globalTranslationVector); break;
-				case 6: quadrant = new OctreeNode(this.viewer, this, newId, this.x + this.width / 2, this.y + this.height / 2, this.z, this.width / 2, this.height / 2, this.depth / 2, newLevel, this.globalTranslationVector); break;
-				case 7: quadrant = new OctreeNode(this.viewer, this, newId, this.x + this.width / 2, this.y + this.height / 2, this.z + this.depth / 2, this.width / 2, this.height / 2, this.depth / 2, newLevel, this.globalTranslationVector); break;
+				case 0:
+					break;
+				case 1:
+					vec3.add(newMin, newMin, [0, 0, halfDepth]);
+					break;
+				case 2:
+					vec3.add(newMin, newMin, [0, halfHeight, 0]);
+					break;
+				case 3: 
+					vec3.add(newMin, newMin, [0, halfHeight, halfDepth])
+					break;
+				case 4: 
+					vec3.add(newMin, newMin, [halfWidth, 0, 0])
+					break;
+				case 5: 
+					vec3.add(newMin, newMin, [halfWidth, 0, halfDepth])
+					break;
+				case 6:
+					vec3.add(newMin, newMin, [halfWidth, halfHeight, 0])
+					break;
+				case 7:
+					vec3.add(newMin, newMin, [halfWidth, halfHeight, halfDepth])
+					break;
 			}
+			var half = vec3.create();
+			vec3.sub(half, this.max, this.min);
+			vec3.div(half, half, [2, 2, 2]);
+			vec3.add(newMax, newMin, half);
+			quadrant = new OctreeNode(this.viewer, this, newId, newMin, newMax, newLevel, this.globalTranslationVector);
 			this.quadrants[localId] = quadrant;
 		}
 		this.leaf = false;
@@ -244,7 +251,7 @@ class OctreeNode {
 
 export class Octree extends OctreeNode {
 	constructor(viewer, realBounds, globalTranslationVector, maxDepth) {
-		super(viewer, null, 0, realBounds[0], realBounds[1], realBounds[2], realBounds[3] - realBounds[0], realBounds[4] - realBounds[1], realBounds[5] - realBounds[2], 0, globalTranslationVector);
+		super(viewer, null, 0, [realBounds[0], realBounds[1], realBounds[2]], [realBounds[3], realBounds[4], realBounds[5]], 0, globalTranslationVector);
 		this.maxDepth = maxDepth;
 		this.actualMaxLevel;
 		this.level = 0;
