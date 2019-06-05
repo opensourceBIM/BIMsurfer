@@ -80,8 +80,6 @@ export class GeometryLoader {
 
 		this.preparedBuffer.bytes = Utils.calculateBytesUsed(this.settings, this.preparedBuffer.positionsIndex, this.preparedBuffer.nrColors, this.preparedBuffer.nrIndices, this.preparedBuffer.normalsIndex);
 
-		this.preparedGpuBuffer = this.renderLayer.addCompleteBuffer(this.preparedBuffer, this.gpuBufferManager);
-
 		stream.align8();
 	}
 
@@ -240,12 +238,17 @@ export class GeometryLoader {
 
 		this.preparedBuffer.nrObjectsRead += nrObjects;
 		
+		if (this.preparedGpuBuffer == null) {
+			this.preparedGpuBuffer = this.renderLayer.addCompleteBuffer(this.preparedBuffer, this.gpuBufferManager);
+		}
+
 		this.preparedGpuBuffer.update(this.preparedBuffer.indicesRead, this.preparedBuffer.positionsRead, this.preparedBuffer.normalsRead, this.preparedBuffer.colorsRead);
 		this.renderLayer.viewer.dirty = 1;
 		this.renderLayer.incLoadedTriangles(totalNrIndices / 3);
 		
 		if (this.preparedBuffer.nrObjectsRead == this.preparedBuffer.nrObjects) {
 			this.preparedGpuBuffer.finalize();
+			this.preparedGpuBuffer = null;
 		}
 
 		stream.align8();
