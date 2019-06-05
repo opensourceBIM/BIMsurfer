@@ -51,7 +51,7 @@ export class FatLineRenderer {
 		this.programInfo = this.viewer.programManager.getProgram(key);
     }
     
-    init(size, maxIndex) {
+    init(size) {
     	// This method initializes the arrays as typed arrays with a known size, otherwise the arrays are used
     	
     	this.indexType = (size * 3 < 256) ? this.gl.UNSIGNED_BYTE : this.gl.UNSIGNED_SHORT;
