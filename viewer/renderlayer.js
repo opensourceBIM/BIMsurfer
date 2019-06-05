@@ -428,8 +428,9 @@ export class RenderLayer {
 					}
 				}
 				
-				if (buffer.unquantizationMatrix != null) {
+				if (buffer.unquantizationMatrix != null && programInfo.lastUnquantizationMatrixUsed != buffer.unquantizationMatrix) {
 					this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, buffer.unquantizationMatrix);
+					programInfo.lastUnquantizationMatrixUsed = buffer.unquantizationMatrix;
 				}
 				
 				this.renderBuffer(buffer, programInfo, visibleElements);
@@ -565,7 +566,7 @@ export class RenderLayer {
 			gpuBufferManager.pushBuffer(newBuffer);
 		}
 		
-		this.incLoadedTriangles(buffer.indicesRead / 3);
+//		this.incLoadedTriangles(buffer.indicesRead / 3);
 		this.viewer.stats.inc("Data", "GPU bytes", buffer.bytes);
 		this.viewer.stats.inc("Data", "GPU bytes total", buffer.bytes);
 
