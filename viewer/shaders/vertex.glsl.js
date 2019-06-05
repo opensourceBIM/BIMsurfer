@@ -94,9 +94,9 @@ vec3 octDecode(vec2 oct) {
 
 void main(void) {
 #ifdef WITH_QUANTIZEVERTICES
-    vec4 floatVertex = vec4(postProcessingTranslation, 1) + vertexQuantizationMatrix * vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
+    vec4 floatVertex = vec4(postProcessingTranslation, 0) + vertexQuantizationMatrix * vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
 #else
-    vec4 floatVertex = vec4(postProcessingTranslation, 1) + vec4(vertexPosition, 1);
+    vec4 floatVertex = vec4(postProcessingTranslation, 0) + vec4(vertexPosition, 1);
 #endif
 
 #ifndef WITH_PICKING
@@ -120,7 +120,7 @@ void main(void) {
 #endif
 
 #ifdef WITH_INSTANCING
-    floatVertex = vec4(postProcessingTranslation, 1) + instanceMatrices * floatVertex;
+    floatVertex = vec4(postProcessingTranslation, 0) + instanceMatrices * floatVertex;
 #ifndef WITH_PICKING
     floatNormal = instanceNormalMatrices * floatNormal;
 #endif
@@ -134,9 +134,9 @@ void main(void) {
     vec2 currentScreen = currentProjected.xy / currentProjected.w * aspectVec;
 
 #ifdef WITH_QUANTIZEVERTICES
-    vec4 nextVertexPositionFloat = vec4(postProcessingTranslation, 1) + vertexQuantizationMatrix * vec4(float(nextVertexPosition.x), float(nextVertexPosition.y), float(nextVertexPosition.z), 1);
+    vec4 nextVertexPositionFloat = vec4(postProcessingTranslation, 0) + vertexQuantizationMatrix * vec4(float(nextVertexPosition.x), float(nextVertexPosition.y), float(nextVertexPosition.z), 1);
 #else
-    vec4 nextVertexPositionFloat = vec4(postProcessingTranslation, 1) + vec4(nextVertexPosition, 1);
+    vec4 nextVertexPositionFloat = vec4(postProcessingTranslation, 0) + vec4(nextVertexPosition, 1);
 #endif
 
     vec4 nextProjected = projViewModel * nextVertexPositionFloat;
