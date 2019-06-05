@@ -15,6 +15,8 @@ var tempVec3e = vec3.create();
 
 var tmp_modelBounds = vec3.create();
 
+var YAW_MATRIX = mat4.create();
+
 /**
  A **Camera** defines viewing and projection transforms for its Viewer.
  */
@@ -40,6 +42,8 @@ export class Camera {
         this._target = vec3.fromValues(0.0, 0.0, 0.0); // World-space point-of-interest
         this._up = vec3.fromValues(0.0, 1.0, 0.0); // Camera's "up" vector, always orthogonal to eye->target
         this._center = vec3.copy(vec3.create(), this._target);
+        this._negatedCenter = vec3.create();
+        vec3.negate(this._negatedCenter, this._center);
 
         this._worldAxis = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
         this._worldUp = vec3.fromValues(0.0, 1.0, 0.0); // Direction of "up" in World-space
@@ -109,6 +113,7 @@ export class Camera {
         vec3.scale(a, a, 0.5);
 
         this._center.set(a);
+        vec3.negate(this._negatedCenter, this._center);
         this._dirty = true;
     }
 
@@ -301,6 +306,7 @@ export class Camera {
 
     set center(v) {
         this._center.set(v);
+        vec3.negate(this._negatedCenter, this._center);
         this.listeners.forEach((fn) => { fn(); });
     }
 
@@ -450,20 +456,15 @@ export class Camera {
      @param {Number} degrees Angle of rotation in degrees
      */
     orbitYaw(degrees) {
-        
         // @todo, these functions are not efficient nor numerically stable, but simple to understand.
         
-        var T1 = mat4.fromTranslation(mat4.create(), this._center);
-        var R = mat4.fromRotation(mat4.create(), degrees * 0.0174532925 * 2, this._worldUp);
-        var T2 = mat4.fromTranslation(mat4.create(), vec3.negate(vec3.create(), this._center));
-
-        vec3.transformMat4(this._eye, this._eye, T2);
-        vec3.transformMat4(this._eye, this._eye, R);
-        vec3.transformMat4(this._eye, this._eye, T1);
-
-        vec3.transformMat4(this._target, this._target, T2);
-        vec3.transformMat4(this._target, this._target, R);
-        vec3.transformMat4(this._target, this._target, T1);
+    	mat4.identity(YAW_MATRIX);
+    	mat4.translate(YAW_MATRIX, YAW_MATRIX, this._center);
+    	mat4.rotate(YAW_MATRIX, YAW_MATRIX, degrees * 0.0174532925 * 2, this._worldUp);
+    	mat4.translate(YAW_MATRIX, YAW_MATRIX, this._negatedCenter);
+    	
+        vec3.transformMat4(this._eye, this._eye, YAW_MATRIX);
+        vec3.transformMat4(this._target, this._target, YAW_MATRIX);
 
         this._setDirty();
         return;
