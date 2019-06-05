@@ -182,7 +182,7 @@ export class AbstractBufferSet {
             }
         }
         
-        lineRenderer.init(s.size, maxIndex);
+        lineRenderer.init(s.size);
         const vertexOffset = -bounds.minIndex * 3;
         for (let e of s) {
         	const a = Math.floor(e / 67108864);
@@ -325,7 +325,7 @@ export class AbstractBufferSet {
     		this.visibleRanges.clear();
     		this.dirty = false;
     	}
-    	var ids = Object.values(ids_with_or_without)[0];
+    	var ids = ids_with_or_without.with ? ids_with_or_without.with : ids_with_or_without.without;
     	var exclude = "without" in ids_with_or_without;
     	
     	const ids_str = exclude + ':' +  ids.frozen;
