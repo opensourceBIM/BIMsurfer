@@ -88,7 +88,7 @@ export class TilingRenderLayer extends RenderLayer {
 			return true;
 		}
 		
-		// 3. In the tile too far away?
+		// 3. Is the tile too far away?
 		var cameraEye = this.viewer.camera.eye;
 		var tileCenter = node.normalizedCenter;
 		var closestPotentialDistanceMm = Math.abs(vec3.distance(cameraEye, tileCenter) - node.radius);
@@ -139,9 +139,11 @@ export class TilingRenderLayer extends RenderLayer {
 		return false;
 	}
 	
-	prepareRender() {
+	prepareRender(reason) {
 		// This only needs to be recalculated if the camera has changed, so we keep track of the last view matrix
-		if (this.lastViewMatrix == null || this.octree.size != this.lastOctreeSize || !mat4.equals(this.lastViewMatrix, this.viewer.camera.viewMatrix)) {
+		
+		// TODO To correctly update the stats, this also needs to run whenever new data was loaded
+		if (this.lastViewMatrix == null || this.octree.size != this.lastOctreeSize || !mat4.equals(this.lastViewMatrix, this.viewer.camera.viewMatrix) || reason == 2) {
 			this.lastViewMatrix = mat4.clone(this.viewer.camera.viewMatrix);
 
 			var renderingTiles = 0;
@@ -204,6 +206,8 @@ export class TilingRenderLayer extends RenderLayer {
 //			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
 //		}
 
+		programInfo.lastUnquantizationMatrixUsed = null; // This ony is used for "caching", need to reset it otherwise it won't be set
+		
 		this.octree.traverse((node) => {
 			// TODO at the moment a list (of non-empty tiles) is used to do traverseBreathFirst, but since a big optimization is possible by automatically culling 
 			// child nodes of parent nodes that are culled, we might have to reconsider this and go back to tree-traversal, where returning false would indicate to 
