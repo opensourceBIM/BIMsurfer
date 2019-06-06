@@ -419,8 +419,9 @@ export class Viewer {
 
         var wasDirty = this.dirty;
         if (this.dirty == 2 || (this.dirty == 1 && now - this.lastRepaint > 500)) {
+        	let reason = this.dirty;
             this.dirty = 0;
-            this.drawScene(this.buffers, deltaTime);
+            this.drawScene(this.buffers, deltaTime, reason);
             this.lastRepaint = now;
         }
 
@@ -446,7 +447,7 @@ export class Viewer {
         }
     }
 
-    drawScene(buffers, deltaTime) {
+    drawScene(buffers, deltaTime, reason) {
         // Locks the camera so that intermittent mouse events will not
         // change the matrices until the camera is unlocked again.
         // @todo This might need some work to make sure events are
@@ -470,7 +471,7 @@ export class Viewer {
         this.sectionPlaneValues.set(this.sectionPlaneValues2);
 
         for (var renderLayer of this.renderLayers) {
-            renderLayer.prepareRender();
+            renderLayer.prepareRender(reason);
         }
 
         let render = (elems, t) => {
