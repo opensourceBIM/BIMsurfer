@@ -305,7 +305,7 @@ export class RenderLayer {
 		const numInstances = geometry.objects.length;
 
 		const positionBuffer = Utils.createBuffer(this.gl, this.bufferTransformer.convertVertices(geometry.croid, geometry.positions));
-		const normalBuffer = Utils.createBuffer(this.gl, this.bufferTransformer.convertNormals(geometry.normals));
+		const normalBuffer = Utils.createBuffer(this.gl, this.bufferTransformer.convertNormals(geometry.normals), null, this.gl.ARRAY_BUFFER, 2);
 		const colorBuffer = geometry.colors != null
 			? Utils.createBuffer(this.gl, geometry.colors, null, this.gl.ARRAY_BUFFER, 4)
 			: null;
@@ -596,7 +596,7 @@ export class RenderLayer {
 
 		if (!this.settings.fakeLoading) {
 			const positionBuffer = Utils.createBuffer(this.gl, buffer.positions, buffer.positionsIndex);
-			const normalBuffer = Utils.createBuffer(this.gl, buffer.normals, buffer.normalsIndex);
+			const normalBuffer = Utils.createBuffer(this.gl, buffer.normals, buffer.normalsIndex, this.gl.ARRAY_BUFFER, 2);
 			var colorBuffer = buffer.colors
 				? Utils.createBuffer(this.gl, buffer.colors, buffer.colorsIndex, this.gl.ARRAY_BUFFER, 4)
 				: null;

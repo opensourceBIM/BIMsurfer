@@ -214,7 +214,8 @@ export class Utils {
 			bytes += nrIndices * 4;
 		}
 		if (settings.quantizeNormals) {
-			bytes += nrNormals;
+			// Oct-encoding
+			bytes += (nrNormals / 3) * 2;
 		} else {
 			bytes += nrNormals * 4;
 		}
