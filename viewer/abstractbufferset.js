@@ -135,17 +135,70 @@ export class AbstractBufferSet {
         this.batchGpuBuffers = null;
     }
 
+    /*
+     * Create a line renderer from instance data, this does not use the GPU batching
+     */
+    createLineRendererFromInstance(gl, a, b) {
+        const lineRenderer = new FatLineRenderer(this.viewer, gl, {
+            quantize: this.positionBuffer.js_type !== Float32Array.name
+        }, this.unquantizationMatrix);
+
+        lineRenderer.init(b - a);
+        
+        const positions = new window[this.positionBuffer.js_type](this.positionBuffer.N);
+        const indices = new window[this.indexBuffer.js_type](b-a);
+        
+        // @todo: get only part of positions [min(indices), max(indices)]
+        var restoreArrayBinding = gl.getParameter(gl.ARRAY_BUFFER_BINDING);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+        gl.getBufferSubData(gl.ARRAY_BUFFER, 0, positions);
+        
+        var restoreElementBinding = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, a * 4, indices, 0, indices.length);
+        
+        const s = new Set();
+        
+        for (let i = 0; i < indices.length; i += 3) {
+            let abc = indices.subarray(i, i + 3);
+
+            for (let j = 0; j < 3; ++j) {
+                let ab = [abc[j], abc[(j+1)%3]];
+                ab.sort();
+                let abs = ab.join(":");
+
+                if (s.has(abs)) {
+                    s.delete(abs);
+                } else {
+                    s.add(abs);
+                }
+            }
+        }
+        
+        for (let e of s) {
+            let [a,b] = e.split(":");
+            let A = positions.subarray(a * 3).subarray(0,3);
+            let B = positions.subarray(b * 3).subarray(0,3);
+            lineRenderer.pushVertices(A, B);
+        }			
+
+        lineRenderer.finalize();            
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, restoreArrayBinding);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, restoreElementBinding);
+
+        return lineRenderer;
+    }
+    
     createLineRenderer(gl, objectId, a, b) {
         const lineRenderer = new FatLineRenderer(this.viewer, gl, {
             quantize: this.positionBuffer.js_type !== Float32Array.name
         }, this.unquantizationMatrix);
 
-        const m = new Map();
-        
-		let idx = this.geometryIdToIndex.get(objectId)[0];
-		let [offset, length] = [idx.start, idx.length];
-		
-		let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
+        let index = this.geometryIdToIndex.get(objectId);
+    	let idx = index[0];
+    	let [offset, length] = [idx.start, idx.length];
+    	let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
 
 		let numVertices = maxIndex - minIndex + 1;
 		let gpu_data = this.batchGpuBuffers["positionBuffer"];
@@ -255,8 +308,7 @@ export class AbstractBufferSet {
         this.visibleRanges.set(ids_str, ranges);
 
         if (!exclude && ranges.instanceIds.length && this.lineIndexBuffers.size === 0) {
-        	var id = 0; // TODO !!
-            let lineRenderer = this.createLineRenderer(gl, id, 0, this.indexBuffer.N);
+            let lineRenderer = this.createLineRendererFromInstance(gl, 0, this.indexBuffer.N);
             // This will result in a different dequantization matrix later on, not sure why
             lineRenderer.croid = this.croid;
             this.objects.forEach((ob) => {
