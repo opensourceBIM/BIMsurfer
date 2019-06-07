@@ -130,20 +130,20 @@ export class RenderBuffer {
     read(pickX, pickY) {
         var x = pickX;
         var y = this.canvas.height - pickY;
-        var pix = new Uint8Array(4);
+        var pix = new Uint32Array(4);
         var gl = this.gl;
         gl.readBuffer(gl.COLOR_ATTACHMENT0);
-        gl.readPixels(x, y, 1, 1, gl.RGBA_INTEGER, gl.UNSIGNED_BYTE, pix);
+        gl.readPixels(x, y, 1, 1, gl.RGBA_INTEGER, gl.UNSIGNED_INT, pix);
         return pix;
     }
 
     depth(pickX, pickY) {
         var x = pickX;
         var y = this.canvas.height - pickY;
-        var pix = new Float32Array(1);
+        var pix = new Float32Array(1);//To review
         var gl = this.gl;
         gl.readBuffer(gl.COLOR_ATTACHMENT1);
-        gl.readPixels(x, y, 1, 1, gl.RED, gl.FLOAT, pix);
+        gl.readPixels(x, y, 1, 1, gl.RED, gl.FLOAT, pix);//To review
         return pix;
     }
 
