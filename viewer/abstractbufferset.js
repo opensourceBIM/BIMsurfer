@@ -276,10 +276,10 @@ export class AbstractBufferSet {
     }
 
     computeVisibleInstances(ids_with_or_without, gl) {
-        var ids = Object.values(ids_with_or_without)[0];
-        var exclude = "without" in ids_with_or_without;
+    	const ids = ids_with_or_without.with ? ids_with_or_without.with : ids_with_or_without.without;
+        const exclude = "without" in ids_with_or_without;
         
-		var ids_str = exclude + ':' +  ids.frozen;
+		const ids_str = exclude + ':' + ids.frozen;
 
         {
             var cache_lookup;
