@@ -17,6 +17,7 @@ const RED = [1, 0, 0, 1];
 const GREEN = [0, 1, 0, 1];
 const BLUE = [0, 0, 1, 1];
 const GRAY = [0.5, 0.5, 0.5, 1];
+const PURPLE = [1, 0, 1, 1];
 
 /**
  * A specific type of RenderLayer, which uses Tiling to achieve better render performance, but also minimizes the amount of data that needs to be loaded of the line.
@@ -84,14 +85,14 @@ export class TilingRenderLayer extends RenderLayer {
 		}
 
 		// 2. Is the complete Tile outside of the view frustum?
-		if (this._frustum.intersectsWorldAABB(node.minmax) === Frustum.OUTSIDE_FRUSTUM) {
+		if (this._frustum.intersectsWorldAABB(node.minimalBox.minmax) === Frustum.OUTSIDE_FRUSTUM) {
 			return true;
 		}
 		
 		// 3. Is the tile too far away?
 		var cameraEye = this.viewer.camera.eye;
-		var tileCenter = node.normalizedCenter;
-		var closestPotentialDistanceMm = Math.abs(vec3.distance(cameraEye, tileCenter) - node.radius);
+		var tileCenter = node.minimalBox.normalizedCenter;
+		var closestPotentialDistanceMm = Math.abs(vec3.distance(cameraEye, tileCenter) - node.minimalBox.radius);
 		
 //		console.log(closestPotentialDistanceMm);
 		
@@ -114,16 +115,15 @@ export class TilingRenderLayer extends RenderLayer {
 			for (var transparent of [false, true]) {
 				var buffers = node.gpuBufferManager.getBuffers(transparent, true);
 				for (var buffer of buffers) {
-					buffer.nrTrianglesToDraw = Math.floor(Math.min(buffer.nrIndices, Math.floor(buffer.nrIndices * factor)) / 3);
-//					buffer.nrTrianglesToDraw = (buffer.nrIndices / 3) * buffer.numInstances;
+					buffer.nrTrianglesToDraw = Math.floor(Math.min(buffer.nrIndices, Math.floor(buffer.nrIndices * factor)) / 3) * buffer.numInstances;
 					totalTriangles += (buffer.nrIndices / 3) * buffer.numInstances;
 					node.stats.trianglesDrawing += buffer.nrTrianglesToDraw;
 				}
 			}
 			node.normalizedDistanceFactor = node.stats.trianglesDrawing / totalTriangles;
-//			if (node.stats.trianglesDrawing == 0) {
-//				return true;
-//			}
+			if (node.stats.trianglesDrawing == 0) {
+				return true;
+			}
 		} else {
 			if (closestPotentialDistanceMm < 800000) {
 				return false;
@@ -241,10 +241,11 @@ export class TilingRenderLayer extends RenderLayer {
 				color = GREEN;
 			} else if (node.visibilityStatus === 1) {
 				if (node.normalizedDistanceFactor === 1) {
+//					color = PURPLE;
 				} else {
 					color = BLUE;
+					// This changes (content of) the constant, but the constant is only used for this, so it's fine
 					color[3] = 1 - node.normalizedDistanceFactor;
-//					color = [0, 0, 1, 1 - node.normalizedDistanceFactor];
 				}
 			}
 		} else if (node.loadingStatus === 4) {
@@ -254,7 +255,7 @@ export class TilingRenderLayer extends RenderLayer {
 			// Node has been tried to load, but no objects were returned
 		}
 		if (color != null) {
-			lineBoxGeometry.render(color, node.normalizedMatrix, 0.001);
+			lineBoxGeometry.render(color, node.minimalBox.normalizedMatrix, 0.001);
 		}
 	}
 	
@@ -276,6 +277,8 @@ export class TilingRenderLayer extends RenderLayer {
 			pickColors: geometry.positions.length
 		};
 
+		var node = this.loaderToNode[loaderId];
+
 		// TODO some of this is duplicate code, also in defaultrenderlayer.js
 		if (geometry.reused > 1 && this.geometryDataToReuse != null && this.geometryDataToReuse.has(geometry.id)) {
 			geometry.matrices.push(object.matrix);
@@ -285,8 +288,6 @@ export class TilingRenderLayer extends RenderLayer {
 
 			return;
 		}
-
-		var node = this.loaderToNode[loaderId];
 		
 		if (node.bufferManager == null) {
 			if (this.settings.useObjectColors) {

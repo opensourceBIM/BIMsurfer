@@ -81,6 +81,8 @@ export class RenderLayer {
             normalMatrix: normalMatrix,
 			scaleMatrix: scaleMatrix,
 			geometry: [],
+			min: vec3.fromValues(aabb[0], aabb[1], aabb[2]),
+			max: vec3.fromValues(aabb[3], aabb[4], aabb[5]),
 			roid: roid,
 //				object: this.viewer.model.objects[oid],
 			add: (geometryId, objectId) => {
@@ -405,7 +407,8 @@ export class RenderLayer {
 	 * Prepare the rendering pass, this is called only once for each frame
 	 */	
 	prepareRender() {
-		
+		// this.lastCroidRendered is used to keep track of which croid was rendered previously, so we can skip some GPU calls, need to reset it though for each new frame
+		this.lastCroidRendered = null;
 	}
 	
 	render(transparency, visibleElements) {
@@ -446,9 +449,14 @@ export class RenderLayer {
 		let picking = visibleElements.pass === 'pick';
 		gl.bindVertexArray(picking ? buffer.vaoPick : buffer.vao);
 		if (buffer.reuse) {
-			// TODO we only need to bind this again for every new roid, maybe sort by buffer.roid before iterating through the buffers?
 			if (this.viewer.settings.quantizeVertices) {
-				gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(buffer.croid));
+				if (this.lastCroidRendered === buffer.croid) {
+					// Skip it
+				} else {
+					let uqm = this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(buffer.croid);
+					gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, uqm);
+					this.lastCroidRendered = buffer.croid;
+				}
 			}
 
 			let subset = buffer.computeVisibleInstances(visibleElements, this.gl);
@@ -456,12 +464,16 @@ export class RenderLayer {
 				if (subset.instanceIds.length > this.instanceSelectionData.length) {
 					console.error("Too many instances of a geometry are activated.");
 				} else {
-					this.instanceSelectionData.fill(UINT32_MAX);
-					this.instanceSelectionData.set(subset.instanceIds);
-
-					const instanceVisibilityState = [visibleElements.pass, subset.hidden].concat(subset.instanceIds).join(",");
+					// A bit unreadable, but much faster than concat + join
+					const instanceVisibilityState = 
+						(visibleElements.pass != null ? (visibleElements.pass + ",") : "") +
+						(subset.hidden != null ? (subset.hidden + ",") : "") + 
+						subset.instanceIds.join(",");
 
 					if (instanceVisibilityState !== this.previousInstanceVisibilityState) {
+						this.instanceSelectionData.fill(UINT32_MAX);
+						this.instanceSelectionData.set(subset.instanceIds);
+
 						// console.log("selection", visibleElements.pass, subset.hidden ? "hide" : "show", ...this.instanceSelectionData.subarray(0, subset.instanceIds.length));
 						gl.uniform1uiv(programInfo.uniformLocations.containedInstances, this.instanceSelectionData);
 						gl.uniform1ui(programInfo.uniformLocations.numContainedInstances, subset.instanceIds.length);

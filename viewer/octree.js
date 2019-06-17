@@ -32,32 +32,10 @@ class OctreeNode {
 		this.nrObjects = 0;
 		
 		this.level = level;
-		this.sizeFactor = 1 / Math.pow(2, this.level);
 		
-		this.center = vec3.create();
-		vec3.add(this.center, this.max, this.min);
-		vec3.div(this.center, this.center, [2, 2, 2]);
-		this.normalizedCenter = vec4.create();
-		vec3.add(this.normalizedCenter, this.center, this.globalTranslationVector);
-		
-		this.radius = (Math.sqrt(Math.pow(this.width, 2) + Math.pow(this.height, 2) + Math.pow(this.depth, 2))) / 2;
-		
-		this.matrix = mat4.create();
-		mat4.translate(this.matrix, this.matrix, this.center);
-		mat4.scale(this.matrix, this.matrix, [this.width, this.height, this.depth]);
+		this.box = new Box(this.min, this.max, this.level, globalTranslationVector);
+		this.minimalBox = new Box(vec3.fromValues(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE), vec3.fromValues(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE), this.level, globalTranslationVector);
 
-		this.normalizedMatrix = mat4.create();
-		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, this.center);
-		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, this.globalTranslationVector);
-		mat4.scale(this.normalizedMatrix, this.normalizedMatrix, [this.width, this.height, this.depth]);
-		
-		this.normalizedMinVector = vec3.clone(min);
-		this.normalizedMaxVector = vec3.clone(max);
-		vec3.add(this.normalizedMinVector, this.normalizedMinVector, globalTranslationVector);
-		vec3.add(this.normalizedMaxVector, this.normalizedMaxVector, globalTranslationVector);
-		
-		this.minmax = [[this.normalizedMinVector[0], this.normalizedMinVector[1], this.normalizedMinVector[2]], [this.normalizedMaxVector[0] - this.normalizedMinVector[0], this.normalizedMaxVector[1] - this.normalizedMinVector[1], this.normalizedMaxVector[2] - this.normalizedMinVector[2]]];
-		
 		// TODO also keep track of the minimal bounds (usually smaller than the "static" bounds of the node), which can be used for (frustum) occlusion culling
 		// TODO also keep track of the minimal bounds inc. children (useful for hierarchical culling)
 		
@@ -72,14 +50,6 @@ class OctreeNode {
 		this.largestEdge = Utils.getLargestEdge(this.width, this.height, this.depth);
 	}
 	
-	getBounds() {
-		return this.bounds;
-	}
-	
-	getMatrix() {
-		return this.matrix;
-	}
-
 	traverseBreathFirstInternal(fn, level) {
 		if (this.level == level) {
 			var result = fn(this);
@@ -119,14 +89,6 @@ class OctreeNode {
 				node.traverse(fn, onlyLeafs, (level || 0) + 1, extraArgument);
 			}
 		}
-	}
-	
-	getCenter() {
-		return this.center;
-	}
-	
-	getBoundingSphereRadius() {
-		return this.radius;
 	}
 	
 	getQuadrant(localId) {
@@ -246,6 +208,90 @@ class OctreeNode {
 		for (var node of this.quadrants) {
 			node.prepareFullListInternal(fullList, level);
 		}
+	}
+	
+	get center() {
+		debugger;
+	}
+	
+	get normalizedMatrix() {
+		debugger;
+	}
+	
+	get normalizedMinVector() {
+		debugger;
+	}
+	
+	get normalizedMaxVector() {
+		debugger;
+	}
+	
+	get radius() {
+		debugger;
+	}
+	
+	get minmax() {
+		debugger;
+	}
+	
+	get matrix() {
+		debugger;
+	}
+}
+
+class Box {
+	constructor(min, max, level, globalTranslationVector) {
+		this.min = min;
+		this.max = max;
+		this.level = level;
+		this.globalTranslationVector = globalTranslationVector;
+		
+		this.update();
+	}
+
+	update() {
+		this.width = this.max[0] - this.min[0];
+		this.height = this.max[1] - this.min[1];
+		this.depth = this.max[2] - this.min[2];
+
+		this.sizeFactor = 1 / Math.pow(2, this.level);
+		this.center = vec3.create();
+		vec3.add(this.center, this.max, this.min);
+		vec3.div(this.center, this.center, [2, 2, 2]);
+		this.normalizedCenter = vec4.create();
+		vec3.add(this.normalizedCenter, this.center, this.globalTranslationVector);
+		
+		this.radius = (Math.sqrt(Math.pow(this.width, 2) + Math.pow(this.height, 2) + Math.pow(this.depth, 2))) / 2;
+		
+		this.matrix = mat4.create();
+		mat4.translate(this.matrix, this.matrix, this.center);
+		mat4.scale(this.matrix, this.matrix, [this.width, this.height, this.depth]);
+
+		this.normalizedMatrix = mat4.create();
+		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, this.center);
+		mat4.translate(this.normalizedMatrix, this.normalizedMatrix, this.globalTranslationVector);
+		mat4.scale(this.normalizedMatrix, this.normalizedMatrix, [this.width, this.height, this.depth]);
+		
+		this.normalizedMinVector = vec3.clone(this.min);
+		this.normalizedMaxVector = vec3.clone(this.max);
+		vec3.add(this.normalizedMinVector, this.normalizedMinVector, this.globalTranslationVector);
+		vec3.add(this.normalizedMaxVector, this.normalizedMaxVector, this.globalTranslationVector);
+		
+		this.minmax = [[this.normalizedMinVector[0], this.normalizedMinVector[1], this.normalizedMinVector[2]], [this.normalizedMaxVector[0] - this.normalizedMinVector[0], this.normalizedMaxVector[1] - this.normalizedMinVector[1], this.normalizedMaxVector[2] - this.normalizedMinVector[2]]];
+	}
+	
+	set(min, max) {
+		this.min = min;
+		this.max = max;
+		
+		this.update();
+	}
+	
+	integrate(min, max) {
+		vec3.min(this.min, this.min, min);
+		vec3.max(this.max, this.max, max);
+		
+		this.update();
 	}
 }
 
