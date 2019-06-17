@@ -48,7 +48,12 @@ export class GpuBufferManager {
 	}
 	
 	pushBuffer(buffer) {
-		this.getBuffers(buffer.hasTransparency, buffer.reuse).push(buffer);
+		// TODO this can potentially become slow when there are a lot of buffers
+		let buffers = this.getBuffers(buffer.hasTransparency, buffer.reuse);
+		buffers.push(buffer);
+		if (buffer.croid) {
+			this.sortBuffersByCroid(buffers);
+		}
 	}
 
 	deleteBuffer(buffer) {
@@ -60,14 +65,14 @@ export class GpuBufferManager {
 		arr.splice(idx, 1);
 	}
 	
-	sortAllBuffers() {
-		this.sortBuffers(this.liveBuffersOpaque);
-		this.sortBuffers(this.liveBuffersTransparent);
-		this.sortBuffers(this.liveReusedBuffersOpaque);
-		this.sortBuffers(this.liveReusedBuffersTransparent);
+	sortAllBuffersByColor() {
+		this.sortBuffersByColor(this.liveBuffersOpaque);
+		this.sortBuffersByColor(this.liveBuffersTransparent);
+		this.sortBuffersByColor(this.liveReusedBuffersOpaque);
+		this.sortBuffersByColor(this.liveReusedBuffersTransparent);
 	}
 	
-	sortBuffers(buffers) {
+	sortBuffersByColor(buffers) {
 		buffers.sort((a, b) => {
 			for (var i=0; i<4; i++) {
 				if (a.color[i] == b.color[i]) {
@@ -77,6 +82,12 @@ export class GpuBufferManager {
 			}
 			// Colors are the same
 			return 0;
+		});
+	}
+	
+	sortBuffersByCroid(buffers) {
+		buffers.sort((a, b) => {
+			return a.croid - b.croid;
 		});
 	}
 	
