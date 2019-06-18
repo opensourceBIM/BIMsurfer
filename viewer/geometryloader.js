@@ -43,6 +43,11 @@ export class GeometryLoader {
 		this.promise = new Promise((resolve, reject) => {
 			this.resolve = resolve;
 		});
+
+		// Object IDs need to be stored so that references
+		// to the GPU BufferSet can be made later, which is
+		// only constructed at the end of geometry loading.
+		this.oidsLoaded = [];
 	}
 	
 	processPreparedBufferInit(stream, hasTransparancy) {
@@ -121,8 +126,10 @@ export class GeometryLoader {
 
 		var currentColorIndex = 0;
 		var tmpOids = new Set();
+
 		for (var i = 0; i < nrObjects; i++) {
 			var oid = stream.readLong();
+			this.oidsLoaded.push(oid);
 			tmpOids.add(oid);
 			var startIndex = stream.readInt();
 			var nrIndices = stream.readInt();
@@ -155,8 +162,6 @@ export class GeometryLoader {
 			};
 			this.preparedBuffer.geometryIdToIndex.put(oid, [meta]);
 			
-			this.renderLayer.viewer.geometryIdToBufferSet.set(oid, [this.preparedGpuBuffer]);
-
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
 				var defaultColor = this.renderLayer.viewer.defaultColors[object.type];
@@ -248,6 +253,12 @@ export class GeometryLoader {
 		
 		if (this.preparedBuffer.nrObjectsRead == this.preparedBuffer.nrObjects) {
 			this.preparedGpuBuffer.finalize();
+
+			for (let oid of this.oidsLoaded) {
+				this.renderLayer.viewer.geometryIdToBufferSet.set(oid, [this.preparedGpuBuffer]);
+			}
+
+			this.oidsLoaded.length = 0;
 			this.preparedGpuBuffer = null;
 		}
 
