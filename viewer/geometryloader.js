@@ -155,8 +155,6 @@ export class GeometryLoader {
 			};
 			this.preparedBuffer.geometryIdToIndex.put(oid, [meta]);
 			
-			this.renderLayer.viewer.geometryIdToBufferSet.set(oid, [this.preparedGpuBuffer]);
-
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
 				var defaultColor = this.renderLayer.viewer.defaultColors[object.type];
@@ -240,6 +238,11 @@ export class GeometryLoader {
 		
 		if (this.preparedGpuBuffer == null) {
 			this.preparedGpuBuffer = this.renderLayer.addCompleteBuffer(this.preparedBuffer, this.gpuBufferManager);
+			if (createdObjects) {
+				for (var [oid, objectInfo] of createdObjects) {
+					this.renderLayer.viewer.geometryIdToBufferSet.set(oid, [this.preparedGpuBuffer]);
+				}
+			}
 		}
 
 		this.preparedGpuBuffer.update(this.preparedBuffer.indicesRead, this.preparedBuffer.positionsRead, this.preparedBuffer.normalsRead, this.preparedBuffer.colorsRead);
