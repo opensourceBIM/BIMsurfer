@@ -1,7 +1,7 @@
-import {Utils} from "./utils.js";
-import {ProgramManager} from "./programmanager.js";
-import {VERTEX_QUANTIZATION} from "./programmanager.js";
-import {LINE_PRIMITIVES} from "./programmanager.js";
+import { Utils } from "./utils.js";
+import { ProgramManager } from "./programmanager.js";
+import { VERTEX_QUANTIZATION } from "./programmanager.js";
+import { LINE_PRIMITIVES } from "./programmanager.js";
 
 /**
  *
@@ -28,12 +28,12 @@ import {LINE_PRIMITIVES} from "./programmanager.js";
  * 
  */
 export class FatLineRenderer {
-    constructor(viewer, gl, settings, unquantizationMatrix) {
-    	this.viewer = viewer;
+	constructor(viewer, gl, settings, unquantizationMatrix) {
+		this.viewer = viewer;
 		settings = settings || {};
 		this.idx = 0;
-        this.gl = gl;
-        this.vertexPosition = Array();
+		this.gl = gl;
+		this.vertexPosition = Array();
 		this.nextVertexPosition = Array();
 		this.direction = Array();
 		this.indices = Array();
@@ -42,47 +42,46 @@ export class FatLineRenderer {
 		this.croid = null;
 		this.unquantizationMatrix = unquantizationMatrix;
 		this.nrIndices = 0;
-		
-    	this.defaultDirection = new Float32Array([1, 1, -1, -1]);
-    	
+
+		this.defaultDirection = new Float32Array([1, 1, -1, -1]);
+
 		var key = 0;
 		key |= (this.quantize ? VERTEX_QUANTIZATION : 0);
 		key |= LINE_PRIMITIVES;
 		this.programInfo = this.viewer.programManager.getProgram(key);
-    }
-    
-    init(size) {
-    	// This method initializes the arrays as typed arrays with a known size, otherwise the arrays are used
-    	
-    	this.indexType = (size * 3 < 256) ? this.gl.UNSIGNED_BYTE : this.gl.UNSIGNED_SHORT;
-    	if (size * 3 > 65536) {
-    		this.indexType = this.gl.UNSIGNED_INT;
-    	}
+	}
+
+	init(size) {
+		// This method initializes the arrays as typed arrays with a known size, otherwise the arrays are used
+
+		this.indexType = (size * 4 < 256) ? this.gl.UNSIGNED_BYTE : this.gl.UNSIGNED_SHORT;
+		if (size * 4 > 65536) {
+			this.indexType = this.gl.UNSIGNED_INT;
+		}
 		const elemType = this.quantize ? this.gl.SHORT : this.gl.FLOAT;
 		const typedArrFn = Utils.glTypeToTypedArray(elemType);
 		this.vertexPosition = new typedArrFn(size * 12);
 		this.vertexPosition.pos = 0;
 		this.nextVertexPosition = new typedArrFn(size * 12);
 		this.nextVertexPosition.pos = 0;
-		
+
 		// TODO this is always 1, 1, -1, -1, why?
 		this.direction = new Float32Array(size * 4);
 		this.direction.pos = 0;
-		for (var i=0; i<size; i++) {
+		for (var i = 0; i < size; i++) {
 			this.direction.set(this.defaultDirection, this.direction.pos);
 			this.direction.pos += 4;
 		}
 
 		this.indices = this.indexType == this.gl.UNSIGNED_BYTE ? new Uint8Array(size * 6) : (this.indexType == this.gl.UNSIGNED_SHORT ? new Uint16Array(size * 6) : new Uint32Array(size * 6));
 		this.indices.pos = 0;
-		
-		this.nrIndices = size * 6;
-    }
 
-    finalize() {
+		this.nrIndices = size * 6;
+	}
+
+	finalize() {
 		const gl = this.gl;
-//		this.indexType = ((this.vertexPosition.length / 3) < 256) ? this.gl.UNSIGNED_BYTE : this.gl.UNSIGNED_SHORT;
-        this.setupFunctions = ["vertexPosition", "nextVertexPosition", "direction", "indices"].map((bufferName, i) => {
+		this.setupFunctions = ["vertexPosition", "nextVertexPosition", "direction", "indices"].map((bufferName, i) => {
 			const buf = this[bufferName + "Buffer"] = gl.createBuffer();
 			const bufType = bufferName === "indices" ? gl.ELEMENT_ARRAY_BUFFER : gl.ARRAY_BUFFER;
 			// @todo, somehow just cannot get direction as a byte to work :(
@@ -97,7 +96,7 @@ export class FatLineRenderer {
 
 			gl.bindBuffer(bufType, buf);
 			gl.bufferData(bufType, typedArr, this.gl.STATIC_DRAW);
-			
+
 			return (programInfo) => {
 				// TODO this could be done with a VAO?
 				gl.bindBuffer(bufType, buf);
@@ -112,15 +111,15 @@ export class FatLineRenderer {
 				}
 			};
 		});
-        
+
 		// Time to cleanup the CPU buffers?
 		this.vertexPosition = null;
 		this.nextVertexPosition = null;
 		this.direction = null;
 		this.indices = null;
-    }
+	}
 
-    pushVertices(a, b) {
+	pushVertices(a, b) {
 		this.vertexPosition.set(a, this.vertexPosition.pos);
 		this.vertexPosition.pos += 3;
 		this.vertexPosition.set(b, this.vertexPosition.pos);
@@ -146,15 +145,15 @@ export class FatLineRenderer {
 		this.indices[this.indices.pos++] = this.idx + 1;
 		this.indices[this.indices.pos++] = this.idx + 3;
 		this.indices[this.indices.pos++] = this.idx;
-		
-    	this.idx += 4;
+
+		this.idx += 4;
 	}
 
 	getVertexBuffer() {
 		return this.vertexPositionBuffer;
-    }
-    
-    // To minimize GPU calls, renderStart and renderStop can (and have to be) used in order to batch-draw a lot of boxes
+	}
+
+	// To minimize GPU calls, renderStart and renderStop can (and have to be) used in order to batch-draw a lot of boxes
 	renderStart(viewer, renderLayer) {
 		this.gl.useProgram(this.programInfo.program);
 
@@ -180,7 +179,7 @@ export class FatLineRenderer {
 	}
 
 	renderStop() {
-		
+
 	}
 
 	render(color, matrix, thickness) {
