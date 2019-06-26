@@ -7,7 +7,7 @@ import {DataInputStream} from "./datainputstream.js";
 
 import {AvlTree} from "./collections/avltree.js";
 
-const PROTOCOL_VERSION = 18;
+const PROTOCOL_VERSION = 19;
 
 // temporary for emergency quantization
 const v4 = vec4.create();
