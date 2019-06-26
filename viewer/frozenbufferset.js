@@ -8,9 +8,9 @@ export class FrozenBufferSet extends AbstractBufferSet {
     constructor(
     	viewer,
         originalBuffer,
-        positionBuffer, normalBuffer, colorBuffer, pickColorBuffer, indexBuffer,				
+        positionBuffer, normalBuffer, colorBuffer, pickColorBuffer, indexBuffer, lineIndexBuffer,				
         color, colorHash,
-        nrIndices, nrNormals, nrPositions, nrColors,
+        nrIndices, nrLineIndices, nrNormals, nrPositions, nrColors,
         vao, vaoPick,
         hasTransparency, reuse, owner, manager, 
 
@@ -29,11 +29,13 @@ export class FrozenBufferSet extends AbstractBufferSet {
         this.colorBuffer = colorBuffer;
         this.pickColorBuffer = pickColorBuffer;
         this.indexBuffer = indexBuffer;
+        this.lineIndexBuffer = lineIndexBuffer;
 
         this.color = color;
         this.colorHash = colorHash;
 
         this.nrIndices = nrIndices;
+        this.nrLineIndices = nrLineIndices;
         this.nrNormals = nrNormals;
         this.nrPositions = nrPositions;
         this.nrColors = nrColors;

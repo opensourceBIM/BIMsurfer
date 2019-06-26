@@ -195,61 +195,88 @@ export class AbstractBufferSet {
             quantize: this.positionBuffer.js_type !== Float32Array.name
         }, this.unquantizationMatrix);
 
-        let index = this.geometryIdToIndex.get(objectId);
-    	let idx = index[0];
-    	let [offset, length] = [idx.start, idx.length];
-    	let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
+		if (this.lineIndexBuffer != null) {
+			debugger;
 
-		let numVertices = maxIndex - minIndex + 1;
-		let gpu_data = this.batchGpuBuffers["positionBuffer"];
+			// TODO this is where we are
+			// Problem here is that the buffer is now already created on the GPU, but we need to convert it to a fatlinerenderer...
+			// So we could either generate the line render buffers as fat lines already (taking more network), but real quick to send to GPU, or
+			// Not store the data on the GPU when loading, but as a CPU buffer, and then just iterating over the CPU data when creating a LineRenderer using the normal code
+			// This last option sucks if we want to always do line rendering of all objects
+			// 2 triangles of data per line is a lot...
 
-		const bounds = this.batchGpuBuffers.bounds;
-		
-		var size = 0;
-		
-		// A more efficient (and certainly more compact) version that used bitshifting was working fine up until 16bits, unfortunately JS only does bitshifting < 32 bits, so now we have this crappy solution
-		
-		var indexOffset = offset - bounds.startIndex;
-		
-		const s = new Set();
-        
-		const indices = this.batchGpuBuffers.indices;
-		for (var i=0; i<length; i+=3) {
-            for (let j = 0; j < 3; ++j) {
-            	let a = indices[indexOffset + i + j];
-            	let b = indices[indexOffset + i + (j+1)%3];
-            	
-            	if (a > b) {
-            		const tmp = a;
-            		a = b;
-            		b = tmp;
-            	}
+			lineRenderer.init(this.lineIndexBuffer.N);
+			const bounds = this.batchGpuBuffers.bounds;
+			const vertexOffset = -bounds.minIndex * 3;
+			for (let e of s) {
+				const a = Math.floor(e / 67108864);
+				const b = e - a * 67108864;
+				const as = vertexOffset + a * 3;
+				const bs = vertexOffset + b * 3;
+				let A = gpu_data.subarray(as, as + 3);
+				let B = gpu_data.subarray(bs, bs + 3);
+				lineRenderer.pushVertices(A, B);
+			}
+			lineRenderer.finalize();
 
-            	// First tried to do this with bit shifting, but bit shifting in JS is 32bit
-            	const abs = a * 67108864 + b; // 2^26=67108864. A maximum of 52 bits is used, staying just under 2^53, which is the max safe int
-                if (s.has(abs)) {
-                    s.delete(abs);
-                } else {
-                    s.add(abs);
-                }
-            }
-        }
-        
-        lineRenderer.init(s.size);
-        const vertexOffset = -bounds.minIndex * 3;
-        for (let e of s) {
-        	const a = Math.floor(e / 67108864);
-        	const b = e - a * 67108864;
-            const as = vertexOffset + a * 3;
-        	const bs = vertexOffset + b * 3;
-            let A = gpu_data.subarray(as, as + 3);
-    		let B = gpu_data.subarray(bs, bs + 3);
-    		lineRenderer.pushVertices(A, B);
-        }
-        
-        lineRenderer.finalize();
+			return lineRenderer;
+		} else {
+			let index = this.geometryIdToIndex.get(objectId);
+			let idx = index[0];
+			let [offset, length] = [idx.start, idx.length];
+			let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
 
-        return lineRenderer;
+			let numVertices = maxIndex - minIndex + 1;
+			let gpu_data = this.batchGpuBuffers["positionBuffer"];
+
+			const bounds = this.batchGpuBuffers.bounds;
+			
+			var size = 0;
+			
+			// A more efficient (and certainly more compact) version that used bitshifting was working fine up until 16bits, unfortunately JS only does bitshifting < 32 bits, so now we have this crappy solution
+			
+			var indexOffset = offset - bounds.startIndex;
+			
+			const s = new Set();
+			
+			const indices = this.batchGpuBuffers.indices;
+			for (var i=0; i<length; i+=3) {
+				for (let j = 0; j < 3; ++j) {
+					let a = indices[indexOffset + i + j];
+					let b = indices[indexOffset + i + (j+1)%3];
+					
+					if (a > b) {
+						const tmp = a;
+						a = b;
+						b = tmp;
+					}
+
+					// First tried to do this with bit shifting, but bit shifting in JS is 32bit
+					const abs = a * 67108864 + b; // 2^26=67108864. A maximum of 52 bits is used, staying just under 2^53, which is the max safe int
+					if (s.has(abs)) {
+						s.delete(abs);
+					} else {
+						s.add(abs);
+					}
+				}
+			}
+			
+			lineRenderer.init(s.size);
+			const vertexOffset = -bounds.minIndex * 3;
+			for (let e of s) {
+				const a = Math.floor(e / 67108864);
+				const b = e - a * 67108864;
+				const as = vertexOffset + a * 3;
+				const bs = vertexOffset + b * 3;
+				let A = gpu_data.subarray(as, as + 3);
+				let B = gpu_data.subarray(bs, bs + 3);
+				lineRenderer.pushVertices(A, B);
+			}
+			
+			lineRenderer.finalize();
+
+			return lineRenderer;
+		}
     }
 
     getBounds(id_ranges) {

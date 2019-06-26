@@ -549,11 +549,13 @@ export class RenderLayer {
 				buffer.colors,
 				buffer.pickColors,
 				buffer.indices,
+				buffer.lineIndices,
 				
 				null,
 				0,
 				
 				buffer.nrIndices,
+				buffer.nrLineIndices,
 				buffer.normalsIndex,
 				buffer.positionsIndex,
 				buffer.colorsIndex,

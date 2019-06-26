@@ -96,12 +96,15 @@ export class TilingRenderLayer extends RenderLayer {
 		
 //		console.log(closestPotentialDistanceMm);
 		
+		// Project the biggest face of the node to 2D and determine it's area in pixels
+		
 		const vFOV = this.viewer.camera.perspective.fov * Math.PI / 180;
-		const pixelWidth = 2 * Math.tan(vFOV / 2) * Math.abs(closestPotentialDistanceMm);
+		const pixelWidth = 1000 * Math.tan(vFOV / 2) / closestPotentialDistanceMm; // far-plane distance
 
-		const factor = 200000 / closestPotentialDistanceMm;
+		const factor = 100000 / pixelWidth;
 		
 		if (node.gpuBufferManager != null) {
+			// A tile is already loaded, we need to determine how much of it to show
 			node.stats.trianglesDrawing = 0;
 			var totalTriangles = 0;
 			for (var transparent of [false, true]) {
@@ -125,7 +128,8 @@ export class TilingRenderLayer extends RenderLayer {
 				return true;
 			}
 		} else {
-			if (closestPotentialDistanceMm < 800000) {
+			// This bit determines whether a tile will be loaded or not
+			if (pixelWidth > 0.004) {
 				return false;
 			} else {
 				node.normalizedDistanceFactor = 0;

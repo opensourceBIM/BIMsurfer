@@ -23,7 +23,8 @@ export class Settings {
 				quantizeColors: "boolean",
 				useObjectColors: "boolean",
 				tilingLayerReuse: "boolean",
-				prepareBuffers: "boolean"
+				prepareBuffers: "boolean",
+				generateLineRenders: "boolean"
 			},
 			realtimeSettings: {
 				drawTileBorders: "boolean",
@@ -50,7 +51,7 @@ export class Settings {
 				quantizeColors: true,
 				useObjectColors: false,
 				tilingLayerReuse: true,
-				prepareBuffer: false
+				prepareBuffers: false
 			},
 			realtimeSettings: {
 				drawTileBorders: true,

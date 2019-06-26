@@ -55,11 +55,13 @@ export class GeometryLoader {
 
 		this.preparedBuffer.nrObjects = stream.readInt();
 		this.preparedBuffer.nrIndices = stream.readInt();
+		this.preparedBuffer.nrLineIndices = stream.readInt();
 		this.preparedBuffer.positionsIndex = stream.readInt();
 		this.preparedBuffer.normalsIndex = stream.readInt();
 		this.preparedBuffer.colorsIndex = stream.readInt();
 		
 		this.preparedBuffer.indicesRead = 0;
+		this.preparedBuffer.lineIndicesRead = 0;
 		this.preparedBuffer.positionsRead = 0;
 		this.preparedBuffer.normalsRead = 0;
 		this.preparedBuffer.colorsRead = 0;
@@ -69,6 +71,9 @@ export class GeometryLoader {
 		this.preparedBuffer.nrColors = this.preparedBuffer.positionsIndex * 4 / 3;
 
 		this.preparedBuffer.indices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrIndices, this.renderLayer.gl.ELEMENT_ARRAY_BUFFER, 3, WebGL2RenderingContext.UNSIGNED_INT, "Uint32Array");
+		if (this.loaderSettings.generateLineRenders) {
+			this.preparedBuffer.lineIndices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrLineIndices, this.renderLayer.gl.ELEMENT_ARRAY_BUFFER, 2, WebGL2RenderingContext.UNSIGNED_INT, "Uint32Array");
+		}
 		this.preparedBuffer.colors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
 		this.preparedBuffer.vertices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.positionsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, this.loaderSettings.quantizeVertices ? WebGL2RenderingContext.SHORT : WebGL2RenderingContext.FLOAT, this.loaderSettings.quantizeVertices ? "Int16Array" : "Float32Array");
 		this.preparedBuffer.normals = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 2, WebGL2RenderingContext.BYTE, "Int8Array");
@@ -91,6 +96,7 @@ export class GeometryLoader {
 	processPreparedBuffer(stream, hasTransparancy, forceUnquantized) {
 		const nrObjects = stream.readInt();
 		const totalNrIndices = stream.readInt();
+		const totalNrLineIndices = stream.readInt();
 		const positionsIndex = stream.readInt();
 		const normalsIndex = stream.readInt();
 		const colorsIndex = stream.readInt();
@@ -100,14 +106,19 @@ export class GeometryLoader {
 		}
 		
 		this.preparedBuffer.indicesRead += totalNrIndices;
+		this.preparedBuffer.lineIndicesRead += totalNrLineIndices;
 		this.preparedBuffer.positionsRead += positionsIndex;
 		this.preparedBuffer.normalsRead += normalsIndex;
 		this.preparedBuffer.colorsRead += colorsIndex;
 		
 		const previousStartIndex = this.preparedBuffer.indices.writePosition / 4;
+		const previousLineIndexStart = this.preparedBuffer.lineIndices.writePosition / 4;
 		const previousColorIndex = this.preparedBuffer.colors.writePosition;
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.indices, stream.dataView, stream.pos, totalNrIndices);
 		stream.pos += totalNrIndices * 4;
+
+		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.lineIndices, stream.dataView, stream.pos, totalNrLineIndices);
+		stream.pos += totalNrLineIndices * 4;
 
 		var nrColors = positionsIndex * 4 / 3;
 		var colors = new Uint8Array(nrColors);
@@ -132,7 +143,9 @@ export class GeometryLoader {
 			this.oidsLoaded.push(oid);
 			tmpOids.add(oid);
 			var startIndex = stream.readInt();
+			var startLineIndex = stream.readInt();
 			var nrIndices = stream.readInt();
+			var nrLineIndices = stream.readInt();
 			var nrVertices = stream.readInt();
 			var minIndex = stream.readInt();
 			var maxIndex = stream.readInt();
@@ -155,6 +168,8 @@ export class GeometryLoader {
 			const meta = {
 				start: previousStartIndex + startIndex,
 				length: nrIndices,
+				lineIndicesStart: previousLineIndexStart + startLineIndex,
+				lineIndicesLength: nrLineIndices,
 				color: previousColorIndex + currentColorIndex,
 				colorLength: nrObjectColors,
 				minIndex: minIndex,
