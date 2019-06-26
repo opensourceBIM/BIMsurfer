@@ -112,13 +112,15 @@ export class GeometryLoader {
 		this.preparedBuffer.colorsRead += colorsIndex;
 		
 		const previousStartIndex = this.preparedBuffer.indices.writePosition / 4;
-		const previousLineIndexStart = this.preparedBuffer.lineIndices.writePosition / 4;
+		const previousLineIndexStart = this.loaderSettings.generateLineRenders ? this.preparedBuffer.lineIndices.writePosition / 4 : 0;
 		const previousColorIndex = this.preparedBuffer.colors.writePosition;
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.indices, stream.dataView, stream.pos, totalNrIndices);
 		stream.pos += totalNrIndices * 4;
 
-		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.lineIndices, stream.dataView, stream.pos, totalNrLineIndices);
-		stream.pos += totalNrLineIndices * 4;
+		if (this.loaderSettings.generateLineRenders) {
+			Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.lineIndices, stream.dataView, stream.pos, totalNrLineIndices);
+			stream.pos += totalNrLineIndices * 4;
+		}
 
 		var nrColors = positionsIndex * 4 / 3;
 		var colors = new Uint8Array(nrColors);
