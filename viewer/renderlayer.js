@@ -40,8 +40,8 @@ export class RenderLayer {
 		this.postProcessingTranslation = vec3.create();
 	}
 
-	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
-		var bytesUsed = Utils.calculateBytesUsed(this.settings, positions.length, colors.length, indices.length, normals.length);
+	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, lineIndices, hasTransparency, reused) {
+		var bytesUsed = Utils.calculateBytesUsed(this.settings, positions.length, colors.length, indices.length, lineIndices ? lineIndices.length : 0, normals.length);
 		var geometry = {
 				id: geometryId,
 				roid: roid,
@@ -51,6 +51,7 @@ export class RenderLayer {
 				colors: colors,
 				color: color,
 				indices: indices,
+				lineIndices: lineIndices,
 				hasTransparency: hasTransparency,
 				reused: reused, // How many times this geometry is reused, this does not necessarily mean the viewer is going to utilize this reuse
 				reuseMaterialized: 0, // How many times this geometry has been reused in the viewer, when this number reaches "reused" we can flush the buffer fo' sho'
@@ -312,6 +313,7 @@ export class RenderLayer {
 			? Utils.createBuffer(this.gl, geometry.colors, null, this.gl.ARRAY_BUFFER, 4)
 			: null;
 		const indexBuffer = Utils.createIndexBuffer(this.gl, this.bufferTransformer.convertIndices(geometry.indices, geometry.positions.length));
+		const lineIndexBuffer = geometry.lineIndices ? Utils.createIndexBuffer(this.gl, geometry.lineIndices) : null;
 		
 		let color, colorHash;
 
@@ -329,11 +331,13 @@ export class RenderLayer {
 			colorBuffer,
 			null,
 			indexBuffer,
+			lineIndexBuffer,
 			
 			color,
 			colorHash,
 			
 			geometry.indices.length,
+			geometry.lineIndices ? geometry.lineIndices.length : 0,
 			normalBuffer.N,
 			positionBuffer.N,
 			colorBuffer.N,
@@ -363,7 +367,7 @@ export class RenderLayer {
 		loader.geometries.delete(geometry.id);
 		gpuBufferManager.pushBuffer(buffer);
 
-		this.viewer.stats.inc("Primitives", "Nr primitives loaded", (buffer.nrIndices / 3) * geometry.matrices.length);
+		this.viewer.stats.inc("Primitives", "Nr primitives loaded", buffer.nrTrianglesToDraw);
 		if (this.progressListener != null) {
 			this.progressListener(this.viewer.stats.get("Primitives", "Nr primitives loaded") + this.viewer.stats.get("Primitives", "Nr primitives hidden"));
 		}
@@ -450,12 +454,16 @@ export class RenderLayer {
 		gl.bindVertexArray(picking ? buffer.vaoPick : buffer.vao);
 		if (buffer.reuse) {
 			if (this.viewer.settings.quantizeVertices) {
-				if (this.lastCroidRendered === buffer.croid) {
-					// Skip it
+				if (buffer.croid) {
+					if (this.lastCroidRendered === buffer.croid) {
+						// Skip it
+					} else {
+						let uqm = this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(buffer.croid);
+						gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, uqm);
+						this.lastCroidRendered = buffer.croid;
+					}
 				} else {
-					let uqm = this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(buffer.croid);
-					gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, uqm);
-					this.lastCroidRendered = buffer.croid;
+					console.log("no croid");
 				}
 			}
 
@@ -619,6 +627,7 @@ export class RenderLayer {
 				? Utils.createBuffer(this.gl, buffer.pickColors, buffer.pickColorsIndex, this.gl.ARRAY_BUFFER, 4)
 				: null;
 			const indexBuffer = Utils.createIndexBuffer(this.gl, buffer.indices, buffer.indicesIndex);
+			const lineIndexBuffer = buffer.lineIndices ? Utils.createIndexBuffer(this.gl, buffer.indices, buffer.indicesIndex) : null;
 
 			let color, colorHash;
 
@@ -636,11 +645,13 @@ export class RenderLayer {
 				colorBuffer,
 				pickColorBuffer,
 				indexBuffer,
+				lineIndexBuffer,
 				
 				color,
 				colorHash,
 				
 				buffer.nrIndices,
+				buffer.nrLineIndices,
 				buffer.normalsIndex,
 				buffer.positionsIndex,
 				buffer.colorsIndex,

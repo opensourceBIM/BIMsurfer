@@ -192,7 +192,8 @@ export class Utils {
 		});
 	}
 	
-	static calculateBytesUsed(settings, nrVertices, nrColors, nrIndices, nrNormals) {
+	static calculateBytesUsed(settings, nrVertices, nrColors, nrIndices, nrLineIndices, nrNormals) {
+		// TODO add lineIndices
 		var bytes = 0;
 		if (settings.quantizeVertices) {
 			bytes += nrVertices * 2;

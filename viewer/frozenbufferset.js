@@ -112,12 +112,14 @@ export class FrozenBufferSet extends AbstractBufferSet {
             this.normalBuffer,
             this.colorBuffer,
             this.pickColorBuffer,
-            this.indexBuffer,
+			this.indexBuffer,
+			this.lineIndexBuffer,
 
             null,
             null,
 
-            this.indexBuffer.N,
+			this.indexBuffer.N,
+			this.lineIndexBuffer.N,
             this.normalBuffer.N,
             this.positionBuffer.N,
             this.colorBuffer.N,

@@ -534,7 +534,7 @@ export class GeometryLoader {
 		if (colors.length == 0) {
 			debugger;
 		}
-		this.renderLayer.createGeometry(this.loaderId, roid, croid, geometryDataOid, positions, normals, colors, color, indices, hasTransparency, reused);
+		this.renderLayer.createGeometry(this.loaderId, roid, croid, geometryDataOid, positions, normals, colors, color, indices, null, hasTransparency, reused);
 	}
 
 	readColors(stream, type) {
