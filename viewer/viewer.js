@@ -16,6 +16,7 @@ import {SSQuad} from "./ssquad.js";
 import {FreezableSet} from "./freezableset.js";
 import {DefaultCss} from "./defaultcss.js";
 import {DefaultColors} from "./defaultcolors.js";
+import {AvlTree} from "./collections/avltree.js";
 
 import {COLOR_FLOAT_DEPTH_NORMAL, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 import { WSQuad } from './wsquad.js';
@@ -110,7 +111,7 @@ export class Viewer {
         this.renderLayers = new Set();
         this.animationListeners = [];
         this.colorRestore = [];
-        this.geometryIdToBufferSet = new Map();
+        this.geometryIdToBufferSet = new AvlTree();
 
         // Object ID -> ViewObject
         this.viewObjects = new Map();
@@ -243,7 +244,8 @@ export class Viewer {
 	    				this.hiddenDueToSetColor.delete(objectId);
 	    			} else if (this.originalColors.has(objectId)) {
 	    				this.geometryIdToBufferSet.get(objectId).forEach((bufferSet) => {
-	    					bufferSet.setColor(this.gl, objectId, this.originalColors.get(objectId));
+							const originalColor = this.originalColors.get(objectId);
+							bufferSet.setColor(this.gl, objectId, originalColor);
 	    				});
 	    				
 	    				this.originalColors.delete(objectId);

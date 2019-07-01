@@ -1,4 +1,5 @@
 import {FatLineRenderer} from "./fatlinerenderer.js";
+import {AvlTree} from "./collections/avltree.js";
 
 var counter = 1;
 
@@ -488,7 +489,7 @@ export class AbstractBufferSet {
 		this.nrIndices = 0;
 		this.bytes = 0;
 		this.visibleRanges = new Map();
-		this.geometryIdToIndex = new Map();
+		this.geometryIdToIndex = new AvlTree();
 		this.lineIndexBuffers = new Map();
 	}
 
@@ -562,7 +563,11 @@ export class AbstractBufferSet {
 			newColors = clr;
 		}
 
-		for (var idx of this.geometryIdToIndex.get(objectId)) {
+		const idxs = this.geometryIdToIndex.get(objectId);
+		if (idxs == null) {
+			return;
+		}
+		for (var idx of idxs) {
 			let [offset, length] = [idx.color, idx.colorLength];
 			let bytes_per_elem = window[this.colorBuffer.js_type].BYTES_PER_ELEMENT;
 			
