@@ -274,7 +274,11 @@ export class BinarySearchTree {
             if (compFn(node, key) === 0)return retKV ? {key : node.key, value : node.value} : node;
         }
     }
-    
+	
+	has(key) {
+		return this.getKeyValue(key) != null;
+	}
+
     get(key) {
     	const kv = this.getKeyValue(key);
     	if (kv) {
