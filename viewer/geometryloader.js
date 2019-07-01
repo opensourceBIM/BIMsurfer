@@ -262,11 +262,6 @@ export class GeometryLoader {
 		
 		if (this.preparedGpuBuffer == null) {
 			this.preparedGpuBuffer = this.renderLayer.addCompleteBuffer(this.preparedBuffer, this.gpuBufferManager);
-			if (createdObjects) {
-				for (var [oid, objectInfo] of createdObjects) {
-					this.renderLayer.viewer.geometryIdToBufferSet.set(oid, [this.preparedGpuBuffer]);
-				}
-			}
 		}
 
 		this.preparedGpuBuffer.update(this.preparedBuffer.indicesRead, this.preparedBuffer.positionsRead, this.preparedBuffer.normalsRead, this.preparedBuffer.colorsRead);
@@ -277,11 +272,12 @@ export class GeometryLoader {
 			this.preparedGpuBuffer.finalize();
 
 			for (let oid of this.oidsLoaded) {
-				this.renderLayer.viewer.geometryIdToBufferSet.set(oid, [this.preparedGpuBuffer]);
+				this.renderLayer.viewer.geometryIdToBufferSet.put(oid, [this.preparedGpuBuffer]);
 			}
 
 			this.oidsLoaded.length = 0;
 			this.preparedGpuBuffer = null;
+			this.preparedBuffer = null;
 		}
 
 		stream.align8();
