@@ -626,6 +626,10 @@ export class GeometryLoader {
 	}
 	
 	start() {
+		if (this.renderLayer.progressListener != null) {
+			this.renderLayer.progressListener(0);
+		}
+		
 		if (this.onStart != null) {
 			this.onStart();
 		}
