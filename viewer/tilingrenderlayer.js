@@ -397,7 +397,8 @@ export class TilingRenderLayer extends RenderLayer {
 	addCompleteBuffer(buffer, gpuBufferManager) {
 		var newBuffer = super.addCompleteBuffer(buffer, gpuBufferManager);
 		
-		var node = this.loaderToNode[buffer.loaderId];
+		const node = this.loaderToNode[buffer.loaderId];
+		newBuffer.node = node;
 		node.stats.triangles += buffer.nrIndices / 3;
 		node.stats.drawCallsPerFrame++;
 		
