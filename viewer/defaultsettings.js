@@ -60,7 +60,7 @@ export class DefaultSettings {
 		if (settings.loaderSettings.splitGeometry == null) {
 			settings.loaderSettings.splitGeometry = false;
 		}
-		if (settings.loaderSettings.splitGeometry == null) {
+		if (settings.loaderSettings.generateLineRenders == null) {
 			settings.loaderSettings.generateLineRenders = false;
 		}
 		if (settings.loaderSettings.normalizeUnitsToMM == null) {
