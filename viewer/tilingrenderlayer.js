@@ -245,6 +245,7 @@ export class TilingRenderLayer extends RenderLayer {
 				color = GREEN;
 			} else if (node.visibilityStatus === 1) {
 				if (node.normalizedDistanceFactor === 1) {
+					// Uncomment for debugging tile borders
 //					color = PURPLE;
 				} else {
 					color = BLUE;
