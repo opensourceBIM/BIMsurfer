@@ -19,7 +19,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
     {
         super(viewer);
 
-        this.geometryIdToIndex = originalBuffer ? originalBuffer.geometryIdToIndex : null;
+        this.objectIdToIndex = originalBuffer ? originalBuffer.objectIdToIndex : null;
         // @todo make these something like LRU caches?
         this.visibleRanges = new Map();
         this.lineIndexBuffers = new Map();

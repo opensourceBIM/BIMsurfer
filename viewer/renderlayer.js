@@ -223,7 +223,7 @@ export class RenderLayer {
 				buffer.pickColorsIndex += 4;
 			}
 
-			var li = (buffer.geometryIdToIndex.get(object.id) || []);
+			var li = (buffer.objectIdToIndex.get(object.id) || []);
 			var idx = {
 				start: buffer.indicesIndex, 
 				length: geometry.indices.length,
@@ -231,7 +231,7 @@ export class RenderLayer {
 				colorLength: geometry.colors.length
 			};
 			li.push(idx);
-			buffer.geometryIdToIndex.set(object.id, li);
+			buffer.objectIdToIndex.set(object.id, li);
 			
 			var index = Array(3);
 			for (var i=0; i<geometry.indices.length; i+=3) {
@@ -252,14 +252,13 @@ export class RenderLayer {
 				buffer.indicesIndex += 3;
 			}
 		} catch (e) {
+			debugger;
 			console.error(e);
 			console.log(sizes);
 			console.log(buffer);
 			throw e;
 		}
 
-		buffer.geometryIdToIndex = Utils.sortMapKeys(buffer.geometryIdToIndex);
-		
 		buffer.nrIndices += geometry.indices.length;
 		buffer.bytes += geometry.bytes;
 		
@@ -362,7 +361,7 @@ export class RenderLayer {
 		buffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
 
 		geometry.objects.forEach((obj) => {
-			this.viewer.geometryIdToBufferSet.set(obj.id, [buffer]);
+			this.viewer.objectIdToBufferSet.set(obj.id, [buffer]);
 		});
 
 		loader.geometries.delete(geometry.id);
@@ -378,6 +377,7 @@ export class RenderLayer {
 			geometry.bytes + 
 			geometry.matrices.length * 16 * 4 + // vertex matrices
 			geometry.matrices.length * 9 * 4; // normal matrices
+		
 		this.viewer.stats.inc("Data", "GPU bytes reuse", toadd);
 		this.viewer.stats.inc("Data", "GPU bytes total", toadd);
 
@@ -583,7 +583,7 @@ export class RenderLayer {
 			
 			newBuffer.unquantizationMatrix = buffer.unquantizationMatrix;
 
-			newBuffer.geometryIdToIndex = buffer.geometryIdToIndex;
+			newBuffer.objectIdToIndex = buffer.objectIdToIndex;
 			
 			newBuffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
 					
@@ -672,11 +672,11 @@ export class RenderLayer {
 			
 			newBuffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
 
-			if (buffer.geometryIdToIndex) {
-				for (var key of buffer.geometryIdToIndex.keys()) {
-					var li = (this.viewer.geometryIdToBufferSet.get(key) || []);
+			if (buffer.objectIdToIndex) {
+				for (var key of buffer.objectIdToIndex.keys()) {
+					var li = (this.viewer.objectIdToBufferSet.get(key) || []);
 					li.push(newBuffer);
-					this.viewer.geometryIdToBufferSet.set(key, li);
+					this.viewer.objectIdToBufferSet.set(key, li);
 				}
 			}			
 			

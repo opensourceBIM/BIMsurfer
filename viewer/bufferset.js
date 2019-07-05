@@ -21,5 +21,7 @@ export class BufferSet extends AbstractBufferSet {
         this.hasTransparency = hasTransparency;
         this.color = color;
         this.bytes = 0;
+        
+        this.objectIdToIndex = new Map();
     };
 }
