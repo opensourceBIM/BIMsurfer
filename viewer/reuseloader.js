@@ -53,9 +53,9 @@ export class ReuseLoader {
 	 * This class acts as if it's a RenderLayer, the createGeometry is called} from the BimserverGeometryLoader
 	 * We just store the incoming geometry in the (global) GeometryCache
 	 */
-	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, hasTransparency, reused) {
+	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, lineIndices, hasTransparency, reused) {
 		this.nrReused++;
-		var bytes = Utils.calculateBytesUsed(this.settings, positions.length, colors.length, indices.length, normals.length);
+		var bytes = Utils.calculateBytesUsed(this.settings, positions.length, colors.length, indices.length, lineIndices ? lineIndices.length : 0, normals.length);
 		this.bytesReused += bytes;
 		var geometry = {
 				id: geometryId,
