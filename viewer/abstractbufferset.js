@@ -52,7 +52,7 @@ export class AbstractBufferSet {
     			pos: 1
     		}
     	}
-    	var maxNrRanges = this.geometryIdToIndex.size / 2;
+    	var maxNrRanges = this.objectIdToIndex.size / 2;
     	var complement = {
     		counts: new Int32Array(maxNrRanges),
     		offsets: new Int32Array(maxNrRanges),
@@ -222,7 +222,7 @@ export class AbstractBufferSet {
 
 			return lineRenderer;
 		} else {
-			let index = this.geometryIdToIndex.get(objectId);
+			let index = this.objectIdToIndex.get(objectId);
 			let idx = index[0];
 			let [offset, length] = [idx.start, idx.length];
 			let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
@@ -285,7 +285,7 @@ export class AbstractBufferSet {
     	for (const idRange of id_ranges) {
     		const oid = idRange[0];
     		const range = idRange[1];
-    		let idx = this.geometryIdToIndex.get(oid)[0];
+    		let idx = this.objectIdToIndex.get(oid)[0];
     		if (bounds.startIndex == null || range[0] < bounds.startIndex) {
     			bounds.startIndex = range[0];
     		}
@@ -349,10 +349,10 @@ export class AbstractBufferSet {
     }
     
     // generator function that yields ranges in this buffer for the selected ids
-    * _(geometryIdToIndex, ids) {
+    * _(objectIdToIndex, ids) {
         var oids;
         for (var i of ids) {
-    		if ((oids = geometryIdToIndex.get(i))) {
+    		if ((oids = objectIdToIndex.get(i))) {
     			for (var j = 0; j < oids.length; ++j) {
     				yield [i, [oids[j].start, oids[j].start + oids[j].length]];
     			}
@@ -361,9 +361,9 @@ export class AbstractBufferSet {
     }
 
     getIdRanges(oids) {
-    	var iterator1 = this.geometryIdToIndex.keys();
+    	var iterator1 = this.objectIdToIndex.keys();
     	var iterator2 = oids[Symbol.iterator]();
-    	const id_ranges = this.geometryIdToIndex
+    	const id_ranges = this.objectIdToIndex
     	? Array.from(this.findUnion(iterator1, iterator2)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
     			// If we don't have this mapping, we're dealing with a dedicated
     			// non-instanced bufferset for one particular overriden object
@@ -373,7 +373,7 @@ export class AbstractBufferSet {
     
     /**
      * Generator function that yields ranges in this buffer for the selected ids
-     * This one tries to do better than _ by utilizing the fact (requirement) that both geometryIdToIndex and ids are numerically ordered beforehand
+     * This one tries to do better than _ by utilizing the fact (requirement) that both objectIdToIndex and ids are numerically ordered beforehand
      * Basically it only iterates through both iterators only once. Could be even faster with a real TreeMap, but we don't have it available
      */
     * findUnion(iterator1, iterator2) {
@@ -382,7 +382,7 @@ export class AbstractBufferSet {
     	while (!next1.done && !next2.done) {
     		if (next1.value == next2.value) {
     			const i = next1.value;
-    			var oids = this.geometryIdToIndex.get(i);
+    			var oids = this.objectIdToIndex.get(i);
     			for (var j = 0; j < oids.length; ++j) {
     				yield [i, [oids[j].start, oids[j].start + oids[j].length]];
     			}
@@ -427,10 +427,10 @@ export class AbstractBufferSet {
     		return result;
     	}
 
-    	var iterator1 = this.geometryIdToIndex.keys();
+    	var iterator1 = this.objectIdToIndex.keys();
     	var iterator2 = ids._set[Symbol.iterator]();
 
-    	const id_ranges = this.geometryIdToIndex
+    	const id_ranges = this.objectIdToIndex
     	? Array.from(this.findUnion(iterator1, iterator2)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
     			// If we don't have this mapping, we're dealing with a dedicated
     			// non-instanced bufferset for one particular overriden object
@@ -489,7 +489,7 @@ export class AbstractBufferSet {
 		this.nrIndices = 0;
 		this.bytes = 0;
 		this.visibleRanges = new Map();
-		this.geometryIdToIndex = new AvlTree();
+		this.objectIdToIndex = new AvlTree();
 		this.lineIndexBuffers = new Map();
 	}
 
@@ -499,7 +499,7 @@ export class AbstractBufferSet {
         if (this.objects) {
             return this.copyEmpty();
         } else {
-    		let idx = this.geometryIdToIndex.get(objectId)[0];
+    		let idx = this.objectIdToIndex.get(objectId)[0];
     		let [offset, length] = [idx.start, idx.length];
     		
 			const indices = new Uint32Array(length);
@@ -563,7 +563,7 @@ export class AbstractBufferSet {
 			newColors = clr;
 		}
 
-		const idxs = this.geometryIdToIndex.get(objectId);
+		const idxs = this.objectIdToIndex.get(objectId);
 		if (idxs == null) {
 			return;
 		}
