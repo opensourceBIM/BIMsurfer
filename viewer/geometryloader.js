@@ -55,6 +55,7 @@ export class GeometryLoader {
 
 		this.preparedBuffer.nrObjects = stream.readInt();
 		this.preparedBuffer.nrIndices = stream.readInt();
+		
 		this.preparedBuffer.nrLineIndices = stream.readInt();
 		this.preparedBuffer.positionsIndex = stream.readInt();
 		this.preparedBuffer.normalsIndex = stream.readInt();
@@ -79,7 +80,7 @@ export class GeometryLoader {
 		this.preparedBuffer.normals = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 2, WebGL2RenderingContext.BYTE, "Int8Array");
 		this.preparedBuffer.pickColors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
 
-		this.preparedBuffer.geometryIdToIndex = new AvlTree();
+		this.preparedBuffer.objectIdToIndex = new AvlTree();
 
 		this.preparedBuffer.loaderId = this.loaderId;
 		this.preparedBuffer.hasTransparency = hasTransparancy;
@@ -88,7 +89,7 @@ export class GeometryLoader {
 			this.preparedBuffer.unquantizationMatrix = this.unquantizationMatrix;
 		}
 
-		this.preparedBuffer.bytes = Utils.calculateBytesUsed(this.settings, this.preparedBuffer.positionsIndex, this.preparedBuffer.nrColors, this.preparedBuffer.nrIndices, this.preparedBuffer.normalsIndex);
+		this.preparedBuffer.bytes = Utils.calculateBytesUsed(this.settings, this.preparedBuffer.positionsIndex, this.preparedBuffer.nrColors, this.preparedBuffer.nrIndices, this.preparedBuffer.nrLineIndices, this.preparedBuffer.normalsIndex);
 
 		stream.align8();
 	}
@@ -133,17 +134,15 @@ export class GeometryLoader {
 			createdObjects = this.createdOpaqueObjects;
 		}
 
-		var pickColors = new Uint8Array(positionsIndex * 4);
+		var pickColors = new Uint8Array(positionsIndex * 4 / 3);
 		var pickColors32 = new Uint32Array(pickColors.buffer);
 		pickColors.i = 0;
 
 		var currentColorIndex = 0;
-		var tmpOids = new Set();
-
+		
 		for (var i = 0; i < nrObjects; i++) {
 			var oid = stream.readLong();
 			this.oidsLoaded.push(oid);
-			tmpOids.add(oid);
 			var startIndex = stream.readInt();
 			var startLineIndex = stream.readInt();
 			var nrIndices = stream.readInt();
@@ -152,6 +151,12 @@ export class GeometryLoader {
 			var minIndex = stream.readInt();
 			var maxIndex = stream.readInt();
 			var nrObjectColors = nrVertices / 3 * 4;
+			
+			var pickColor = this.renderLayer.viewer.getPickColor(oid);
+			var color32 = pickColor[0] + pickColor[1] * 256 + pickColor[2] * 256 * 256 + pickColor[3] * 256 * 256 * 256;
+			var lenObjectPickColors = nrObjectColors;
+			pickColors32.fill(color32, pickColors.i / 4, (pickColors.i + lenObjectPickColors) / 4);
+			pickColors.i += lenObjectPickColors;
 
 			const density = stream.readFloat();
 
@@ -177,7 +182,7 @@ export class GeometryLoader {
 				minIndex: minIndex,
 				maxIndex: maxIndex
 			};
-			this.preparedBuffer.geometryIdToIndex.put(oid, [meta]);
+			this.preparedBuffer.objectIdToIndex.set(oid, [meta]);
 			
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
@@ -236,25 +241,15 @@ export class GeometryLoader {
 			Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, stream.dataView, stream.pos, positionsIndex);
 			stream.pos += positionsIndex * 4;
 		}
-		// Debugging
+		
+		// Debugging oct-encoding
 //		var octNormals = new Int8Array(stream.dataView.buffer, stream.pos, ((normalsIndex / 3) * 2));
 //		for (var i=0; i<octNormals.length; i+=2) {
 //			console.log(Utils.octDecodeVec2([octNormals[i], octNormals[i+1]]));
 //		}
+		
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.normals, stream.dataView, stream.pos, ((normalsIndex / 3) * 2), true);
 		stream.pos += ((normalsIndex / 3) * 2);
-
-		if (createdObjects) {
-			for (var [oid, objectInfo] of createdObjects) {
-				if (tmpOids.has(oid)) {
-					var pickColor = this.renderLayer.viewer.getPickColor(oid);
-					var color32 = pickColor[0] + pickColor[1] * 256 + pickColor[2] * 256 * 256 + pickColor[3] * 256 * 256 * 256;
-					var lenObjectPickColors = objectInfo.nrColors;
-					pickColors32.fill(color32, pickColors.i / 4, (pickColors.i + lenObjectPickColors) / 4);
-					pickColors.i += lenObjectPickColors;
-				}
-			}
-		}
 
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.pickColors, pickColors, 0, pickColors.i);
 
@@ -272,7 +267,7 @@ export class GeometryLoader {
 			this.preparedGpuBuffer.finalize();
 
 			for (let oid of this.oidsLoaded) {
-				this.renderLayer.viewer.geometryIdToBufferSet.put(oid, [this.preparedGpuBuffer]);
+				this.renderLayer.viewer.objectIdToBufferSet.set(oid, [this.preparedGpuBuffer]);
 			}
 
 			this.oidsLoaded.length = 0;
