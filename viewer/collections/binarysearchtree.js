@@ -207,6 +207,10 @@ export class BinarySearchTree {
             node : iNode
         };
     }
+    
+    set(key, value) {
+    	return this.put(key, value);
+    }
 
     reCalcHeight(pNode) {
         while (pNode) {
