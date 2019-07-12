@@ -65,16 +65,10 @@ export class AbstractViewer {
 	loadAnnotationsFromPreparedBufferUrl(url) {
 		Utils.request({url: url, binary: true}).then((buffer)=>{
 			let stream = new DataInputStream(buffer);
-			let loader = new GeometryLoader();
-			let layer = new DefaultRenderLayer(this.viewer);
-			let gpuBufferManager = Array.from(this.viewer.renderLayers)[0].gpuBufferManager;
+			const layer = new DefaultRenderLayer(this.viewer);
+			const gpuBufferManager = Array.from(this.viewer.renderLayers)[0].gpuBufferManager;
+			let loader = new GeometryLoader(null, layer, {quantizeVertices: false}, this.viewer.vertexQuantization, null, this.viewer.settings, null, gpuBufferManager);
 			this.viewer.renderLayers.add(layer);
-			loader.loaderSettings = {
-				quantizeVertices: false
-			};
-			loader.settings = loader.loaderSettings;
-			loader.renderLayer = layer;
-			loader.gpuBufferManager = gpuBufferManager;
 			loader.processPreparedBufferInit(stream, false);
 			loader.processPreparedBuffer(stream, false);
 		})

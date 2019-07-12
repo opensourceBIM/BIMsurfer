@@ -70,7 +70,7 @@ export class GeometryLoader {
 
 		this.preparedBuffer.indices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrIndices, this.renderLayer.gl.ELEMENT_ARRAY_BUFFER, 3, WebGL2RenderingContext.UNSIGNED_INT, "Uint32Array");
 		this.preparedBuffer.colors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
-		this.preparedBuffer.vertices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.positionsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, this.loaderSettings.quantizeVertices ? WebGL2RenderingContext.SHORT : WebGL2RenderingContext.FLOAT, this.loaderSettings.quantizeVertices ? "Int16Array" : "Float32Array");
+		this.preparedBuffer.vertices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.positionsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, this.settings.quantizeVertices ? WebGL2RenderingContext.SHORT : WebGL2RenderingContext.FLOAT, this.settings.quantizeVertices ? "Int16Array" : "Float32Array");
 		this.preparedBuffer.normals = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 2, WebGL2RenderingContext.BYTE, "Int8Array");
 		this.preparedBuffer.pickColors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
 
@@ -88,7 +88,7 @@ export class GeometryLoader {
 		stream.align8();
 	}
 
-	processPreparedBuffer(stream, hasTransparancy, forceUnquantized) {
+	processPreparedBuffer(stream, hasTransparancy) {
 		const nrObjects = stream.readInt();
 		const totalNrIndices = stream.readInt();
 		const positionsIndex = stream.readInt();
@@ -191,7 +191,7 @@ export class GeometryLoader {
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.colors, colors, 0, nrColors);
 
 		if (this.loaderSettings.quantizeVertices) {
-			if (forceUnquantized) {
+			if (!this.settings.quantizeVertices) {
 				// we need to do some alignment here
 				const floats = new Float32Array(positionsIndex);
 				const aligned_u8 = new Uint8Array(floats.buffer);
@@ -201,7 +201,7 @@ export class GeometryLoader {
 				
 				// now we can quantize the input
 				// admittedly there was code for this in BufferTransformer, but it was commented out?
-				const m4 = this.vertexQuantization.vertexQuantizationMatrix;
+				const m4 = this.vertexQuantizationMatrices.vertexQuantizationMatrix;
 				for (var i = 0; i < floats.length; i += 3) {
 					v4.set(floats.subarray(i, i + 3));
 					v4[3] = 1.0;
@@ -216,7 +216,20 @@ export class GeometryLoader {
 				stream.pos += positionsIndex * 2;
 			}		
 		} else {
-			Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, stream.dataView, stream.pos, positionsIndex);
+			if (this.settings.quantizeVertices) {
+				const floats = new Float32Array(stream.dataView.buffer, stream.pos, positionsIndex);
+				const quantized = new Int16Array(floats.length);
+				const m4 = this.vertexQuantizationMatrices.vertexQuantizationMatrix;
+				for (var i = 0; i < floats.length; i += 3) {
+					v4.set(floats.subarray(i, i + 3));
+					v4[3] = 1.0;
+					vec4.transformMat4(v4, v4, m4);
+					quantized.set(v4.subarray(0, 3), i);
+				}
+				Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, quantized, 0, quantized.length);
+			} else {
+				Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, stream.dataView, stream.pos, positionsIndex);
+			}
 			stream.pos += positionsIndex * 4;
 		}
 		// Debugging
