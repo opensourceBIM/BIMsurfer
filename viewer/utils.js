@@ -131,8 +131,18 @@ export class Utils {
 		if (data.constructor.name == "DataView") {
 			size = byteCount;
 		}
+
+		// TODO add a general DEBUGGING flag somewhere to avoid doing unneeded checks
+		if (targetGlBuffer.writePosition + size > targetGlBuffer.byteSize) {
+			console.error("Buffer overflow by", (targetGlBuffer.writePosition + size) - targetGlBuffer.byteSize);
+			debugger;
+		}
 		
-		gl.bufferSubData(targetGlBuffer.gl_type, targetGlBuffer.writePosition, data, pos, size);
+		try {
+			gl.bufferSubData(targetGlBuffer.gl_type, targetGlBuffer.writePosition, data, pos, size);
+		} catch (e) {
+			debugger;
+		}
 		targetGlBuffer.writePosition += byteCount;
 	}
 	
@@ -192,7 +202,8 @@ export class Utils {
 		});
 	}
 	
-	static calculateBytesUsed(settings, nrVertices, nrColors, nrIndices, nrNormals) {
+	static calculateBytesUsed(settings, nrVertices, nrColors, nrIndices, nrLineIndices, nrNormals) {
+		// TODO add lineIndices
 		var bytes = 0;
 		if (settings.quantizeVertices) {
 			bytes += nrVertices * 2;
@@ -214,11 +225,14 @@ export class Utils {
 			bytes += nrIndices * 4;
 		}
 		if (settings.quantizeNormals) {
-			// Oct-encoding
-			bytes += (nrNormals / 3) * 2;
+			// Oct-encoding, the amount of normals is also the amount of bytes
+			bytes += nrNormals;
 		} else {
 			bytes += nrNormals * 4;
 		}
+//		if (!Number.isInteger(bytes)) {
+//			debugger;
+//		}
 		return bytes;
 	}
 	

@@ -1,4 +1,5 @@
 import {FatLineRenderer} from "./fatlinerenderer.js";
+import {AvlTree} from "./collections/avltree.js";
 
 var counter = 1;
 
@@ -51,7 +52,7 @@ export class AbstractBufferSet {
     			pos: 1
     		}
     	}
-    	var maxNrRanges = this.geometryIdToIndex.size / 2;
+    	var maxNrRanges = this.objectIdToIndex.size / 2;
     	var complement = {
     		counts: new Int32Array(maxNrRanges),
     		offsets: new Int32Array(maxNrRanges),
@@ -195,61 +196,88 @@ export class AbstractBufferSet {
             quantize: this.positionBuffer.js_type !== Float32Array.name
         }, this.unquantizationMatrix);
 
-        let index = this.geometryIdToIndex.get(objectId);
-    	let idx = index[0];
-    	let [offset, length] = [idx.start, idx.length];
-    	let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
+		if (this.lineIndexBuffer != null) {
+			debugger;
 
-		let numVertices = maxIndex - minIndex + 1;
-		let gpu_data = this.batchGpuBuffers["positionBuffer"];
+			// TODO this is where we are
+			// Problem here is that the buffer is now already created on the GPU, but we need to convert it to a fatlinerenderer...
+			// So we could either generate the line render buffers as fat lines already (taking more network), but real quick to send to GPU, or
+			// Not store the data on the GPU when loading, but as a CPU buffer, and then just iterating over the CPU data when creating a LineRenderer using the normal code
+			// This last option sucks if we want to always do line rendering of all objects
+			// 2 triangles of data per line is a lot...
 
-		const bounds = this.batchGpuBuffers.bounds;
-		
-		var size = 0;
-		
-		// A more efficient (and certainly more compact) version that used bitshifting was working fine up until 16bits, unfortunately JS only does bitshifting < 32 bits, so now we have this crappy solution
-		
-		var indexOffset = offset - bounds.startIndex;
-		
-		const s = new Set();
-        
-		const indices = this.batchGpuBuffers.indices;
-		for (var i=0; i<length; i+=3) {
-            for (let j = 0; j < 3; ++j) {
-            	let a = indices[indexOffset + i + j];
-            	let b = indices[indexOffset + i + (j+1)%3];
-            	
-            	if (a > b) {
-            		const tmp = a;
-            		a = b;
-            		b = tmp;
-            	}
+			lineRenderer.init(this.lineIndexBuffer.N);
+			const bounds = this.batchGpuBuffers.bounds;
+			const vertexOffset = -bounds.minIndex * 3;
+			for (let e of s) {
+				const a = Math.floor(e / 67108864);
+				const b = e - a * 67108864;
+				const as = vertexOffset + a * 3;
+				const bs = vertexOffset + b * 3;
+				let A = gpu_data.subarray(as, as + 3);
+				let B = gpu_data.subarray(bs, bs + 3);
+				lineRenderer.pushVertices(A, B);
+			}
+			lineRenderer.finalize();
 
-            	// First tried to do this with bit shifting, but bit shifting in JS is 32bit
-            	const abs = a * 67108864 + b; // 2^26=67108864. A maximum of 52 bits is used, staying just under 2^53, which is the max safe int
-                if (s.has(abs)) {
-                    s.delete(abs);
-                } else {
-                    s.add(abs);
-                }
-            }
-        }
-        
-        lineRenderer.init(s.size);
-        const vertexOffset = -bounds.minIndex * 3;
-        for (let e of s) {
-        	const a = Math.floor(e / 67108864);
-        	const b = e - a * 67108864;
-            const as = vertexOffset + a * 3;
-        	const bs = vertexOffset + b * 3;
-            let A = gpu_data.subarray(as, as + 3);
-    		let B = gpu_data.subarray(bs, bs + 3);
-    		lineRenderer.pushVertices(A, B);
-        }
-        
-        lineRenderer.finalize();
+			return lineRenderer;
+		} else {
+			let index = this.objectIdToIndex.get(objectId);
+			let idx = index[0];
+			let [offset, length] = [idx.start, idx.length];
+			let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
 
-        return lineRenderer;
+			let numVertices = maxIndex - minIndex + 1;
+			let gpu_data = this.batchGpuBuffers["positionBuffer"];
+
+			const bounds = this.batchGpuBuffers.bounds;
+			
+			var size = 0;
+			
+			// A more efficient (and certainly more compact) version that used bitshifting was working fine up until 16bits, unfortunately JS only does bitshifting < 32 bits, so now we have this crappy solution
+			
+			var indexOffset = offset - bounds.startIndex;
+			
+			const s = new Set();
+			
+			const indices = this.batchGpuBuffers.indices;
+			for (var i=0; i<length; i+=3) {
+				for (let j = 0; j < 3; ++j) {
+					let a = indices[indexOffset + i + j];
+					let b = indices[indexOffset + i + (j+1)%3];
+					
+					if (a > b) {
+						const tmp = a;
+						a = b;
+						b = tmp;
+					}
+
+					// First tried to do this with bit shifting, but bit shifting in JS is 32bit
+					const abs = a * 67108864 + b; // 2^26=67108864. A maximum of 52 bits is used, staying just under 2^53, which is the max safe int
+					if (s.has(abs)) {
+						s.delete(abs);
+					} else {
+						s.add(abs);
+					}
+				}
+			}
+			
+			lineRenderer.init(s.size);
+			const vertexOffset = -bounds.minIndex * 3;
+			for (let e of s) {
+				const a = Math.floor(e / 67108864);
+				const b = e - a * 67108864;
+				const as = vertexOffset + a * 3;
+				const bs = vertexOffset + b * 3;
+				let A = gpu_data.subarray(as, as + 3);
+				let B = gpu_data.subarray(bs, bs + 3);
+				lineRenderer.pushVertices(A, B);
+			}
+			
+			lineRenderer.finalize();
+
+			return lineRenderer;
+		}
     }
 
     getBounds(id_ranges) {
@@ -257,7 +285,7 @@ export class AbstractBufferSet {
     	for (const idRange of id_ranges) {
     		const oid = idRange[0];
     		const range = idRange[1];
-    		let idx = this.geometryIdToIndex.get(oid)[0];
+    		let idx = this.objectIdToIndex.get(oid)[0];
     		if (bounds.startIndex == null || range[0] < bounds.startIndex) {
     			bounds.startIndex = range[0];
     		}
@@ -321,10 +349,10 @@ export class AbstractBufferSet {
     }
     
     // generator function that yields ranges in this buffer for the selected ids
-    * _(geometryIdToIndex, ids) {
+    * _(objectIdToIndex, ids) {
         var oids;
         for (var i of ids) {
-    		if ((oids = geometryIdToIndex.get(i))) {
+    		if ((oids = objectIdToIndex.get(i))) {
     			for (var j = 0; j < oids.length; ++j) {
     				yield [i, [oids[j].start, oids[j].start + oids[j].length]];
     			}
@@ -333,9 +361,9 @@ export class AbstractBufferSet {
     }
 
     getIdRanges(oids) {
-    	var iterator1 = this.geometryIdToIndex.keys();
+    	var iterator1 = this.objectIdToIndex.keys();
     	var iterator2 = oids[Symbol.iterator]();
-    	const id_ranges = this.geometryIdToIndex
+    	const id_ranges = this.objectIdToIndex
     	? Array.from(this.findUnion(iterator1, iterator2)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
     			// If we don't have this mapping, we're dealing with a dedicated
     			// non-instanced bufferset for one particular overriden object
@@ -345,7 +373,7 @@ export class AbstractBufferSet {
     
     /**
      * Generator function that yields ranges in this buffer for the selected ids
-     * This one tries to do better than _ by utilizing the fact (requirement) that both geometryIdToIndex and ids are numerically ordered beforehand
+     * This one tries to do better than _ by utilizing the fact (requirement) that both objectIdToIndex and ids are numerically ordered beforehand
      * Basically it only iterates through both iterators only once. Could be even faster with a real TreeMap, but we don't have it available
      */
     * findUnion(iterator1, iterator2) {
@@ -354,7 +382,7 @@ export class AbstractBufferSet {
     	while (!next1.done && !next2.done) {
     		if (next1.value == next2.value) {
     			const i = next1.value;
-    			var oids = this.geometryIdToIndex.get(i);
+    			var oids = this.objectIdToIndex.get(i);
     			for (var j = 0; j < oids.length; ++j) {
     				yield [i, [oids[j].start, oids[j].start + oids[j].length]];
     			}
@@ -399,10 +427,10 @@ export class AbstractBufferSet {
     		return result;
     	}
 
-    	var iterator1 = this.geometryIdToIndex.keys();
+    	var iterator1 = this.objectIdToIndex.keys();
     	var iterator2 = ids._set[Symbol.iterator]();
 
-    	const id_ranges = this.geometryIdToIndex
+    	const id_ranges = this.objectIdToIndex
     	? Array.from(this.findUnion(iterator1, iterator2)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
     			// If we don't have this mapping, we're dealing with a dedicated
     			// non-instanced bufferset for one particular overriden object
@@ -461,7 +489,7 @@ export class AbstractBufferSet {
 		this.nrIndices = 0;
 		this.bytes = 0;
 		this.visibleRanges = new Map();
-		this.geometryIdToIndex = new Map();
+		this.objectIdToIndex = new AvlTree();
 		this.lineIndexBuffers = new Map();
 	}
 
@@ -471,7 +499,7 @@ export class AbstractBufferSet {
         if (this.objects) {
             return this.copyEmpty();
         } else {
-    		let idx = this.geometryIdToIndex.get(objectId)[0];
+    		let idx = this.objectIdToIndex.get(objectId)[0];
     		let [offset, length] = [idx.start, idx.length];
     		
 			const indices = new Uint32Array(length);
@@ -535,7 +563,11 @@ export class AbstractBufferSet {
 			newColors = clr;
 		}
 
-		for (var idx of this.geometryIdToIndex.get(objectId)) {
+		const idxs = this.objectIdToIndex.get(objectId);
+		if (idxs == null) {
+			return;
+		}
+		for (var idx of idxs) {
 			let [offset, length] = [idx.color, idx.colorLength];
 			let bytes_per_elem = window[this.colorBuffer.js_type].BYTES_PER_ELEMENT;
 			

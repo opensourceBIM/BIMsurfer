@@ -248,7 +248,11 @@ export class BimServerViewer extends AbstractViewer {
 				} else {
 					fieldsToInclude.push("vertices");
 				}
+				if (this.settings.loaderSettings.generateLineRenders) {
+					fieldsToInclude.push("lineIndices");
+				}
 				if (!this.settings.loaderSettings.useObjectColors) {
+					fieldsToInclude.push("colorsQuantized");
 					fieldsToInclude.push("colorsQuantized");
 				}
 				

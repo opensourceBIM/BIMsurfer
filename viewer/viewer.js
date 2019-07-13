@@ -16,6 +16,7 @@ import {SSQuad} from "./ssquad.js";
 import {FreezableSet} from "./freezableset.js";
 import {DefaultCss} from "./defaultcss.js";
 import {DefaultColors} from "./defaultcolors.js";
+import {AvlTree} from "./collections/avltree.js";
 
 import {COLOR_FLOAT_DEPTH_NORMAL, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 import { WSQuad } from './wsquad.js';
@@ -80,7 +81,7 @@ export class Viewer {
             return;
         }
 
-        if (!this.settings.loaderSettings.prepareBuffers) {
+        if (!this.settings.loaderSettings.prepareBuffers || (this.settings.tilingLayerEnabled && this.settings.loaderSettings.tilingLayerReuse)) {
         	this.bufferSetPool = new BufferSetPool(1000, this.stats);
         }
 
@@ -110,7 +111,8 @@ export class Viewer {
         this.renderLayers = new Set();
         this.animationListeners = [];
         this.colorRestore = [];
-        this.geometryIdToBufferSet = new Map();
+        
+        this.objectIdToBufferSet = new AvlTree();
 
         // Object ID -> ViewObject
         this.viewObjects = new Map();
@@ -242,8 +244,9 @@ export class Viewer {
 	    				
 	    				this.hiddenDueToSetColor.delete(objectId);
 	    			} else if (this.originalColors.has(objectId)) {
-	    				this.geometryIdToBufferSet.get(objectId).forEach((bufferSet) => {
-	    					bufferSet.setColor(this.gl, objectId, this.originalColors.get(objectId));
+	    				this.objectIdToBufferSet.get(objectId).forEach((bufferSet) => {
+							const originalColor = this.originalColors.get(objectId);
+							bufferSet.setColor(this.gl, objectId, originalColor);
 	    				});
 	    				
 	    				this.originalColors.delete(objectId);
@@ -268,7 +271,7 @@ export class Viewer {
     generateBufferSetToOidsMap(elems) {
 		var bufferSetsToUpdate = new Map();
 		for (let objectId of elems) {
-			const bufferSets = this.geometryIdToBufferSet.get(objectId);
+			const bufferSets = this.objectIdToBufferSet.get(objectId);
 			if (bufferSets == null) {
 				continue;
 			}
@@ -342,7 +345,7 @@ export class Viewer {
 									buffer = copiedBufferSet;
 									
 									// NB: Single bufferset entry is assumed here, which is the case for now.
-									this.geometryIdToBufferSet.get(objectId)[0] = buffer;
+									this.objectIdToBufferSet.get(objectId)[0] = buffer;
 									
 									this.instancesWithChangedColor.set(objectId, {
 										object: obj,
