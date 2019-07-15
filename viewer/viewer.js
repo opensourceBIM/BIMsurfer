@@ -179,7 +179,9 @@ export class Viewer {
 
     setVisibility(elems, visible) {
         elems = Array.from(elems);
-        
+        // @todo. until is properly asserted, documented somewhere, it's probably best to explicitly sort() for now.
+        elems.sort();
+
         let fn = (visible ? this.invisibleElements.delete : this.invisibleElements.add).bind(this.invisibleElements);
         return this.invisibleElements.batch(() => {
             elems.forEach((i) => {
