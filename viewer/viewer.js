@@ -858,9 +858,15 @@ export class Viewer {
     		let aabb = ids.map(this.viewObjects.get.bind(this.viewObjects))
     		.filter((o) => o != null && o.globalizedAabb != null)
     		.map((o) => o.globalizedAabb)
-    		.reduce(Utils.unionAabb, Utils.emptyAabb());
-    		this.camera.viewFit(aabb);
-    		this.dirty = 2;
+            .reduce(Utils.unionAabb, Utils.emptyAabb());
+            if (Utils.isEmptyAabb(aabb)) {
+                console.error("No AABB for objects", ids);
+                reject();
+            } else {
+                this.camera.viewFit(aabb);
+                this.dirty = 2;
+                resolve();
+            }
     	});
     }
 

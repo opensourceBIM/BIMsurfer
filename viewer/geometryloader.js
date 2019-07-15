@@ -95,6 +95,8 @@ export class GeometryLoader {
 	}
 
 	processPreparedBuffer(stream, hasTransparancy) {
+		const loadedViewObjects = [];
+
 		const nrObjects = stream.readInt();
 		const totalNrIndices = stream.readInt();
 		const totalNrLineIndices = stream.readInt();
@@ -139,6 +141,8 @@ export class GeometryLoader {
 		pickColors.i = 0;
 
 		var currentColorIndex = 0;
+
+		const collectedMetaObjects = [];
 		
 		for (var i = 0; i < nrObjects; i++) {
 			var oid = stream.readLong();
@@ -151,9 +155,14 @@ export class GeometryLoader {
 			var minIndex = stream.readInt();
 			var maxIndex = stream.readInt();
 			var nrObjectColors = nrVertices / 3 * 4;
-			
+
 			if (!createdObjects) {
-				this.renderLayer.viewer.addViewObject(oid, {pickId: oid});
+				loadedViewObjects.push(oid);
+				const viewObject = {
+					type: "Annotation",
+					pickId: oid
+				}
+				this.renderLayer.viewer.addViewObject(oid, viewObject);				
 			}
 
 			var pickColor = this.renderLayer.viewer.getPickColor(oid);
@@ -181,6 +190,7 @@ export class GeometryLoader {
 				maxIndex: maxIndex
 			};
 			this.preparedBuffer.objectIdToIndex.set(oid, [meta]);
+			collectedMetaObjects.push(meta);
 			
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
@@ -236,8 +246,8 @@ export class GeometryLoader {
 				stream.pos += positionsIndex * 2;
 			}		
 		} else {
+			const floats = new Float32Array(stream.dataView.buffer, stream.pos, positionsIndex);
 			if (this.settings.quantizeVertices) {
-				const floats = new Float32Array(stream.dataView.buffer, stream.pos, positionsIndex);
 				const quantized = new Int16Array(floats.length);
 				const m4 = this.vertexQuantizationMatrices.vertexQuantizationMatrix;
 				for (var i = 0; i < floats.length; i += 3) {
@@ -248,9 +258,46 @@ export class GeometryLoader {
 				}
 				Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, quantized, 0, quantized.length);
 			} else {
-				Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, stream.dataView, stream.pos, positionsIndex);
+				Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, floats, 0, floats.length);
 			}
 			stream.pos += positionsIndex * 4;
+
+			// @todo a bit ugly, but only in this case the AABB for the on-demand loaded object
+			// is computed.
+			if (loadedViewObjects.length) {
+				for (var i = 0; i < collectedMetaObjects.length; ++i) {
+					const meta = collectedMetaObjects[i];
+					const oid = loadedViewObjects[i];
+					const aabb = new Float32Array(6);
+					aabb.fill(Infinity);
+					aabb.subarray(3).fill(-Infinity);
+					for (var j = meta.minIndex; j <= meta.maxIndex; j += 3) {
+						if (floats[j+0] < aabb[0]) {
+							aabb[0] = floats[j+0];
+						}
+						if (floats[j+1] < aabb[1]) {
+							aabb[1] = floats[j+1];
+						}
+						if (floats[j+2] < aabb[2]) {
+							aabb[2] = floats[j+2];
+						}
+						if (floats[j+0] > aabb[3]) {
+							aabb[3] = floats[j+0];
+						}
+						if (floats[j+1] > aabb[4]) {
+							aabb[4] = floats[j+1];
+						}
+						if (floats[j+2] > aabb[5]) {
+							aabb[5] = floats[j+2];
+						}
+					}				
+					var globalizedAabb = Utils.transformBounds(aabb, this.renderLayer.viewer.globalTranslationVector);			
+					const viewobj = this.renderLayer.viewer.getViewObject(oid);
+					viewobj.aabb = aabb;
+					viewobj.globalizedAabb = globalizedAabb;
+				}
+			}
+
 		}
 		
 		// Debugging oct-encoding
@@ -287,6 +334,8 @@ export class GeometryLoader {
 		}
 
 		stream.align8();
+
+		return loadedViewObjects;
 	}
 	
 	processMessage(stream) {

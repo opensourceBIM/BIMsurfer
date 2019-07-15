@@ -170,6 +170,10 @@ export class Utils {
 		let i = Infinity;
 		return new Float32Array([i,i,i,-i,-i,-i]);
 	}
+
+	static isEmptyAabb(aabb) {
+		return Array.from(aabb).some((a)=>(!isFinite(a)));
+	}
 	
 	static sortMapKeys(inputMap) {
 		var sortedKeys = Array.from(inputMap.keys()).sort((a, b) => {
