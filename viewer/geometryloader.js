@@ -152,6 +152,10 @@ export class GeometryLoader {
 			var maxIndex = stream.readInt();
 			var nrObjectColors = nrVertices / 3 * 4;
 			
+			if (!createdObjects) {
+				this.renderLayer.viewer.addViewObject(oid, {pickId: oid});
+			}
+
 			var pickColor = this.renderLayer.viewer.getPickColor(oid);
 			var color32 = pickColor[0] + pickColor[1] * 256 + pickColor[2] * 256 * 256 + pickColor[3] * 256 * 256 * 256;
 			var lenObjectPickColors = nrObjectColors;
@@ -164,12 +168,6 @@ export class GeometryLoader {
 			if (createdObjects) {
 				var object = createdObjects.get(oid);
 				object.density = density;
-			} else {
-				this.renderLayer.viewer.addViewObject(oid, {pickId: oid});
-				var pickColor = this.renderLayer.viewer.getPickColor(oid);
-				var color32 = pickColor[0] + pickColor[1] * 256 + pickColor[2] * 256 * 256 + pickColor[3] * 256 * 256 * 256;
-				pickColors32.fill(color32, pickColors.i / 4, (pickColors.i + nrObjectColors) / 4);
-				pickColors.i += nrObjectColors;
 			}
 
 			const meta = {
