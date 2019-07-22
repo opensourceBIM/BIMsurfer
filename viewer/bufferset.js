@@ -22,6 +22,6 @@ export class BufferSet extends AbstractBufferSet {
         this.color = color;
         this.bytes = 0;
         
-        this.objectIdToIndex = new Map();
+        this.uniqueIdToIndex = new Map();
     };
 }

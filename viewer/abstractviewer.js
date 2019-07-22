@@ -258,8 +258,8 @@ export class AbstractViewer {
 			// @todo: This does not work, leaving this for Ruben
 			var buffer, desc;
 			this.layers.forEach((layer, index) => {
-				if ((buffer = layer.objectIdToBufferSet.get(oid))) {
-					if ((desc = buffer.objectIdToIndex.get(oid))) {
+				if ((buffer = layer.uniqueIdToBufferSet.get(oid))) {
+					if ((desc = buffer.uniqueIdToIndex.get(oid))) {
 						console.log(buffer, desc);
 					}
 				}

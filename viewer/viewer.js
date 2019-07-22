@@ -20,6 +20,7 @@ import {AvlTree} from "./collections/avltree.js";
 
 import {COLOR_FLOAT_DEPTH_NORMAL, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 import { WSQuad } from './wsquad.js';
+import {EventHandler} from "./eventhandler.js";
 
 var tmp_unproject = vec3.create();
 
@@ -106,13 +107,21 @@ export class Viewer {
         // This is an array now since the picking ids form a continues array
         this.pickIdToViewObject = [];
         
-        this.selectionListeners = [];
-        
         this.renderLayers = new Set();
         this.animationListeners = [];
         this.colorRestore = [];
         
-        this.objectIdToBufferSet = new AvlTree();
+        // User can override this, default assumes strings to be used as unique object identifiers
+        this.uniqueIdCompareFunction = (a, b) => {
+        	return a.localeCompare(b);
+        };
+        
+        // AvlTree sort descending (why?), so that's why there's also in inverse compare function
+        this.inverseUniqueIdCompareFunction = (a, b) => {
+        	return this.uniqueIdCompareFunction(b, a);
+        };
+        
+        this.uniqueIdToBufferSet = new AvlTree(this.inverseUniqueIdCompareFunction);
 
         // Object ID -> ViewObject
         this.viewObjects = new Map();
@@ -121,7 +130,7 @@ export class Viewer {
         this.viewObjectsByType = new Map();
 
         // Null means everything visible, otherwise Set(..., ..., ...)
-        this.invisibleElements = new FreezableSet();
+        this.invisibleElements = new FreezableSet(this.uniqueIdCompareFunction);
 
         // Elements for which the color has been overriden and transparency has
         // changed. These elements are hidden} from their original buffers and
@@ -136,7 +145,7 @@ export class Viewer {
         // simply needs to be added back to the original.
         this.instancesWithChangedColor = new Map();
 
-        this.selectedElements = new FreezableSet();
+        this.selectedElements = new FreezableSet(this.uniqueIdCompareFunction);
 
         this.useOrderIndependentTransparency = this.settings.realtimeSettings.orderIndependentTransparency;
 
@@ -146,20 +155,22 @@ export class Viewer {
         
 //        window._debugViewer = this;  // HACK for console debugging
 
+        this.eventHandler = new EventHandler();
+        
         // Tabindex required to be able add a keypress listener to canvas
         canvas.setAttribute("tabindex", "0");
         canvas.addEventListener("keypress", (evt) => {
             if (evt.key === 'H') {
                 this.resetVisibility();
             } else if (evt.key === 'h') {
-                this.setVisibility(this.selectedElements, false);
+                this.setVisibility(this.selectedElements, false, false);
                 this.selectedElements.clear();
             } else if (evt.key === 'C') {
                 this.resetColors();
             } else if (evt.key === 'c' || evt.key === 'd') {
                 let R = Math.random;
                 let clr = [R(), R(), R(), evt.key === 'd' ? R() : 1.0];
-                this.setColor(this.selectedElements, clr);
+                this.setColor(new Set(this.selectedElements), clr);
                 this.selectedElements.clear();
             } else {
             	// Don't do a drawScene for every key pressed
@@ -177,17 +188,17 @@ export class Viewer {
         return method.call(this, elems, ...args);
     }
 
-    setVisibility(elems, visible) {
+    setVisibility(elems, visible, sort=true) {
         elems = Array.from(elems);
         // @todo. until is properly asserted, documented somewhere, it's probably best to explicitly sort() for now.
-        elems.sort();
+        elems.sort(this.uniqueIdCompareFunction);
 
         let fn = (visible ? this.invisibleElements.delete : this.invisibleElements.add).bind(this.invisibleElements);
         return this.invisibleElements.batch(() => {
             elems.forEach((i) => {
                 fn(i);
                 // Show/hide transparently-adjusted counterpart (even though it might not exist)
-                fn(i | OVERRIDE_FLAG);
+                fn("O" + i);
             });
 
             // Make sure elements hidden due to setColor() stay hidden
@@ -196,6 +207,9 @@ export class Viewer {
             };
 
             this.dirty = 2;
+            
+            this.eventHandler.fire("visbility_changed", elems, visible);
+            
             return Promise.resolve();
         });
     }
@@ -212,11 +226,10 @@ export class Viewer {
             }
             
             this.dirty = 2;
+
             return Promise.resolve();
         }).then(() => {
-        	for (const listener of this.selectionListeners) {
-        		listener(this.selectedElements);
-        	}
+        	this.eventHandler.fire("selection_state_changed", elems, selected);
         });
     }
 
@@ -238,25 +251,25 @@ export class Viewer {
 			let id_ranges = bufferSet.getIdRanges(elems);
 			let bounds = bufferSet.getBounds(id_ranges);
     		bufferSet.batchGpuRead(this.gl, ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"], bounds, () => {
-	    		for (let objectId of bufferSetObject.oids) {
-	    			if (this.hiddenDueToSetColor.has(objectId)) {
-	    				this.invisibleElements.delete(objectId);
-	    				let buffer = this.hiddenDueToSetColor.get(objectId);
+	    		for (let uniqueId of bufferSetObject.oids) {
+	    			if (this.hiddenDueToSetColor.has(uniqueId)) {
+	    				this.invisibleElements.delete(uniqueId);
+	    				let buffer = this.hiddenDueToSetColor.get(uniqueId);
 	    				buffer.manager.deleteBuffer(buffer);
 	    				
-	    				this.hiddenDueToSetColor.delete(objectId);
-	    			} else if (this.originalColors.has(objectId)) {
-	    				this.objectIdToBufferSet.get(objectId).forEach((bufferSet) => {
-							const originalColor = this.originalColors.get(objectId);
-							bufferSet.setColor(this.gl, objectId, originalColor);
+	    				this.hiddenDueToSetColor.delete(uniqueId);
+	    			} else if (this.originalColors.has(uniqueId)) {
+	    				this.uniqueIdToBufferSet.get(uniqueId).forEach((bufferSet) => {
+							const originalColor = this.originalColors.get(uniqueId);
+							bufferSet.setColor(this.gl, uniqueId, originalColor);
 	    				});
 	    				
-	    				this.originalColors.delete(objectId);
-	    			} else if (this.instancesWithChangedColor.has(objectId)) {
-	    				let entry = this.instancesWithChangedColor.get(objectId);
+	    				this.originalColors.delete(uniqueId);
+	    			} else if (this.instancesWithChangedColor.has(uniqueId)) {
+	    				let entry = this.instancesWithChangedColor.get(uniqueId);
 	    				entry.override.manager.deleteBuffer(entry.override);
 	    				entry.original.setObjects(this.gl, entry.original.objects.concat([entry.object]));
-	    				this.instancesWithChangedColor.delete(objectId);
+	    				this.instancesWithChangedColor.delete(uniqueId);
 	    			}
 	    		}
     		});
@@ -272,8 +285,8 @@ export class Viewer {
      */
     generateBufferSetToOidsMap(elems) {
 		var bufferSetsToUpdate = new Map();
-		for (let objectId of elems) {
-			const bufferSets = this.objectIdToBufferSet.get(objectId);
+		for (let uniqueId of elems) {
+			const bufferSets = this.uniqueIdToBufferSet.get(uniqueId);
 			if (bufferSets == null) {
 				continue;
 			}
@@ -285,13 +298,13 @@ export class Viewer {
 				};
 				bufferSetsToUpdate.set(bufferSets[0].id, bufferSetObject);
 			}
-			bufferSetObject.oids.push(objectId);
+			bufferSetObject.oids.push(uniqueId);
 		}
 		return bufferSetsToUpdate;
     }
     
     setColor(elems, clr) {
-		return this.invisibleElements.batch(() => {
+		let promise = this.invisibleElements.batch(() => {
 			var bufferSetsToUpdate = this.generateBufferSetToOidsMap(elems);
 			// Reset colors first to clear any potential transparency overrides.
 			return this.resetColorAlreadyBatched(elems, bufferSetsToUpdate).then(() => {
@@ -303,10 +316,10 @@ export class Viewer {
 					let bounds = bufferSet.getBounds(id_ranges);
 					
 					bufferSet.batchGpuRead(this.gl, ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"], bounds, () => {
-						for (const objectId of oids) {
-							let originalColor = bufferSet.setColor(this.gl, objectId, clr);
+						for (const uniqueId of oids) {
+							let originalColor = bufferSet.setColor(this.gl, uniqueId, clr);
 							if (originalColor === false) {
-								let copiedBufferSet = bufferSet.copy(this.gl, objectId);
+								let copiedBufferSet = bufferSet.copy(this.gl, uniqueId);
 								let clrSameType, newClrBuffer;
 								if (copiedBufferSet instanceof FrozenBufferSet) {
 									clrSameType = new window[copiedBufferSet.colorBuffer.js_type](4);
@@ -328,7 +341,9 @@ export class Viewer {
 									newClrBuffer.set(clrSameType, i);
 								}                     
 								
-								copiedBufferSet.node = bufferSet.node;
+								if (bufferSet.node) {
+									copiedBufferSet.node = bufferSet.node;
+								}
 								
 								let buffer;
 								
@@ -338,8 +353,8 @@ export class Viewer {
 									
 									copiedBufferSet.colorBuffer = Utils.createBuffer(this.gl, newClrBuffer, null, null, 4);
 									
-									let obj = bufferSet.objects.find(o => o.id === objectId);
-									bufferSet.setObjects(this.gl, bufferSet.objects.filter(o => o.id !== objectId));
+									let obj = bufferSet.objects.find(o => o.id === uniqueId);
+									bufferSet.setObjects(this.gl, bufferSet.objects.filter(o => o.id !== uniqueId));
 									copiedBufferSet.setObjects(this.gl, [obj]);
 									
 									copiedBufferSet.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
@@ -347,9 +362,9 @@ export class Viewer {
 									buffer = copiedBufferSet;
 									
 									// NB: Single bufferset entry is assumed here, which is the case for now.
-									this.objectIdToBufferSet.get(objectId)[0] = buffer;
+									this.uniqueIdToBufferSet.get(uniqueId)[0] = buffer;
 									
-									this.instancesWithChangedColor.set(objectId, {
+									this.instancesWithChangedColor.set(uniqueId, {
 										object: obj,
 										original: bufferSet, 
 										override: copiedBufferSet
@@ -359,20 +374,22 @@ export class Viewer {
 									
 									// Note that this is an attribute on the bufferSet, but is
 									// not applied to the actual webgl vertex data.
-									buffer.objectId = objectId | OVERRIDE_FLAG;
+									buffer.uniqueId = "O" + uniqueId;
 									
-									this.invisibleElements.add(objectId);
-									this.hiddenDueToSetColor.set(objectId, buffer);
+									this.invisibleElements.add(uniqueId);
+									this.hiddenDueToSetColor.set(uniqueId, buffer);
 								}                    
 							} else {
-								this.originalColors.set(objectId, originalColor);
+								this.originalColors.set(uniqueId, originalColor);
 							}
 						}
 					});
 				}
 				this.dirty = 2;
+				this.eventHandler.fire("color_changed", elems, clr);
 			});
 		});
+		return promise;
     }
 
     init() {
@@ -766,40 +783,42 @@ export class Viewer {
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.projection.projMatrixInverted);
         let depth = -tmp_unproject[2];
         vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.viewMatrixInverted);
-//        console.log("Picked @", tmp_unproject[0], tmp_unproject[1], tmp_unproject[2], objectId, viewObject);
+//        console.log("Picked @", tmp_unproject[0], tmp_unproject[1], tmp_unproject[2], uniqueId, viewObject);
 
         this.pickBuffer.unbind();
         
         if (viewObject) {
-        	var objectId = viewObject.objectId;
+        	var uniqueId = viewObject.uniqueId;
             if (params.select !== false) {
                 if (!params.shiftKey) {
-                    this.selectedElements.clear();
+                	if (this.selectedElements.size > 0) {
+                		this.eventHandler.fire("selection_state_changed", this.selectedElements, false);
+                		this.selectedElements.clear();
+                	}
                 }
-                if (this.selectedElements.has(objectId)) {
-                    this.selectedElements.delete(objectId);
+                if (this.selectedElements.has(uniqueId)) {
+                    this.selectedElements.delete(uniqueId);
+                    this.eventHandler.fire("selection_state_changed", [uniqueId], false);
                 } else {
-                    this.selectedElements.add(objectId);
-                }
-                for (const listener of this.selectionListeners) {
-                	listener(Array.from(this.selectedElements._originalOrderSet));
+                    this.selectedElements.add(uniqueId);
+                    this.eventHandler.fire("selection_state_changed", [uniqueId], true);
                 }
             }
             return {object: viewObject, normal: normal, coordinates: tmp_unproject, depth: depth};
         } else if (params.select !== false) {
-            this.selectedElements.clear();
-            for (const listener of this.selectionListeners) {
-            	listener([]);
-            }
+        	if (this.selectedElements.size > 0) {
+        		this.eventHandler.fire("selection_state_changed", this.selectedElements, false);
+        		this.selectedElements.clear();
+        	}
         }
 
         return {object: null, coordinates: tmp_unproject, depth: depth};
     }
 
-    getPickColor(objectId) { // Converts an integer to a pick color
-    	var viewObject = this.viewObjects.get(objectId);
+    getPickColor(uniqueId) { // Converts an integer to a pick color
+    	var viewObject = this.viewObjects.get(uniqueId);
     	if (viewObject == null) {
-    		console.error("No viewObject found for " + objectId);
+    		console.error("No viewObject found for " + uniqueId);
     	}
     	var pickId = viewObject.pickId;
     	var pickColor = new Uint8Array([pickId & 0x000000FF, (pickId & 0x0000FF00) >> 8, (pickId & 0x00FF0000) >> 16, (pickId & 0xFF000000) > 24]);
@@ -841,13 +860,13 @@ export class Viewer {
         this.animationListeners.push(fn);
     }
     
-    getViewObject(objectId) {
-    	return this.viewObjects.get(objectId);
+    getViewObject(uniqueId) {
+    	return this.viewObjects.get(uniqueId);
     }
     
-    addViewObject(objectId, viewObject) {
+    addViewObject(uniqueId, viewObject) {
     	viewObject.pickId = this.pickIdCounter++;
-    	this.viewObjects.set(objectId, viewObject);
+    	this.viewObjects.set(uniqueId, viewObject);
         this.pickIdToViewObject[viewObject.pickId] = viewObject;
 
         let byType = this.viewObjectsByType.get(viewObject.type) || [];
@@ -888,11 +907,7 @@ export class Viewer {
     }
 
     resetVisibility() {
-        this.setVisibility(this.invisibleElements.keys(), true);
+        this.setVisibility(this.invisibleElements.keys(), true, false);
         this.dirty = 2;
-    }
-    
-    addSelectionListener(selectionListener) {
-    	this.selectionListeners.push(selectionListener);
     }
 }

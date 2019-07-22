@@ -9,7 +9,8 @@
  * @class FreezableSet
  */
 export class FreezableSet {
-    constructor() {
+    constructor(compareFunction) {
+    	this.compareFunction = compareFunction;
     	this._originalOrderSet = new Set();
         this._set = new Set();
         this._update = true;
@@ -18,10 +19,7 @@ export class FreezableSet {
 
     _build() {
         let a = Array.from(this._originalOrderSet);
-        a.sort((a, b) => {
-        	// Otherwise a and b will be converted to string first...
-        	return a - b;
-        });
+        a.sort(this.compareFunction);
         // Store the sorted set (Sets do maintain insertion order)
         this._set = new Set(a);
         this._string = a.join(",");

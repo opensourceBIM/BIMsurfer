@@ -26,12 +26,13 @@ export class EventHandler {
     }
 
     fire(evt, ...args) {
+    	console.log(evt, args);
         var h = this.handlers[evt];
         if (!h) {
             return;
         }
         for (var i = 0; i < h.length; ++i) {
-            h[i].apply(this, ...args);
+            h[i].apply(this, args);
         }
     }
 }

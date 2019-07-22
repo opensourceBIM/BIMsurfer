@@ -29,8 +29,8 @@ export class DefaultRenderLayer extends RenderLayer {
 		window.defaultRenderLayer = this;
 	}
 
-	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
-		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, this.gpuBufferManager);
+	createObject(loaderId, roid, uniqueId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
+		return super.createObject(loaderId, roid, uniqueId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, this.gpuBufferManager);
 	}
 
 	addGeometryReusable(geometry, loader, gpuBufferManager) {

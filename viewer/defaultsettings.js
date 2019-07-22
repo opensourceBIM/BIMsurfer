@@ -30,6 +30,9 @@ export class DefaultSettings {
 		if (settings.loaderSettings.useObjectColors == null) {
 			settings.loaderSettings.useObjectColors = false;
 		}
+		if (settings.loaderSettings.useUuidAndRid == null) {
+			settings.loaderSettings.useUuidAndRid = false;
+		}
 		if (settings.loaderSettings.quantizeNormals == null) {
 			settings.loaderSettings.quantizeNormals = true;
 		}

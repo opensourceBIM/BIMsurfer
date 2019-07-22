@@ -311,10 +311,10 @@ export class TilingRenderLayer extends RenderLayer {
 		console.log(this.tileLoader.executor);
 	}
 
-	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
+	createObject(loaderId, roid, uniqueId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
 		var loader = this.getLoader(loaderId);
 		var node = this.loaderToNode[loaderId];
-		return super.createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, node.gpuBufferManager, node);
+		return super.createObject(loaderId, roid, uniqueId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, node.gpuBufferManager, node);
 	}
 
 	addGeometryReusable(geometry, loader, gpuBufferManager) {

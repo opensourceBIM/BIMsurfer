@@ -24,7 +24,8 @@ export class Settings {
 				useObjectColors: "boolean",
 				tilingLayerReuse: "boolean",
 				prepareBuffers: "boolean",
-				generateLineRenders: "boolean"
+				generateLineRenders: "boolean",
+				useUuidAndRid: "boolean"
 			},
 			realtimeSettings: {
 				drawTileBorders: "boolean",
@@ -51,7 +52,8 @@ export class Settings {
 				quantizeColors: true,
 				useObjectColors: false,
 				tilingLayerReuse: true,
-				prepareBuffers: false
+				prepareBuffers: false,
+				useUuidAndRid: false
 			},
 			realtimeSettings: {
 				drawTileBorders: true,

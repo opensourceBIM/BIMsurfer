@@ -1,6 +1,14 @@
 // Reuse the text decoder
 let utf8TextDecoder = new TextDecoder("utf-8");
 
+
+var _byteToHex = [];
+var _hexToByte = {};
+for (var i = 0; i < 256; i++) {
+  _byteToHex[i] = (i + 0x100).toString(16).substr(1);
+  _hexToByte[_byteToHex[i]] = i;
+}
+
 /**
  * This class keeps track of the position of reading, supplies get methods for most types and provides alignment methods.
  * All data is assumed to be in LITTLE_ENDIAN!
@@ -43,7 +51,9 @@ export class DataInputStream {
 	}
 
 	readBytes(size) {
-		return this.arrayBuffer.slice(this.pos, this.pos + size);
+		const result = this.arrayBuffer.slice(this.pos, this.pos + size);
+		this.pos += size;
+		return result;
 	}
 	
 	readFloat() {
@@ -64,6 +74,12 @@ export class DataInputStream {
 		return value;
 	}
 
+	readUnsignedByte() {
+		var value = this.dataView.getUint8(this.pos);
+		this.pos += 1;
+		return value;
+	}
+
 	readLong() {
 		var value = this.dataView.getUint32(this.pos, true) + 0x100000000 * this.dataView.getUint32(this.pos + 4, true);
 		this.pos += 8;
@@ -78,6 +94,18 @@ export class DataInputStream {
 //		return value;
 //	}
 
+	readUuid() {
+		var bth = _byteToHex;
+		return bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + 
+		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + "-" + 
+		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + "-" + 
+		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + "-" + 
+		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + "-" + 
+		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + 
+		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + 
+		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()];
+	}
+	
 	readFloatArray2(length) {
 		var results = [];
 		for (var i=0; i<length; i++) {

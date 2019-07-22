@@ -74,10 +74,10 @@ export class RenderLayer {
 		return geometry;
 	}
 	
-	createObject(loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager, node) {
+	createObject(loaderId, roid, uniqueId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, gpuBufferManager, node) {
 		var loader = this.getLoader(loaderId);
 		var object = {
-			id: objectId,
+			uniqueId: uniqueId,
 			hasTransparency: hasTransparency,
 			matrix: matrix,
             normalMatrix: normalMatrix,
@@ -87,12 +87,12 @@ export class RenderLayer {
 			max: vec3.fromValues(aabb[3], aabb[4], aabb[5]),
 			roid: roid,
 //				object: this.viewer.model.objects[oid],
-			add: (geometryId, objectId) => {
-				this.addGeometryToObject(geometryId, objectId, loader, gpuBufferManager);
+			add: (geometryId, uniqueId) => {
+				this.addGeometryToObject(geometryId, uniqueId, loader, gpuBufferManager);
 			}
 		};
 
-		loader.objects.set(oid, object);
+		loader.objects.set(uniqueId, object);
 
 		var globalizedAabb = Utils.transformBounds(aabb, this.viewer.globalTranslationVector);
 		
@@ -100,14 +100,17 @@ export class RenderLayer {
             type: type,
 			aabb: aabb,
 			globalizedAabb: globalizedAabb,
-			objectId: objectId,
-			oid: oid,
-			node: node
+			uniqueId: uniqueId
 		};
-		this.viewer.addViewObject(objectId, viewObject);
+		
+		if (node) {
+			viewObject.node = node;
+		}
+		
+		this.viewer.addViewObject(uniqueId, viewObject);
 
 		geometryIds.forEach((id) => {
-			this.addGeometryToObject(id, object.id, loader, gpuBufferManager);
+			this.addGeometryToObject(id, object.uniqueId, loader, gpuBufferManager);
 		});
 
 		this.viewer.stats.inc("Models", "Objects");
@@ -223,7 +226,7 @@ export class RenderLayer {
 				buffer.pickColorsIndex += 4;
 			}
 
-			var li = (buffer.objectIdToIndex.get(object.id) || []);
+			var li = (buffer.uniqueIdToIndex.get(object.id) || []);
 			var idx = {
 				start: buffer.indicesIndex, 
 				length: geometry.indices.length,
@@ -231,7 +234,7 @@ export class RenderLayer {
 				colorLength: geometry.colors.length
 			};
 			li.push(idx);
-			buffer.objectIdToIndex.set(object.id, li);
+			buffer.uniqueIdToIndex.set(object.id, li);
 			
 			var index = Array(3);
 			for (var i=0; i<geometry.indices.length; i+=3) {
@@ -280,7 +283,7 @@ export class RenderLayer {
 		}
 	}
 	
-	addGeometryToObject(geometryId, objectId, loader, gpuBufferManager) {
+	addGeometryToObject(geometryId, uniqueId, loader, gpuBufferManager) {
 		var geometry = loader.geometries.get(geometryId);
 		if (geometry == null) {
 			if (this.geometryCache.has(geometryId)) {
@@ -290,7 +293,7 @@ export class RenderLayer {
 				return;
 			}
 		}
-		var object = loader.objects.get(objectId);
+		var object = loader.objects.get(uniqueId);
 		this.addGeometry(loader.loaderId, geometry, object);
 		object.geometry.push(geometryId);
 		if (geometry.isReused) {
@@ -361,7 +364,7 @@ export class RenderLayer {
 		buffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
 
 		geometry.objects.forEach((obj) => {
-			this.viewer.objectIdToBufferSet.set(obj.id, [buffer]);
+			this.viewer.uniqueIdToBufferSet.set(obj.uniqueId, [buffer]);
 		});
 
 		loader.geometries.delete(geometry.id);
@@ -399,7 +402,6 @@ export class RenderLayer {
 	registerLoader(loaderId) {
 		this.loaders.set(loaderId, {
 			loaderId: loaderId,
-			// ObjectID -> Object
 			objects: new Map(),
 			geometries: new Map()
 		});
@@ -494,13 +496,13 @@ export class RenderLayer {
 				}
 			}
 		} else {
-			if (buffer.objectId) {
+			if (buffer.uniqueId) {
 				// This is a buffer for one specific element, probably created when
 				// a call to setColor() changed the transparency state of an element.
 				let include = true;
-				if (visibleElements.with && !visibleElements.with.has(buffer.objectId)) {
+				if (visibleElements.with && !visibleElements.with.has(buffer.uniqueId)) {
 					include = false;
-				} else if (visibleElements.without && visibleElements.without.has(buffer.objectId)) {
+				} else if (visibleElements.without && visibleElements.without.has(buffer.uniqueId)) {
 					include = false;
 				}
 				if (include) {
@@ -583,7 +585,7 @@ export class RenderLayer {
 			
 			newBuffer.unquantizationMatrix = buffer.unquantizationMatrix;
 
-			newBuffer.objectIdToIndex = buffer.objectIdToIndex;
+			newBuffer.uniqueIdToIndex = buffer.uniqueIdToIndex;
 			
 			newBuffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
 					
@@ -672,11 +674,11 @@ export class RenderLayer {
 			
 			newBuffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
 
-			if (buffer.objectIdToIndex) {
-				for (var key of buffer.objectIdToIndex.keys()) {
-					var li = (this.viewer.objectIdToBufferSet.get(key) || []);
+			if (buffer.uniqueIdToIndex) {
+				for (var key of buffer.uniqueIdToIndex.keys()) {
+					var li = (this.viewer.uniqueIdToBufferSet.get(key) || []);
 					li.push(newBuffer);
-					this.viewer.objectIdToBufferSet.set(key, li);
+					this.viewer.uniqueIdToBufferSet.set(key, li);
 				}
 			}			
 			

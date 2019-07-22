@@ -47,7 +47,7 @@ export class GeometryLoader {
 		// Object IDs need to be stored so that references
 		// to the GPU BufferSet can be made later, which is
 		// only constructed at the end of geometry loading.
-		this.oidsLoaded = [];
+		this.uniqueIdsLoaded = [];
 	}
 	
 	processPreparedBufferInit(stream, hasTransparancy) {
@@ -80,7 +80,7 @@ export class GeometryLoader {
 		this.preparedBuffer.normals = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 2, WebGL2RenderingContext.BYTE, "Int8Array");
 		this.preparedBuffer.pickColors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
 
-		this.preparedBuffer.objectIdToIndex = new AvlTree();
+		this.preparedBuffer.uniqueIdToIndex = new AvlTree(this.renderLayer.viewer.inverseUniqueIdCompareFunction);
 
 		this.preparedBuffer.loaderId = this.loaderId;
 		this.preparedBuffer.hasTransparency = hasTransparancy;
@@ -146,7 +146,15 @@ export class GeometryLoader {
 		
 		for (var i = 0; i < nrObjects; i++) {
 			var oid = stream.readLong();
-			this.oidsLoaded.push(oid);
+			var uniqueId = oid;
+			if (this.loaderSettings.useUuidAndRid) {
+				let uuid = stream.readUuid();
+				let rid = stream.readInt();
+				uniqueId = uuid + (rid == 1 ? "" : "-" + rid);
+				console.log("PB", uniqueId);
+			}
+			this.uniqueIdsLoaded.push(uniqueId);
+
 			var startIndex = stream.readInt();
 			var startLineIndex = stream.readInt();
 			var nrIndices = stream.readInt();
@@ -157,15 +165,15 @@ export class GeometryLoader {
 			var nrObjectColors = nrVertices / 3 * 4;
 
 			if (!createdObjects) {
-				loadedViewObjects.push(oid);
+				loadedViewObjects.push(unqueId);
 				const viewObject = {
 					type: "Annotation",
-					pickId: oid
+					pickId: uniqueId
 				}
-				this.renderLayer.viewer.addViewObject(oid, viewObject);				
+				this.renderLayer.viewer.addViewObject(uniqueId, viewObject);				
 			}
 
-			var pickColor = this.renderLayer.viewer.getPickColor(oid);
+			var pickColor = this.renderLayer.viewer.getPickColor(uniqueId);
 			var color32 = pickColor[0] + pickColor[1] * 256 + pickColor[2] * 256 * 256 + pickColor[3] * 256 * 256 * 256;
 			var lenObjectPickColors = nrObjectColors;
 			pickColors32.fill(color32, pickColors.i / 4, (pickColors.i + lenObjectPickColors) / 4);
@@ -175,7 +183,7 @@ export class GeometryLoader {
 
 			var colorPackSize = stream.readInt();
 			if (createdObjects) {
-				var object = createdObjects.get(oid);
+				var object = createdObjects.get(uniqueId);
 				object.density = density;
 			}
 
@@ -189,7 +197,7 @@ export class GeometryLoader {
 				minIndex: minIndex,
 				maxIndex: maxIndex
 			};
-			this.preparedBuffer.objectIdToIndex.set(oid, [meta]);
+			this.preparedBuffer.uniqueIdToIndex.set(uniqueId, [meta]);
 			collectedMetaObjects.push(meta);
 			
 			if (colorPackSize == 0) {
@@ -324,11 +332,11 @@ export class GeometryLoader {
 		if (this.preparedBuffer.nrObjectsRead == this.preparedBuffer.nrObjects) {
 			this.preparedGpuBuffer.finalize();
 
-			for (let oid of this.oidsLoaded) {
-				this.renderLayer.viewer.objectIdToBufferSet.set(oid, [this.preparedGpuBuffer]);
+			for (let oid of this.uniqueIdsLoaded) {
+				this.renderLayer.viewer.uniqueIdToBufferSet.set(oid, [this.preparedGpuBuffer]);
 			}
 
-			this.oidsLoaded.length = 0;
+			this.uniqueIdsLoaded.length = 0;
 			this.preparedGpuBuffer = null;
 			this.preparedBuffer = null;
 		}
@@ -431,6 +439,10 @@ export class GeometryLoader {
 			// Object
 			var inPreparedBuffer = stream.readByte() == 1;
 			var oid = stream.readLong();
+			if (this.loaderSettings.useUuidAndRid) {
+				let uuid = stream.readUuid();
+				let rid = stream.readInt();
+			}
 			var type = stream.readUTF8();
 			var nrColors = stream.readInt();
 			stream.align8();
@@ -477,10 +489,17 @@ export class GeometryLoader {
 				geometryDataOidFound = null;
 			}
 			
-			this.createObject(roid, oid, oid, geometryDataOidFound == null ? [] : [geometryDataOidFound], matrix, hasTransparency, type, objectBounds, inPreparedBuffer);
+			this.createObject(roid, uniqueId, geometryDataOidFound == null ? [] : [geometryDataOidFound], matrix, hasTransparency, type, objectBounds, inPreparedBuffer);
 		} else if (geometryType == 9) {
 			// Minimal object
 			var oid = stream.readLong();
+			var uniqueId = oid;
+			if (this.loaderSettings.useUuidAndRid) {
+				let uuid = stream.readUuid();
+				let rid = stream.readInt();
+				uniqueId = uuid + (rid == 1 ? "" : "-" + rid);
+				console.log("Object", uniqueId);
+			}
 			var type = stream.readUTF8();
 			var nrColors = stream.readInt();
 			var roid = stream.readLong();
@@ -493,18 +512,18 @@ export class GeometryLoader {
 			var geometryDataOid = stream.readLong();
 			var geometryDataOidFound = geometryDataOid;
 			if (hasTransparency) {
-				this.createdTransparentObjects.set(oid, {
+				this.createdTransparentObjects.set(uniqueId, {
 					nrColors: nrColors,
 					type: type
 				});
 			} else {
-				this.createdOpaqueObjects.set(oid, {
+				this.createdOpaqueObjects.set(uniqueId, {
 					nrColors: nrColors,
 					type: type
 				});
 			}
 			
-			this.createObject(roid, oid, oid, [], null, hasTransparency, type, objectBounds, true);
+			this.createObject(roid, uniqueId, [], null, hasTransparency, type, objectBounds, true);
 		} else if (geometryType == 7) {
 			this.processPreparedBuffer(stream, true);
 		} else if (geometryType == 8) {
@@ -609,7 +628,7 @@ export class GeometryLoader {
 		return color;
 	}
 
-	createObject(roid, oid, objectId, geometryIds, matrix, hasTransparency, type, aabb, inCompleteBuffer) {
+	createObject(roid, uniqueId, geometryIds, matrix, hasTransparency, type, aabb, inCompleteBuffer) {
 		if (this.state.mode == 0) {
 			console.log("Mode is still 0, should be 1");
 			return;
@@ -644,7 +663,7 @@ export class GeometryLoader {
 			mat3.invert(normalMatrix, normalMatrix);
 			mat3.transpose(normalMatrix, normalMatrix);
 		}
-		this.renderLayer.createObject(this.loaderId, roid, oid, objectId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb);
+		this.renderLayer.createObject(this.loaderId, roid, uniqueId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb);
 	}
 	
 	readStart(data) {

@@ -52,7 +52,7 @@ export class AbstractBufferSet {
     			pos: 1
     		}
     	}
-    	var maxNrRanges = this.objectIdToIndex.size / 2;
+    	var maxNrRanges = this.uniqueIdToIndex.size / 2;
     	var complement = {
     		counts: new Int32Array(maxNrRanges),
     		offsets: new Int32Array(maxNrRanges),
@@ -191,7 +191,7 @@ export class AbstractBufferSet {
         return lineRenderer;
     }
     
-    createLineRenderer(gl, objectId, a, b) {
+    createLineRenderer(gl, uniqueId, a, b) {
         const lineRenderer = new FatLineRenderer(this.viewer, gl, {
             quantize: this.positionBuffer.js_type !== Float32Array.name
         }, this.unquantizationMatrix);
@@ -222,7 +222,7 @@ export class AbstractBufferSet {
 
 			return lineRenderer;
 		} else {
-			let index = this.objectIdToIndex.get(objectId);
+			let index = this.uniqueIdToIndex.get(uniqueId);
 			let idx = index[0];
 			let [offset, length] = [idx.start, idx.length];
 			let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
@@ -285,7 +285,7 @@ export class AbstractBufferSet {
     	for (const idRange of id_ranges) {
     		const oid = idRange[0];
     		const range = idRange[1];
-    		let idx = this.objectIdToIndex.get(oid)[0];
+    		let idx = this.uniqueIdToIndex.get(oid)[0];
     		if (bounds.startIndex == null || range[0] < bounds.startIndex) {
     			bounds.startIndex = range[0];
     		}
@@ -349,10 +349,10 @@ export class AbstractBufferSet {
     }
     
     // generator function that yields ranges in this buffer for the selected ids
-    * _(objectIdToIndex, ids) {
+    * _(uniqueIdToIndex, ids) {
         var oids;
         for (var i of ids) {
-    		if ((oids = objectIdToIndex.get(i))) {
+    		if ((oids = uniqueIdToIndex.get(i))) {
     			for (var j = 0; j < oids.length; ++j) {
     				yield [i, [oids[j].start, oids[j].start + oids[j].length]];
     			}
@@ -361,35 +361,37 @@ export class AbstractBufferSet {
     }
 
     getIdRanges(oids) {
-    	var iterator1 = this.objectIdToIndex.keys();
+    	var iterator1 = this.uniqueIdToIndex.keys();
     	var iterator2 = oids[Symbol.iterator]();
-    	const id_ranges = this.objectIdToIndex
+    	const id_ranges = this.uniqueIdToIndex
     	? Array.from(this.findUnion(iterator1, iterator2)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
     			// If we don't have this mapping, we're dealing with a dedicated
     			// non-instanced bufferset for one particular overriden object
-    			: [[this.objectId & 0x8FFFFFFF, [0, this.nrIndices]]];
+    			: [[this.uniqueId & 0x8FFFFFFF, [0, this.nrIndices]]];
     	return id_ranges;
     }
     
     /**
      * Generator function that yields ranges in this buffer for the selected ids
-     * This one tries to do better than _ by utilizing the fact (requirement) that both objectIdToIndex and ids are numerically ordered beforehand
+     * This one tries to do better than _ by utilizing the fact (requirement) that both uniqueIdToIndex and ids are numerically ordered beforehand
      * Basically it only iterates through both iterators only once. Could be even faster with a real TreeMap, but we don't have it available
      */
     * findUnion(iterator1, iterator2) {
     	var next1 = iterator1.next();
     	var next2 = iterator2.next();
     	while (!next1.done && !next2.done) {
-    		if (next1.value == next2.value) {
-    			const i = next1.value;
-    			var oids = this.objectIdToIndex.get(i);
-    			for (var j = 0; j < oids.length; ++j) {
-    				yield [i, [oids[j].start, oids[j].start + oids[j].length]];
+    		const diff = this.viewer.uniqueIdCompareFunction(next1.value, next2.value);
+    		if (diff == 0) {
+    			const uniqueId1 = next1.value;
+    			var indices = this.uniqueIdToIndex.get(uniqueId1);
+    			for (var j = 0; j < indices.length; ++j) {
+    				const mapping = indices[j];
+    				yield [uniqueId1, [mapping.start, mapping.start + mapping.length]];
     			}
     			next1 = iterator1.next();
     			next2 = iterator2.next();
     		} else {
-    			if (next1.value < next2.value) {
+    			if (diff < 0) {
     				next1 = iterator1.next();
     			} else {
     				next2 = iterator2.next();
@@ -426,21 +428,33 @@ export class AbstractBufferSet {
     		this.visibleRanges.set(ids_str, result);
     		return result;
     	}
-
-    	var iterator1 = this.objectIdToIndex.keys();
+    	
+//    	console.log(this.uniqueIdToIndex);
+//    	console.log(ids);
+//    	
+//    	for (var a of this.uniqueIdToIndex.keys()) {
+//    		console.log(a);
+//    	}
+    	
+    	var iterator1 = this.uniqueIdToIndex.keys();
     	var iterator2 = ids._set[Symbol.iterator]();
-
-    	const id_ranges = this.objectIdToIndex
-    	? Array.from(this.findUnion(iterator1, iterator2)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]))
-    			// If we don't have this mapping, we're dealing with a dedicated
-    			// non-instanced bufferset for one particular overriden object
-    			: [[this.objectId & 0x8FFFFFFF, [0, this.nrIndices]]];
+    	
+    	var id_ranges = null;
+    	if (this.uniqueIdToIndex) {
+    		id_ranges = Array.from(this.findUnion(iterator1, iterator2)).sort((a, b) => (a[1][0] > b[1][0]) - (a[1][0] < b[1][0]));
+    	} else {
+			// If we don't have this mapping, we're dealing with a dedicated
+			// non-instanced bufferset for one particular overriden object
+			id_ranges = [[this.uniqueId & 0x8FFFFFFF, [0, this.nrIndices]]];
+    	}
     	
     	var result = {
     		counts: new Int32Array(id_ranges.length),
     		offsets: new Int32Array(id_ranges.length),
     		pos: id_ranges.length
     	};
+    	
+    	console.log(result);
     	
     	var c = 0;
     	for (const range of id_ranges) {
@@ -489,17 +503,17 @@ export class AbstractBufferSet {
 		this.nrIndices = 0;
 		this.bytes = 0;
 		this.visibleRanges = new Map();
-		this.objectIdToIndex = new AvlTree();
+		this.uniqueIdToIndex = new AvlTree(viewer.inverseUniqueIdCompareFunction);
 		this.lineIndexBuffers = new Map();
 	}
 
-	copy(gl, objectId) {
+	copy(gl, uniqueId) {
         let returnDictionary = {};
 
         if (this.objects) {
             return this.copyEmpty();
         } else {
-    		let idx = this.objectIdToIndex.get(objectId)[0];
+    		let idx = this.uniqueIdToIndex.get(uniqueId)[0];
     		let [offset, length] = [idx.start, idx.length];
     		
 			const indices = new Uint32Array(length);
@@ -540,7 +554,7 @@ export class AbstractBufferSet {
 		return returnDictionary;
 	}
 
-	setColor(gl, objectId, clr) {
+	setColor(gl, uniqueId, clr) {
         // Reusing buffer sets always results in a copy
         if (this.objects) {
             return false;
@@ -563,7 +577,7 @@ export class AbstractBufferSet {
 			newColors = clr;
 		}
 
-		const idxs = this.objectIdToIndex.get(objectId);
+		const idxs = this.uniqueIdToIndex.get(uniqueId);
 		if (idxs == null) {
 			return;
 		}
