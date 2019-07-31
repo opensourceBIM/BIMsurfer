@@ -26,7 +26,7 @@ export class EventHandler {
     }
 
     fire(evt, ...args) {
-    	console.log(evt, args);
+//    	console.log(evt, args);
         var h = this.handlers[evt];
         if (!h) {
             return;

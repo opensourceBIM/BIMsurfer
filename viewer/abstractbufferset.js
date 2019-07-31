@@ -454,8 +454,6 @@ export class AbstractBufferSet {
     		pos: id_ranges.length
     	};
     	
-    	console.log(result);
-    	
     	var c = 0;
     	for (const range of id_ranges) {
     		const realRange = range[1];

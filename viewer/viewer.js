@@ -112,9 +112,15 @@ export class Viewer {
         this.colorRestore = [];
         
         // User can override this, default assumes strings to be used as unique object identifiers
-        this.uniqueIdCompareFunction = (a, b) => {
-        	return a.localeCompare(b);
-        };
+        if (this.settings.loaderSettings.useUuidAndRid) {
+        	this.uniqueIdCompareFunction = (a, b) => {
+        		return a.localeCompare(b);
+        	};
+        } else {
+        	this.uniqueIdCompareFunction = (a, b) => {
+        		return a - b;
+        	};
+        }
         
         // AvlTree sort descending (why?), so that's why there's also in inverse compare function
         this.inverseUniqueIdCompareFunction = (a, b) => {

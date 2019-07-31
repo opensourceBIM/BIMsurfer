@@ -56,6 +56,16 @@ export class DataInputStream {
 		return result;
 	}
 	
+	readUnsignedByteArray(size) {
+		var results = [];
+		for (var i=0; i<size; i++) {
+			var value = this.dataView.getUint8(this.pos);
+			this.pos += 1;
+			results.push(value);
+		}
+		return results;
+	}
+	
 	readFloat() {
 		var value = this.dataView.getFloat32(this.pos, true);
 		this.pos += 4;
@@ -95,15 +105,17 @@ export class DataInputStream {
 //	}
 
 	readUuid() {
+		const bytes = this.readUnsignedByteArray(16);
+		// LITTLE_ENDIAN, Most significant long first
 		var bth = _byteToHex;
-		return bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + 
-		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + "-" + 
-		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + "-" + 
-		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + "-" + 
-		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + "-" + 
-		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + 
-		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()] + 
-		bth[this.readUnsignedByte()] + bth[this.readUnsignedByte()];
+		return bth[bytes[7]] + bth[bytes[6]] + 
+		bth[bytes[5]] + bth[bytes[4]] + "-" + 
+		bth[bytes[3]] + bth[bytes[2]] + "-" + 
+		bth[bytes[1]] + bth[bytes[0]] + "-" + 
+		bth[bytes[15]] + bth[bytes[14]] + "-" + 
+		bth[bytes[13]] + bth[bytes[12]] + 
+		bth[bytes[11]] + bth[bytes[10]] + 
+		bth[bytes[9]] + bth[bytes[8]];
 	}
 	
 	readFloatArray2(length) {

@@ -151,7 +151,6 @@ export class GeometryLoader {
 				let uuid = stream.readUuid();
 				let rid = stream.readInt();
 				uniqueId = uuid + (rid == 1 ? "" : "-" + rid);
-				console.log("PB", uniqueId);
 			}
 			this.uniqueIdsLoaded.push(uniqueId);
 
@@ -498,7 +497,6 @@ export class GeometryLoader {
 				let uuid = stream.readUuid();
 				let rid = stream.readInt();
 				uniqueId = uuid + (rid == 1 ? "" : "-" + rid);
-				console.log("Object", uniqueId);
 			}
 			var type = stream.readUTF8();
 			var nrColors = stream.readInt();
