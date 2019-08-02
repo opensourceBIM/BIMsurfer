@@ -56,16 +56,6 @@ export class DataInputStream {
 		return result;
 	}
 	
-	readUnsignedByteArray(size) {
-		var results = [];
-		for (var i=0; i<size; i++) {
-			var value = this.dataView.getUint8(this.pos);
-			this.pos += 1;
-			results.push(value);
-		}
-		return results;
-	}
-	
 	readFloat() {
 		var value = this.dataView.getFloat32(this.pos, true);
 		this.pos += 4;
