@@ -122,9 +122,13 @@ export class Viewer {
         	};
         }
         
-        // AvlTree sort descending (why?), so that's why there's also in inverse compare function
+        /* Next function serves two purposes:
+         *	- We invert the uniqueIdCompareFunction because for some reason AvlTree sort is descending
+         *  - We convert the returned number to a fixed -1, 0 or 1, also because AvlTree does not handle any other numbers
+         */
         this.inverseUniqueIdCompareFunction = (a, b) => {
-        	return this.uniqueIdCompareFunction(b, a);
+        	let inverse = this.uniqueIdCompareFunction(b, a);
+        	return inverse < 0 ? -1 : (inverse > 0 ? 1 : 0);
         };
         
         this.uniqueIdToBufferSet = new AvlTree(this.inverseUniqueIdCompareFunction);
