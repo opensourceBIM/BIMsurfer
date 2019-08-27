@@ -68,5 +68,13 @@
 		Have you read the <a href="docs/index.html">API docs</a> (only available when built)?
 		</div>
 	</div>
+	<script>
+	debugger;
+		var urlParams = new URLSearchParams(window.location.search);
+		if (urlParams.has("token")) {
+			localStorage.setItem("token", urlParams.get("token"));
+			window.location.href = window.location.origin + window.location.pathname;
+		}
+	</script>
 </body>
 </html>
