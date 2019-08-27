@@ -920,4 +920,8 @@ export class Viewer {
         this.setVisibility(this.invisibleElements.keys(), true, false);
         this.dirty = 2;
     }
+	
+    addSelectionListener(listener) {
+       this.eventHandler.on("selection_state_changed", listener.handler);
+    }
 }
