@@ -272,6 +272,11 @@ export class GeometryLoader {
 			// @todo a bit ugly, but only in this case the AABB for the on-demand loaded object
 			// is computed.
 			if (loadedViewObjects.length) {
+				// @todo update this in the annotation generator
+				collectedMetaObjects.forEach((elem)=>{
+					elem.start *= 3;
+					elem.length *= 3;
+				});
 				for (var i = 0; i < collectedMetaObjects.length; ++i) {
 					const meta = collectedMetaObjects[i];
 					const oid = loadedViewObjects[i];
@@ -279,25 +284,16 @@ export class GeometryLoader {
 					aabb.fill(Infinity);
 					aabb.subarray(3).fill(-Infinity);
 					for (var j = meta.minIndex; j <= meta.maxIndex; j += 3) {
-						if (floats[j+0] < aabb[0]) {
-							aabb[0] = floats[j+0];
+						const xyz = floats.subarray(3*j, 3*j+3);
+						for (let k = 0; k < 3; ++k) {
+							if (xyz[k] < aabb[k]) {
+								aabb[k] = xyz[k];
+							}
+							if (xyz[k] > aabb[k+3]) {
+								aabb[k+3] = xyz[k];
+							}
 						}
-						if (floats[j+1] < aabb[1]) {
-							aabb[1] = floats[j+1];
-						}
-						if (floats[j+2] < aabb[2]) {
-							aabb[2] = floats[j+2];
-						}
-						if (floats[j+0] > aabb[3]) {
-							aabb[3] = floats[j+0];
-						}
-						if (floats[j+1] > aabb[4]) {
-							aabb[4] = floats[j+1];
-						}
-						if (floats[j+2] > aabb[5]) {
-							aabb[5] = floats[j+2];
-						}
-					}				
+					}
 					var globalizedAabb = Utils.transformBounds(aabb, this.renderLayer.viewer.globalTranslationVector);			
 					const viewobj = this.renderLayer.viewer.getViewObject(oid);
 					viewobj.aabb = aabb;
