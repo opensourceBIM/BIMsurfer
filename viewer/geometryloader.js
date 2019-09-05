@@ -164,7 +164,7 @@ export class GeometryLoader {
 			var nrObjectColors = nrVertices / 3 * 4;
 
 			if (!createdObjects) {
-				loadedViewObjects.push(unqueId);
+				loadedViewObjects.push(uniqueId);
 				const viewObject = {
 					type: "Annotation",
 					pickId: uniqueId
