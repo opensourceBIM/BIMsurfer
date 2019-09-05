@@ -30,7 +30,7 @@ var tmp_unproject = vec3.create();
 // to be rendered during the correct render pass. This
 // recreated object will have it's most significant bit
 // set to 1.
-const OVERRIDE_FLAG = (1 << 31);
+const OVERRIDE_FLAG = (1 << 30);
 
 const X = vec3.fromValues(1., 0., 0.);
 const Y = vec3.fromValues(0., 1., 0.);
@@ -115,11 +115,13 @@ export class Viewer {
         if (this.settings.loaderSettings.useUuidAndRid) {
         	this.uniqueIdCompareFunction = (a, b) => {
         		return a.localeCompare(b);
-        	};
+            };
+            this.idAugmentationFunction = (id) => ("O" + id);
         } else {
         	this.uniqueIdCompareFunction = (a, b) => {
         		return a - b;
-        	};
+            };
+            this.idAugmentationFunction = (id) => (id | OVERRIDE_FLAG);
         }
         
         /* Next function serves two purposes:
@@ -204,11 +206,12 @@ export class Viewer {
         elems.sort(this.uniqueIdCompareFunction);
 
         let fn = (visible ? this.invisibleElements.delete : this.invisibleElements.add).bind(this.invisibleElements);
+        let fn2 = this.idAugmentationFunction;
         return this.invisibleElements.batch(() => {
             elems.forEach((i) => {
                 fn(i);
                 // Show/hide transparently-adjusted counterpart (even though it might not exist)
-                fn("O" + i);
+                fn(fn2(i));
             });
 
             // Make sure elements hidden due to setColor() stay hidden
@@ -314,6 +317,7 @@ export class Viewer {
     }
     
     setColor(elems, clr) {
+        let aug = this.idAugmentationFunction;
 		let promise = this.invisibleElements.batch(() => {
 			var bufferSetsToUpdate = this.generateBufferSetToOidsMap(elems);
 			// Reset colors first to clear any potential transparency overrides.
@@ -384,7 +388,7 @@ export class Viewer {
 									
 									// Note that this is an attribute on the bufferSet, but is
 									// not applied to the actual webgl vertex data.
-									buffer.uniqueId = "O" + uniqueId;
+									buffer.uniqueId = aug(uniqueId);
 									
 									this.invisibleElements.add(uniqueId);
 									this.hiddenDueToSetColor.set(uniqueId, buffer);
