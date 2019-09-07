@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.opensourcebim</groupId>
   <artifactId>bimsurfer3</artifactId>
-  <version>0.0.257</version>
+  <version>0.0.258-SNAPSHOT</version>
   <name>BIMsurfer 3</name>
   <description>A 3D viewer library for BIM models</description>
   <url>https://github.com/TNOBIM/BIMSurfer</url>
@@ -26,7 +26,7 @@
   <scm>
     <connection>scm:git:https://github.com/TNOBIM/BIMSurfer.git</connection>
     <developerConnection>scm:git:https://github.com/TNOBIM/BIMSurfer.git</developerConnection>
-    <tag>bimsurfer3-0.0.257</tag>
+    <tag>bimsurfer3-0.0.6</tag>
     <url>https://github.com/TNOBIM/BIMSurfer.git</url>
   </scm>
   <issueManagement>
