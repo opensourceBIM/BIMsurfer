@@ -63,6 +63,8 @@ export class Camera {
         this.lowVolumeListeners = [];
 
         this._orbitting = false;
+
+        this.autonear = true;
     }
 
     lock() {
@@ -134,25 +136,29 @@ export class Camera {
             
             let [near, far] = [+Infinity, -Infinity];
 
-            this._modelBounds.forEach((v) => {
-                vec3.transformMat4(tmp_modelBounds, v, this._viewMatrix);
-                let z = -tmp_modelBounds[2];
-                if (z < near) {
-                    near = z;
-                }
-                if (z > far) {
-                    far = z;
-                }
-            });
+            if (this.autonear) {                
+                this._modelBounds.forEach((v) => {
+                    vec3.transformMat4(tmp_modelBounds, v, this._viewMatrix);
+                    let z = -tmp_modelBounds[2];
+                    if (z < near) {
+                        near = z;
+                    }
+                    if (z > far) {
+                        far = z;
+                    }
+                });
 
-            if (near < 1.e-3) {
-                near = far / 1000.;
+                if (near < 1.e-3) {
+                    near = far / 1000.;
+                }
+            } else {
+                [near, far] = [+100, +1000000.];
             }
 
             this.perspective.near = near;
             this.perspective.far = far;
             this.orthographic.near = near;
-            this.orthographic.far = far;
+            this.orthographic.far = far;        
 
             mat4.invert(this._viewMatrixInverted, this._viewMatrix);
             mat4.multiply(this._viewProjMatrix, this.projMatrix, this._viewMatrix);

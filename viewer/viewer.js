@@ -502,13 +502,16 @@ export class Viewer {
         
         gl.viewport(0, 0, this.width, this.height);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
-        gl.enable(gl.CULL_FACE);
+        gl.disable(gl.CULL_FACE);
 
         this.sectionPlaneValues.set(this.sectionPlaneValues2);
 
         for (var renderLayer of this.renderLayers) {
             renderLayer.prepareRender(reason);
+            renderLayer.renderLines();            
         }
+
+        gl.enable(gl.CULL_FACE);
 
         let render = (elems, t) => {
             for (var transparency of (t || [false, true])) {
