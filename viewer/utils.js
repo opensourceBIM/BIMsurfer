@@ -240,8 +240,22 @@ export class Utils {
 		return bytes;
 	}
 	
+	/*
+	 * 
+	 * vec3 v = vec3(oct.xy, 1.0 - abs(oct.x) - abs(oct.y));
+        if (v.z < 0.0) {
+            v.xy = (1.0 - abs(v.yx)) * vec2(v.x >= 0.0 ? 1.0 : -1.0, v.y >= 0.0 ? 1.0 : -1.0);
+        }
+        return normalize(v);
+	 */
+	
 	// Decode an oct-encoded normal, not used currently, but was used for debugging
-	octDecodeVec2(oct) {
+	static octDecodeVec2(oct) {
+//		var normal = vec3.fromValues(oct[0] / 127, oct[1] / 127, 1.0 - Math.abs(oct[0] / 127) - Math.abs(oct[1] / 127));
+//		if (normal[2] < 0.0) {
+//			normal[0] = 
+//		}
+//		return vec3.normalize(normal);
        var x = oct[0];
        var y = oct[1];
        x /= x < 0 ? 128 : 127;

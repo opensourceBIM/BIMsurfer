@@ -8,6 +8,7 @@ export const COLOR_QUANTIZATION = 8;
 export const REUSE = 16;
 export const PICKING = 32;
 export const LINE_PRIMITIVES = 64;
+export const NORMAL_OCT_ENCODE = 128;
 
 /**
  * Keeps track of shader programs, glsl, uniform positions and vertex attributes
@@ -52,7 +53,7 @@ export class ProgramManager {
 				settings.attributes.push("vertexColor");
 			}			
 		}
-		if (key & NORMAL_QUANTIZATION) {
+		if (key & NORMAL_QUANTIZATION || key & NORMAL_OCT_ENCODE) {
 			// Has no effect on locations
 		}
 		if (key & VERTEX_QUANTIZATION) {
@@ -153,6 +154,7 @@ export class ProgramManager {
 		key |= (this.settings.useObjectColors ? OBJECT_COLORS : 0);
 		key |= (this.settings.quantizeVertices ? VERTEX_QUANTIZATION : 0);
 		key |= ((!picking && this.settings.quantizeNormals) ? NORMAL_QUANTIZATION : 0);
+		key |= ((!picking && this.settings.loaderSettings.octEncodeNormals) ? NORMAL_OCT_ENCODE : 0);
 		key |= ((!picking && this.settings.quantizeColors) ? COLOR_QUANTIZATION : 0);
 		key |= (reuse ? REUSE : 0);
 		key |= (picking ? PICKING : 0);
@@ -165,6 +167,7 @@ export class ProgramManager {
 			useObjectColors: (key & OBJECT_COLORS) ? true : false,
 			quantizeVertices: (key & VERTEX_QUANTIZATION) ? true : false,
 			quantizeNormals: (key & NORMAL_QUANTIZATION) ? true : false,
+			octEncodeNormals: (key & NORMAL_OCT_ENCODE) ? true : false,
 			quantizeColors: (key & COLOR_QUANTIZATION) ? true : false,
 			reuse: (key & REUSE) ? true : false,
 			picking: (key & PICKING) ? true : false,
@@ -286,6 +289,9 @@ export class ProgramManager {
 		}
 		if (key & NORMAL_QUANTIZATION) {
 			fullSource += `#define WITH_QUANTIZENORMALS\n`;
+		}
+		if (key & NORMAL_OCT_ENCODE) {
+			fullSource += `#define WITH_OCT_ENCODE_NORMALS\n`;
 		}
 		if (key & COLOR_QUANTIZATION) {
 			fullSource += `#define WITH_QUANTIZECOLORS\n`;

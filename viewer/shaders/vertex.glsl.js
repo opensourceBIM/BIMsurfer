@@ -21,7 +21,11 @@ in float direction;
 
 #ifndef WITH_PICKING
 #ifdef WITH_QUANTIZENORMALS
+#ifdef WITH_OCT_ENCODE_NORMALS
 in ivec2 vertexNormal;
+#else
+in ivec3 vertexNormal;
+#endif
 #else
 in vec3 vertexNormal;
 #endif
@@ -101,7 +105,22 @@ void main(void) {
 
 #ifndef WITH_PICKING
 #ifdef WITH_QUANTIZENORMALS
-    vec3 floatNormal = octDecode(vec2(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0));
+#ifdef WITH_OCT_ENCODE_NORMALS
+	vec2 normal = vec2(float(vertexNormal.x), float(vertexNormal.y));
+	if (normal.x < 0.0) {
+		normal.x = normal.x / 128.0;
+	} else {
+		normal.x = normal.x / 127.0;
+	}
+	if (normal.y < 0.0) {
+		normal.y = normal.y / 128.0;
+	} else {
+		normal.y = normal.y / 127.0;
+	}
+    vec3 floatNormal = octDecode(normal);
+#else
+	vec3 floatNormal = vec3(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0);
+#endif
 #else
     vec3 floatNormal = vertexNormal;
 #endif

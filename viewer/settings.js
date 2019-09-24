@@ -19,6 +19,7 @@ export class Settings {
 			maxOctreeDepth: "number",
 			loaderSettings: {
 				quantizeNormals: "boolean",
+				octEncodeNormals: "boolean",
 				quantizeVertices: "boolean", 
 				quantizeColors: "boolean",
 				useObjectColors: "boolean",
@@ -48,6 +49,7 @@ export class Settings {
 			maxOctreeDepth: 3,
 			loaderSettings: {
 				quantizeNormals: true,
+				octEncodeNormals: false,
 				quantizeVertices: true,
 				quantizeColors: true,
 				useObjectColors: false,

@@ -77,7 +77,7 @@ export class GeometryLoader {
 		}
 		this.preparedBuffer.colors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
 		this.preparedBuffer.vertices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.positionsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, this.settings.quantizeVertices ? WebGL2RenderingContext.SHORT : WebGL2RenderingContext.FLOAT, this.settings.quantizeVertices ? "Int16Array" : "Float32Array");
-		this.preparedBuffer.normals = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, this.settings.quantizeNormals ? 2 : 3, this.settings.quantizeNormals ? WebGL2RenderingContext.BYTE : WebGL2RenderingContext.FLOAT, this.settings.quantizeNormals ? "Int8Array" : "Float32Array");
+		this.preparedBuffer.normals = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, this.settings.quantizeNormals ? (this.settings.loaderSettings.octEncodeNormals ? 2 : 3) : 3, this.settings.quantizeNormals ? WebGL2RenderingContext.BYTE : WebGL2RenderingContext.FLOAT, this.settings.quantizeNormals ? "Int8Array" : "Float32Array");
 		this.preparedBuffer.pickColors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
 
 		this.preparedBuffer.uniqueIdToIndex = new AvlTree(this.renderLayer.viewer.inverseUniqueIdCompareFunction);
@@ -302,15 +302,25 @@ export class GeometryLoader {
 
 		}
 		
-		// Debugging oct-encoding
-//		var octNormals = new Int8Array(stream.dataView.buffer, stream.pos, ((normalsIndex / 3) * 2));
-//		for (var i=0; i<octNormals.length; i+=2) {
-//			console.log(Utils.octDecodeVec2([octNormals[i], octNormals[i+1]]));
-//		}
-		
 		if (this.settings.quantizeNormals) {
-			Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.normals, stream.dataView, stream.pos, ((normalsIndex / 3) * 2), true);
-			stream.pos += ((normalsIndex / 3) * 2);
+			// Debugging oct-encoding
+//			var octNormals = new Int8Array(stream.dataView.buffer, stream.pos, ((normalsIndex / 3) * 2));
+//			for (var i=0; i<octNormals.length; i+=2) {
+//				console.log(octNormals[i], octNormals[i+1]);
+//				let normal = Utils.octDecodeVec2([octNormals[i], octNormals[i+1]]);
+////				if (this.lastNormal == null || this.lastNormal.toString() != normal.toString()) {
+////					console.log(normal);
+////				}
+//				this.lastNormal = normal;
+//			}
+
+			if (this.settings.loaderSettings.octEncodeNormals) {
+				Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.normals, stream.dataView, stream.pos, ((normalsIndex / 3) * 2), true);
+				stream.pos += ((normalsIndex / 3) * 2);
+			} else {
+				Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.normals, stream.dataView, stream.pos, normalsIndex, true);
+				stream.pos += normalsIndex;
+			}
 		} else {
 			Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.normals, stream.dataView, stream.pos, normalsIndex, true);
 			stream.pos += normalsIndex * 4;

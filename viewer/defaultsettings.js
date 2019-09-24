@@ -36,6 +36,9 @@ export class DefaultSettings {
 		if (settings.loaderSettings.quantizeNormals == null) {
 			settings.loaderSettings.quantizeNormals = true;
 		}
+		if (settings.loaderSettings.octEncodeNormals == null) {
+			settings.loaderSettings.octEncodeNormals = false;
+		}
 		if (settings.loaderSettings.quantizeVertices == null) {
 			settings.loaderSettings.quantizeVertices = true;
 		}
