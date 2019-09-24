@@ -220,7 +220,7 @@ export class RenderLayer {
 					}
 				}
 			}
-			var pickColor = this.viewer.getPickColor(object.id);
+			var pickColor = this.viewer.getPickColor(object.uniqueId);
 			var lenObjectPickColors = (geometry.positions.length / 3);
 			for (var i=0; i<lenObjectPickColors; i++) {
 				buffer.pickColors.set(pickColor, buffer.pickColorsIndex);

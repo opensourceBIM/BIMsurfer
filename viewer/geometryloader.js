@@ -77,7 +77,7 @@ export class GeometryLoader {
 		}
 		this.preparedBuffer.colors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
 		this.preparedBuffer.vertices = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.positionsIndex, this.renderLayer.gl.ARRAY_BUFFER, 3, this.settings.quantizeVertices ? WebGL2RenderingContext.SHORT : WebGL2RenderingContext.FLOAT, this.settings.quantizeVertices ? "Int16Array" : "Float32Array");
-		this.preparedBuffer.normals = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, 2, WebGL2RenderingContext.BYTE, "Int8Array");
+		this.preparedBuffer.normals = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.normalsIndex, this.renderLayer.gl.ARRAY_BUFFER, this.settings.quantizeNormals ? 2 : 3, this.settings.quantizeNormals ? WebGL2RenderingContext.BYTE : WebGL2RenderingContext.FLOAT, this.settings.quantizeNormals ? "Int8Array" : "Float32Array");
 		this.preparedBuffer.pickColors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
 
 		this.preparedBuffer.uniqueIdToIndex = new AvlTree(this.renderLayer.viewer.inverseUniqueIdCompareFunction);
@@ -198,7 +198,6 @@ export class GeometryLoader {
 			};
 			this.preparedBuffer.uniqueIdToIndex.set(uniqueId, [meta]);
 			collectedMetaObjects.push(meta);
-			
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
 				var defaultColor = this.renderLayer.viewer.defaultColors[object.type];
@@ -309,8 +308,13 @@ export class GeometryLoader {
 //			console.log(Utils.octDecodeVec2([octNormals[i], octNormals[i+1]]));
 //		}
 		
-		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.normals, stream.dataView, stream.pos, ((normalsIndex / 3) * 2), true);
-		stream.pos += ((normalsIndex / 3) * 2);
+		if (this.settings.quantizeNormals) {
+			Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.normals, stream.dataView, stream.pos, ((normalsIndex / 3) * 2), true);
+			stream.pos += ((normalsIndex / 3) * 2);
+		} else {
+			Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.normals, stream.dataView, stream.pos, normalsIndex, true);
+			stream.pos += normalsIndex * 4;
+		}
 
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.pickColors, pickColors, 0, pickColors.i);
 
@@ -434,9 +438,11 @@ export class GeometryLoader {
 			// Object
 			var inPreparedBuffer = stream.readByte() == 1;
 			var oid = stream.readLong();
+			var uniqueId = oid;
 			if (this.loaderSettings.useUuidAndRid) {
 				let uuid = stream.readUuid();
 				let rid = stream.readInt();
+				uniqueId = uuid + (rid == 1 ? "" : "-" + rid);
 			}
 			var type = stream.readUTF8();
 			var nrColors = stream.readInt();
