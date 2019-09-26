@@ -5,7 +5,7 @@
   <groupId>org.opensourcebim</groupId>
   <artifactId>bimsurfer3</artifactId>
   <version>0.0.261-SNAPSHOT</version>
-  <name>BIMsurfer</name>
+  <name>BimSurfer</name>
   <description>A 3D viewer library for BIM models</description>
   <url>https://github.com/TNOBIM/BIMSurfer</url>
   <organization>
