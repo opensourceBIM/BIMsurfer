@@ -242,7 +242,7 @@ export class Viewer {
 
             return Promise.resolve();
         }).then(() => {
-        	this.eventHandler.fire("selection_state_changed", elems, selected);
+        	this.eventHandler.fire("selection_state_changed", Array.from(this.selectedElements));
         });
     }
 
@@ -809,23 +809,22 @@ export class Viewer {
             if (params.select !== false) {
                 if (!params.shiftKey) {
                 	if (this.selectedElements.size > 0) {
-                		this.eventHandler.fire("selection_state_changed", this.selectedElements, false);
-                		this.selectedElements.clear();
+                        this.selectedElements.clear();
                 	}
                 }
                 if (this.selectedElements.has(uniqueId)) {
                     this.selectedElements.delete(uniqueId);
-                    this.eventHandler.fire("selection_state_changed", [uniqueId], false);
                 } else {
                     this.selectedElements.add(uniqueId);
-                    this.eventHandler.fire("selection_state_changed", [uniqueId], true);
                 }
+                this.eventHandler.fire("selection_state_changed", Array.from(this.selectedElements));
             }
+
             return {object: viewObject, normal: normal, coordinates: tmp_unproject, depth: depth};
         } else if (params.select !== false) {
         	if (this.selectedElements.size > 0) {
-        		this.eventHandler.fire("selection_state_changed", this.selectedElements, false);
-        		this.selectedElements.clear();
+                this.selectedElements.clear();
+                this.eventHandler.fire("selection_state_changed", Array.from(this.selectedElements));
         	}
         }
 
