@@ -143,58 +143,52 @@ export class CameraControl {
         this.mouseDown = true;
         this.mouseDownTime = e.timeStamp;
         this.mouseDownPos.set(this.mousePos);
+             
+        if (e.ctrlKey && e.which == 1) {
+            this.mouseDownTime = 0;
+            if (this.viewer.enableSectionPlane({canvasPos:[this.lastX, this.lastY]})) {
+                this.dragMode = DRAG_SECTION;
+            } else if (!this.viewer.sectionPlaneIsDisabled){
+                this.viewer.disableSectionPlane();
+                this.dragMode = DRAG_ORBIT;
+            }
+            this.viewer.removeSectionPlaneWidget();
+        } else if ((e.shiftKey && e.which == 1) || e.which == 2) {
+            this.dragMode = DRAG_PAN; 
+        } else if (e.which == 1) {
+            this.dragMode = DRAG_ORBIT;
+            let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
+            if (picked && picked.coordinates && picked.object) {
+                this.viewer.camera.center = picked.coordinates;
+            } else {
+                // Check if we can 'see' the previous center. If not, pick
+                // a new point.
+                let center_vp = vec3.transformMat4(vec3.create(), this.viewer.camera.center, this.viewer.camera.viewProjMatrix);
 
-        switch (e.which) {
-            case 1:                
-                if (e.ctrlKey) {
-                    this.mouseDownTime = 0;
-                    if (this.viewer.enableSectionPlane({canvasPos:[this.lastX, this.lastY]})) {
-                        this.dragMode = DRAG_SECTION;
-                    } else if (!this.viewer.sectionPlaneIsDisabled){
-                        this.viewer.disableSectionPlane();
-                        this.dragMode = DRAG_ORBIT;
-                    }
-                    this.viewer.removeSectionPlaneWidget();
-                } else {
-                    this.dragMode = DRAG_ORBIT;
-                    let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
-                    if (picked && picked.coordinates && picked.object) {
-                        this.viewer.camera.center = picked.coordinates;
-                    } else {
-                        // Check if we can 'see' the previous center. If not, pick
-                        // a new point.
-                        let center_vp = vec3.transformMat4(vec3.create(), this.viewer.camera.center, this.viewer.camera.viewProjMatrix);
-
-                        let isv = true;
-                        for (let i = 0; i < 3; ++i) {
-                            if (center_vp[i] < -1. || center_vp[i] > 1.) {
-                                isv = false;
-                                break;
-                            }
-                        }
-
-                        if (!isv) {
-                            let [x,y] = this.mousePos;
-                            vec3.set(center_vp, x / this.viewer.width * 2 - 1, - y / this.viewer.height * 2 + 1, 1.);
-                            vec3.transformMat4(center_vp, center_vp, this.camera.viewProjMatrixInverted);
-                            vec3.subtract(center_vp, center_vp, this.camera.eye);
-                            vec3.normalize(center_vp, center_vp);
-                            vec3.scale(center_vp, center_vp, this.getZoomRate() * 10.);
-                            vec3.add(center_vp, center_vp, this.camera.eye);
-                            console.log("new center", center_vp);
-                            this.viewer.camera.center = center_vp;
-                        }
+                let isv = true;
+                for (let i = 0; i < 3; ++i) {
+                    if (center_vp[i] < -1. || center_vp[i] > 1.) {
+                        isv = false;
+                        break;
                     }
                 }
-                break;
-            case 2:
-                this.dragMode = DRAG_PAN; 
-                break;
-            default:
-                break;
+
+                if (!isv) {
+                    let [x,y] = this.mousePos;
+                    vec3.set(center_vp, x / this.viewer.width * 2 - 1, - y / this.viewer.height * 2 + 1, 1.);
+                    vec3.transformMat4(center_vp, center_vp, this.camera.viewProjMatrixInverted);
+                    vec3.subtract(center_vp, center_vp, this.camera.eye);
+                    vec3.normalize(center_vp, center_vp);
+                    vec3.scale(center_vp, center_vp, this.getZoomRate() * 10.);
+                    vec3.add(center_vp, center_vp, this.camera.eye);
+                    console.log("new center", center_vp);
+                    this.viewer.camera.center = center_vp;
+                }
+            }
         }
+        
         this.over = true;
-        if (this.dragMode == DRAG_PAN || e.shiftKey) {
+        if (e.which == 1 || e.which == 2) {
         	e.preventDefault();
         }
     }
