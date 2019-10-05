@@ -12,6 +12,9 @@ const PROTOCOL_VERSION = 19;
 // temporary for emergency quantization
 const v4 = vec4.create();
 
+// Annotation buffers don't have OIDS, so we autoincrement starting from 1
+var oidGenerator = 1;
+
 /**
  * This class is supposed to be and stay BIMserver-free.
  */
@@ -146,6 +149,9 @@ export class GeometryLoader {
 		
 		for (var i = 0; i < nrObjects; i++) {
 			var oid = stream.readLong();
+			if (oid == 0) {
+				oid = oidGenerator ++;
+			}
 			var uniqueId = oid;
 			if (this.loaderSettings.useUuidAndRid) {
 				let uuid = stream.readUuid();
