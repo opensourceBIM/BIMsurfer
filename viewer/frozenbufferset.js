@@ -83,7 +83,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
         objects.forEach((object, index) => {
             instanceMatrices.set(object.matrix, index * 16);
             instanceNormalMatrices.set(object.normalMatrix, index * 9);
-            instancePickColors.set(this.viewer.getPickColor(object.id), index * 4);
+            instancePickColors.set(this.viewer.getPickColor(object.uniqueId), index * 4);
         });
         
         if (this.instanceMatricesBuffer === null) {
