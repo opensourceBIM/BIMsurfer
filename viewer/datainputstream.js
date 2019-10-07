@@ -1,5 +1,5 @@
 // Reuse the text decoder
-let utf8TextDecoder = new TextDecoder("utf-8");
+let utf8TextDecoder = "TextDecoder" in window ? new TextDecoder("utf-8") : null;
 
 
 var _byteToHex = [];
