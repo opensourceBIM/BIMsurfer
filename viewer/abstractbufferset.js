@@ -14,6 +14,8 @@ export class AbstractBufferSet {
         this.id = counter++;
         
         this.dirty = true;
+        
+        this.nonceCache = new Map();
     }
 
     /**
@@ -405,9 +407,22 @@ export class AbstractBufferSet {
     		// TODO maybe we can reuse something here?
 //    		console.log("Clearing visible ranges cache", this.visibleRanges.size);
     		this.visibleRanges.clear();
+    		this.nonceCache.clear();
     		this.dirty = false;
     	}
+    	
     	var ids = ids_with_or_without.with ? ids_with_or_without.with : ids_with_or_without.without;
+
+    	var nonce = ids.nonce + (ids_with_or_without.with ? "w" : "wo");
+    	const cachedValue = this.nonceCache.get(nonce);
+    	if (cachedValue) {
+    		/* Using the nonce of the FrozenBufferSet here so we can skip the potentially very heavy this.visibleRanges.get call (seems to be real slow for large strings), 
+    		 * basically we use different layers of cache here.
+    		 * It remains to be seen how useful the second layer of caching actually is
+    		 */
+    		return cachedValue;
+    	}
+    	
     	var exclude = "without" in ids_with_or_without;
     	
     	const ids_str = exclude + ':' +  ids.frozen;
@@ -425,16 +440,8 @@ export class AbstractBufferSet {
     			offsets: new Int32Array([0]),
     			pos: 1
     		};
-    		this.visibleRanges.set(ids_str, result);
-    		return result;
+    		return this.storeInCacheAndReturn(ids_str, result, nonce);
     	}
-    	
-//    	console.log(this.uniqueIdToIndex);
-//    	console.log(ids);
-//    	
-//    	for (var a of this.uniqueIdToIndex.keys()) {
-//    		console.log(a);
-//    	}
     	
     	var iterator1 = this.uniqueIdToIndex.keys();
     	var iterator2 = ids._set[Symbol.iterator]();
@@ -466,14 +473,9 @@ export class AbstractBufferSet {
     	
     	if (exclude) {
     		let complement = this.complementRangesAsBuffers(result);
-    		// store in cache
-    		this.visibleRanges.set(ids_str, complement);
-    		return complement;
+    		return this.storeInCacheAndReturn(ids_str, complement, nonce);
     	}
     	
-    	// store in cache
-    	this.visibleRanges.set(ids_str, result);
-
     	// Create fat line renderings for these elements. This should (a) 
     	// not in the draw loop (b) maybe in something like a web worker
     	
@@ -490,7 +492,15 @@ export class AbstractBufferSet {
     		});
     	});
     	
-    	return result;
+    	return this.storeInCacheAndReturn(ids_str, result, nonce);
+    }
+    
+    storeInCacheAndReturn(key, result, nonce) {
+		this.visibleRanges.set(key, result);
+		this.lastNonce = nonce;
+		this.lastComputedVisibleRanges = result;
+		this.nonceCache.set(nonce, result);
+		return result;
     }
     
 	reset() {
