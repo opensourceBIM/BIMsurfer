@@ -75,7 +75,7 @@ export class Viewer {
         this.camera = new Camera(this);
         this.overlay = new SvgOverlay(this.canvas, this.camera);
         
-        this.gl = this.canvas.getContext('webgl2', {stencil: true});
+        this.gl = this.canvas.getContext('webgl2', {stencil: true, premultipliedAlpha: false});
 
         if (!this.gl) {
             alert('Unable to initialize WebGL. Your browser or machine may not support it.');
