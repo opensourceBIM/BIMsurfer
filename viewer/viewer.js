@@ -494,7 +494,7 @@ export class Viewer {
 
         gl.depthMask(true);
         gl.disable(gl.STENCIL_TEST);
-        gl.clearColor(1, 1, 1, 1.0);
+        gl.clearColor(1, 1, 1, 0);
         gl.clearDepth(1);
         gl.clearStencil(0);
         gl.enable(gl.DEPTH_TEST);

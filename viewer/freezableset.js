@@ -15,6 +15,7 @@ export class FreezableSet {
         this._set = new Set();
         this._update = true;
         this._build();
+        this.nonce = 0;
     }
 
     _build() {
@@ -23,6 +24,7 @@ export class FreezableSet {
         // Store the sorted set (Sets do maintain insertion order)
         this._set = new Set(a);
         this._string = a.join(",");
+        this.nonce++;
     }
 
     get frozen() {

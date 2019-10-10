@@ -2,24 +2,26 @@ import * as mat4 from "./glmatrix/mat4.js";
 import * as mat3 from "./glmatrix/mat3.js";
 import * as vec3 from "./glmatrix/vec3.js";
 
+const WEB_GL_2 = "WebGL2RenderingContext" in window;
+
 const glTypeToTypedArrayMap = new Map([
-	[WebGL2RenderingContext.BYTE, Int8Array],
-	[WebGL2RenderingContext.SHORT, Int16Array],
-	[WebGL2RenderingContext.INT, Int32Array],
-	[WebGL2RenderingContext.UNSIGNED_BYTE, Uint8Array],
-	[WebGL2RenderingContext.UNSIGNED_SHORT, Uint16Array],
-	[WebGL2RenderingContext.UNSIGNED_INT, Uint32Array],
-	[WebGL2RenderingContext.FLOAT, Float32Array]
+	[WEB_GL_2 ? WebGL2RenderingContext.BYTE : null, Int8Array],
+	[WEB_GL_2 ? WebGL2RenderingContext.SHORT : null, Int16Array],
+	[WEB_GL_2 ? WebGL2RenderingContext.INT : null, Int32Array],
+	[WEB_GL_2 ? WebGL2RenderingContext.UNSIGNED_BYTE : null, Uint8Array],
+	[WEB_GL_2 ? WebGL2RenderingContext.UNSIGNED_SHORT : null, Uint16Array],
+	[WEB_GL_2 ? WebGL2RenderingContext.UNSIGNED_INT : null, Uint32Array],
+	[WEB_GL_2 ? WebGL2RenderingContext.FLOAT : null, Float32Array]
 ]);
 
 const typedArrayToGlTypeMap = new Map([
-	["Int8Array", WebGL2RenderingContext.BYTE],
-	["Int16Array", WebGL2RenderingContext.SHORT],
-	["Int32Array", WebGL2RenderingContext.INT],
-	["Uint8Array", WebGL2RenderingContext.UNSIGNED_BYTE],
-	["Uint16Array", WebGL2RenderingContext.UNSIGNED_SHORT],
-	["Uint32Array", WebGL2RenderingContext.UNSIGNED_INT],
-	["Float32Array", WebGL2RenderingContext.FLOAT]
+	["Int8Array", WEB_GL_2 ? WebGL2RenderingContext.BYTE : null],
+	["Int16Array", WEB_GL_2 ? WebGL2RenderingContext.SHORT : null],
+	["Int32Array", WEB_GL_2 ? WebGL2RenderingContext.INT : null],
+	["Uint8Array", WEB_GL_2 ? WebGL2RenderingContext.UNSIGNED_BYTE : null],
+	["Uint16Array", WEB_GL_2 ? WebGL2RenderingContext.UNSIGNED_SHORT : null],
+	["Uint32Array", WEB_GL_2 ? WebGL2RenderingContext.UNSIGNED_INT : null],
+	["Float32Array", WEB_GL_2 ? WebGL2RenderingContext.FLOAT : null]
 ]);
 
 /**

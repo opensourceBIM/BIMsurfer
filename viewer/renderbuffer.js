@@ -140,11 +140,15 @@ export class RenderBuffer {
     depth(pickX, pickY) {
         var x = pickX;
         var y = this.canvas.height - pickY;
-        var pix = new Float32Array(1);//To review
+        var pix = new Float32Array(4);//To review
         var gl = this.gl;
         gl.readBuffer(gl.COLOR_ATTACHMENT1);
-        gl.readPixels(x, y, 1, 1, gl.RED, gl.FLOAT, pix);//To review
-        return pix;
+
+        // Reading only gl.R should be sufficient, but at least on Google Chrome and Firefox on OSX, the gl.R could not be read. So that's why we are reading RGBA here
+        // Don't think this can hurt performance. Seems to be caused by a vague spec: https://github.com/KhronosGroup/WebGL/issues/2747
+        gl.readPixels(x, y, 1, 1, gl.RGBA, gl.FLOAT, pix);//To review
+        
+        return pix.slice(0, 1);
     }
 
     normal(pickX, pickY) {

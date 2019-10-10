@@ -12,6 +12,7 @@ var tempVec3b = vec3.create();
 var tempVec3c = vec3.create();
 var tempVec3d = vec3.create();
 var tempVec3e = vec3.create();
+var tempVecBuild = vec3.create();
 
 var tmp_modelBounds = vec3.create();
 
@@ -122,10 +123,10 @@ export class Camera {
     _build() {
         if (this._dirty && !this._locked && this._modelBounds) {
             vec3.set(this._up, 0,0,1);
-            var d = vec3.subtract(vec3.create(), this._target, this._eye);
-            vec3.normalize(d, d);
-            vec3.cross(this._up, d, this._up);
-            vec3.cross(this._up, this._up, d);
+            vec3.subtract(tempVecBuild, this._target, this._eye);
+            vec3.normalize(tempVecBuild, tempVecBuild);
+            vec3.cross(this._up, tempVecBuild, this._up);
+            vec3.cross(this._up, this._up, tempVecBuild);
 
             mat4.lookAt(this._viewMatrix, this._eye, this._target, this._up);
             mat4.identity(tempMat4);
@@ -136,8 +137,8 @@ export class Camera {
             
             let [near, far] = [+Infinity, -Infinity];
 
-            if (this.autonear) {                
-                this._modelBounds.forEach((v) => {
+            if (this.autonear) {
+            	for (var v of this._modelBounds) {
                     vec3.transformMat4(tmp_modelBounds, v, this._viewMatrix);
                     let z = -tmp_modelBounds[2];
                     if (z < near) {
@@ -146,7 +147,7 @@ export class Camera {
                     if (z > far) {
                         far = z;
                     }
-                });
+                }
 
                 if (near < 1.e-3) {
                     near = far / 1000.;
@@ -166,7 +167,9 @@ export class Camera {
 
             this._dirty = false;
 
-            this.listeners.forEach((fn) => { fn(); });
+            for (var listener of this.listeners) {
+            	listener();
+            }
         }
     }
 
