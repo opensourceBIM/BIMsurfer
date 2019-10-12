@@ -124,22 +124,24 @@ export class DefaultRenderLayer extends RenderLayer {
 		var buffers = this.gpuBufferManager.getBuffers(transparency, reuse);
 		if (buffers.length > 0) {
 			let picking = visibleElements.pass === 'pick';
+			// @todo hack hack hack, now the frozenbufferset can influence the program it needs
+			for(const b of buffers) {
+				var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(reuse, picking, b.forceUnquantized));
+				this.gl.useProgram(programInfo.program);
+				// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
 
-			var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(reuse, picking));
-			this.gl.useProgram(programInfo.program);
-			// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
+				if (!picking) {
+					this.viewer.lighting.render(programInfo.uniformBlocks.LightData);
+					this.gl.uniformMatrix3fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
+				}
 
-			if (!picking) {
-				this.viewer.lighting.render(programInfo.uniformBlocks.LightData);
-				this.gl.uniformMatrix3fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
+				this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
+				this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
+				this.gl.uniform3fv(programInfo.uniformLocations.postProcessingTranslation, this.postProcessingTranslation);
+				this.gl.uniform4fv(programInfo.uniformLocations.sectionPlane, this.viewer.sectionPlaneValues);
+
+				this.renderFinalBuffers([b], programInfo, visibleElements);
 			}
-
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
-			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
-			this.gl.uniform3fv(programInfo.uniformLocations.postProcessingTranslation, this.postProcessingTranslation);
-			this.gl.uniform4fv(programInfo.uniformLocations.sectionPlane, this.viewer.sectionPlaneValues);
-
-			this.renderFinalBuffers(buffers, programInfo, visibleElements);
 		}
 	}
 

@@ -259,7 +259,7 @@ export class GeometryLoader {
 			}		
 		} else {
 			const floats = new Float32Array(stream.dataView.buffer, stream.pos, positionsIndex);
-			if (this.settings.quantizeVertices) {
+			if (this.settings.quantizeVertices && !this.loaderSettings.forceQuantizationOff) {
 				const quantized = new Int16Array(floats.length);
 				const m4 = this.vertexQuantizationMatrices.vertexQuantizationMatrix;
 				for (var i = 0; i < floats.length; i += 3) {
@@ -335,6 +335,10 @@ export class GeometryLoader {
 		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.pickColors, pickColors, 0, pickColors.i);
 
 		this.preparedBuffer.nrObjectsRead += nrObjects;
+
+		if (this.loaderSettings.forceQuantizationOff) {
+			this.preparedBuffer.forceUnquantized = true;
+		}
 		
 		if (this.preparedGpuBuffer == null) {
 			this.preparedGpuBuffer = this.renderLayer.addCompleteBuffer(this.preparedBuffer, this.gpuBufferManager);

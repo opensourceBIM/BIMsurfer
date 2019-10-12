@@ -549,8 +549,8 @@ export class RenderLayer {
 			return newBuffer;
 		}
 		
-		var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(false, false));
-        var pickProgramInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(false, true));
+		var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(false, false, buffer.forceUnquantized));
+        var pickProgramInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(false, true, buffer.forceUnquantized));
 
 		if (!this.settings.fakeLoading) {
 			newBuffer = new FrozenBufferSet(
@@ -581,6 +581,8 @@ export class RenderLayer {
 				this,
 				gpuBufferManager
 			);
+
+			newBuffer.forceUnquantized = buffer.forceUnquantized;
 			
 			newBuffer.nrTrianglesToDraw = buffer.nrIndices / 3;
 			

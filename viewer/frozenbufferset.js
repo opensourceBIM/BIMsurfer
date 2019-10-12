@@ -141,12 +141,18 @@ export class FrozenBufferSet extends AbstractBufferSet {
 
     buildVao(gl, settings, programInfo, pickProgramInfo) {
 
+        // const lookupDict = {};
+        // for (const k in WebGL2RenderingContext) { 
+        //     lookupDict[WebGL2RenderingContext[k]] = k;
+        // }
+
         let bindLocationPairs = (locations) => {
             for (let [location, buffer] of locations) {
                 gl.bindBuffer(buffer.gl_type, buffer);
                 let fn = buffer.attrib_type == gl.FLOAT
                     ? gl.vertexAttribPointer
                     : gl.vertexAttribIPointer;
+                // console.log("Binding", buffer.components, lookupDict[buffer.attrib_type], buffer.normalize, buffer.stride, buffer.offset, "@", location);
                 fn.bind(gl)(location, buffer.components, buffer.attrib_type, buffer.normalize, buffer.stride, buffer.offset);
                 gl.enableVertexAttribArray(location);
             }

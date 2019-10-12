@@ -96,8 +96,10 @@ export class ProgramManager {
 		{
 			let picking = false;
 			for (var instancing of [true, false]) {
-				var key = this.createKey(instancing, picking);
-				this.generateShaders(defaultSetup, key);
+				for (var f of [true, false]) {
+					var key = this.createKey(instancing, picking, f);
+					this.generateShaders(defaultSetup, key);
+				}
 			}
 		}
 
@@ -131,8 +133,10 @@ export class ProgramManager {
 		{
 			let picking = true;
 			for (var instancing of [true, false]) {
-				var key = this.createKey(instancing, picking);
-				this.generateShaders(defaultSetupForPicking, key);
+				for (var f of [true, false]) {
+					var key = this.createKey(instancing, picking, f);
+					this.generateShaders(defaultSetupForPicking, key);
+				}
 			}
 		}
 
@@ -149,10 +153,10 @@ export class ProgramManager {
 		return "shaders/vertex.glsl";
 	}
 
-	createKey(reuse, picking) {
+	createKey(reuse, picking, forceQuantizationOff) {
 		var key = 0;
 		key |= (this.settings.useObjectColors ? OBJECT_COLORS : 0);
-		key |= (this.settings.quantizeVertices ? VERTEX_QUANTIZATION : 0);
+		key |= (!forceQuantizationOff && this.settings.quantizeVertices ? VERTEX_QUANTIZATION : 0);
 		key |= ((!picking && this.settings.quantizeNormals) ? NORMAL_QUANTIZATION : 0);
 		key |= ((!picking && this.settings.loaderSettings.octEncodeNormals) ? NORMAL_OCT_ENCODE : 0);
 		key |= ((!picking && this.settings.quantizeColors) ? COLOR_QUANTIZATION : 0);

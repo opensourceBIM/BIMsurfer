@@ -62,12 +62,13 @@ export class AbstractViewer {
 		}
 	}
 
-	loadAnnotationsFromPreparedBufferUrl(url) {
+	loadAnnotationsFromPreparedBufferUrl(url, settings) {
 		return Utils.request({url: url, binary: true}).then((buffer)=>{
 			let stream = new DataInputStream(buffer);
 			const layer = new DefaultRenderLayer(this.viewer);
 			const gpuBufferManager = Array.from(this.viewer.renderLayers)[0].gpuBufferManager;
-			let loader = new GeometryLoader(null, layer, {quantizeVertices: false}, this.viewer.vertexQuantization, null, this.viewer.settings, null, gpuBufferManager);
+			const settingsCopy = {...this.viewer.settings, quantizeVertices: this.viewer.settings.quantizeVertices && !settings.forceQuantizationOff};
+			let loader = new GeometryLoader(null, layer, {quantizeVertices: false, ...settings}, this.viewer.vertexQuantization, null, settingsCopy, null, gpuBufferManager);
 			this.viewer.renderLayers.add(layer);
 			loader.processPreparedBufferInit(stream, false);
 			return loader.processPreparedBuffer(stream, false);
@@ -157,9 +158,11 @@ export class AbstractViewer {
 				// globalTranslationVector is a translation vector that puts the complete model close to 0, 0, 0
 				if (this.viewer.globalTranslationVector == null) {
 					this.viewer.globalTranslationVector = vec3.fromValues(
-						-(bounds[0] + (bounds[3] - bounds[0]) / 2), 
-						-(bounds[1] + (bounds[4] - bounds[1]) / 2), 
-						-(bounds[2] + (bounds[5] - bounds[2]) / 2));
+						0., 0., 0.
+					);
+					//	-(bounds[0] + (bounds[3] - bounds[0]) / 2), 
+					//	-(bounds[1] + (bounds[4] - bounds[1]) / 2), 
+					//	-(bounds[2] + (bounds[5] - bounds[2]) / 2));
 				}
 
 				if (this.settings.quantizeVertices || this.settings.loaderSettings.quantizeVertices) {
