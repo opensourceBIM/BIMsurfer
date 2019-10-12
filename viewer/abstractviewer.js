@@ -62,7 +62,7 @@ export class AbstractViewer {
 		}
 	}
 
-	loadAnnotationsFromPreparedBufferUrl(url, settings) {
+	loadAnnotationsFromPreparedBufferUrl(url, settings={}) {
 		return Utils.request({url: url, binary: true}).then((buffer)=>{
 			let stream = new DataInputStream(buffer);
 			const layer = new DefaultRenderLayer(this.viewer);
