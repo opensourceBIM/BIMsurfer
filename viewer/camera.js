@@ -626,8 +626,9 @@ export class Camera {
 
      @param {Float32Array} aabb The axis-aligned World-space bounding box (AABB).
      @param {Number} fitFOV Field-of-view occupied by the AABB when the camera has fitted it to view.
+     @param {Number} factor Additional distance scaling
      */
-    viewFit(aabb, fitFOV) {
+    viewFit(aabb, fitFOV, factor=1.0) {
         aabb = aabb || this.viewer.modelBounds;
         fitFOV = fitFOV || this.perspective.fov;
         var eyeToTarget = vec3.normalize(tempVec3b, vec3.subtract(tempVec3, this._eye, this._target));
@@ -642,9 +643,9 @@ export class Camera {
         ];
         this._target.set(center);
         var sca = Math.abs(diagonal / Math.tan(fitFOV * 0.0174532925));
-        this._eye[0] = this._target[0] + (eyeToTarget[0] * sca);
-        this._eye[1] = this._target[1] + (eyeToTarget[1] * sca);
-        this._eye[2] = this._target[2] + (eyeToTarget[2] * sca);
+        this._eye[0] = this._target[0] + (eyeToTarget[0] * sca) * factor;
+        this._eye[1] = this._target[1] + (eyeToTarget[1] * sca) * factor;
+        this._eye[2] = this._target[2] + (eyeToTarget[2] * sca) * factor;
 
         this._setDirty();
     }

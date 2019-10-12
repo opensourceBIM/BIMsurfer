@@ -890,7 +890,7 @@ export class Viewer {
         this.viewObjectsByType.set(viewObject.type, byType);
     }
 
-    viewFit(ids) {
+    viewFit(ids, factor=1.0) {
     	return new Promise((resolve, reject) => {
     		let aabb = ids.map(this.viewObjects.get.bind(this.viewObjects))
     		.filter((o) => o != null && o.globalizedAabb != null)
@@ -900,7 +900,7 @@ export class Viewer {
                 console.error("No AABB for objects", ids);
                 reject();
             } else {
-                this.camera.viewFit(aabb);
+                this.camera.viewFit(aabb, undefined, factor);
                 this.dirty = 2;
                 resolve();
             }
