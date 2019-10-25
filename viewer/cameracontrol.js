@@ -35,11 +35,11 @@ export class CameraControl {
             e.preventDefault();
         };
 
-        document.addEventListener("keydown", this.keyDownHandler = (e) => {
+        this.canvas.addEventListener("keydown", this.keyDownHandler = (e) => {
         	this.keyEvent(e, "down");
         });
 
-        document.addEventListener("keyup", this.keyUpHandler = (e) => {
+        this.canvas.addEventListener("keyup", this.keyUpHandler = (e) => {
         	this.keyEvent(e, "up");
         });
 
