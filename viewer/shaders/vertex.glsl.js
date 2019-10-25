@@ -44,7 +44,7 @@ in vec4 vertexColor;
 #ifdef WITH_INSTANCING
 in mat4 instanceMatrices;
 uniform uint numContainedInstances;
-uniform uint containedInstances[128];
+uniform uint containedInstances[1024];
 uniform uint containedMeansHidden;
 #ifndef WITH_PICKING
 in mat3 instanceNormalMatrices;
@@ -120,6 +120,7 @@ void main(void) {
     vec3 floatNormal = octDecode(normal);
 #else
 	vec3 floatNormal = vec3(float(vertexNormal.x) / 127.0, float(vertexNormal.y) / 127.0, float(vertexNormal.z) / 127.0);
+//	floatNormal = vec3(0.0, 0.0, 1.0);
 #endif
 #else
     vec3 floatNormal = vertexNormal;
@@ -199,9 +200,12 @@ void main(void) {
 #endif
 #else
     vec3 viewNormal = normalize(viewNormalMatrix * floatNormal);
-    float lambert1 = abs(dot(floatNormal, normalize(lightData.dir)));
+    // This does not seem to work, I think the "abs" results in the model being dark on 2 sides, and being light on the other 2 sides
+//    float lambert1 = abs(dot(floatNormal, normalize(lightData.dir)));
     float lambert2 = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
-    color = vec4((lambert1 * 0.85 + lambert2 * 0.2 + 0.3) * floatColor.rgb, floatColor.a);
+//    color = vec4((lambert1 * 0.85 + lambert2 * 0.2 + 0.3) * floatColor.rgb, floatColor.a);
+    color = vec4((lambert2 * 0.7 + 0.3) * floatColor.rgb, floatColor.a);
+//    color = floatColor;
 #endif
 
 #endif
