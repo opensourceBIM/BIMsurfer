@@ -45,21 +45,25 @@ export class AbstractViewer {
 		stats.setParameter("Loader settings", "Quantize vertices", this.settings.loaderSettings.quantizeVertices);
 
 		// Autoresize automatically resizes the viewer to the full width/height of the screen
-		if (this.settings.autoResize) {
-			this.autoResizeCanvas();
-			this.resizeHandler = () => {
-				this.autoResizeCanvas();
-			};
-			window.addEventListener("resize", this.resizeHandler, false);
+        if ("OffscreenCanvas" in window && canvas instanceof OffscreenCanvas) {
+			
 		} else {
-			this.canvas.width = this.width;
-			this.canvas.height = this.height;
-			this.viewer.setDimensions(this.width, this.height);
-			this.resizeHandler = () => {
+			if (this.settings.autoResize) {
 				this.autoResizeCanvas();
-			};
-			window.addEventListener("resize", this.resizeHandler, false);
+				this.resizeHandler = () => {
+					this.autoResizeCanvas();
+				};
+				window.addEventListener("resize", this.resizeHandler, false);
+			} else {
+				this.canvas.width = this.width;
+				this.canvas.height = this.height;
+				this.resizeHandler = () => {
+					this.autoResizeCanvas();
+				};
+				window.addEventListener("resize", this.resizeHandler, false);
+			}
 		}
+		this.viewer.setDimensions(this.width, this.height);
 	}
 
 	loadAnnotationsFromPreparedBufferUrl(url) {
