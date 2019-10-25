@@ -118,7 +118,7 @@ export class BufferManager {
 	
 	resetBuffer(bufferSet) {
 		if (bufferSet.reset) {
-			bufferSet.reset();
+			bufferSet.reset(this.viewer);
 		}
 	}
 	
