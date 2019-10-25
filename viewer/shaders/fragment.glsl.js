@@ -37,7 +37,7 @@ void main(void) {
    // use the shader derivatives. @todo reevaluate
    myOutputNormal.xyz = normalize(cross(dFdx(worldCoords), dFdy(worldCoords)));
 #else
-   myOutputColor = vec4(color.rgb * color.a, color.a);
+   myOutputColor = color;// vec4(color.rgb * color.a, color.a);
    myOutputAlpha = 1.;
 #endif
 }
