@@ -6,6 +6,12 @@ export class DefaultSettings {
 		if (settings == null) {
 			var settings = {};
 		}
+		if (settings.autoRender == null) {
+			settings.autoRender = true;
+		}
+		if (settings.useOverlay == null) {
+			settings.useOverlay = true;
+		}
 		if (settings.useObjectColors == null) {
 			settings.useObjectColors = false;
 		}
