@@ -117,7 +117,9 @@ export class GeometryLoader {
 		const previousStartIndex = this.preparedBuffer.indices.writePosition / 4;
 		const previousLineIndexStart = this.loaderSettings.generateLineRenders ? this.preparedBuffer.lineIndices.writePosition / 4 : 0;
 		const previousColorIndex = this.preparedBuffer.colors.writePosition;
-		Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.indices, stream.dataView, stream.pos, totalNrIndices);
+		if (!this.settings.fakeLoading) {
+			Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.indices, stream.dataView, stream.pos, totalNrIndices);
+		}
 		stream.pos += totalNrIndices * 4;
 
 		if (this.loaderSettings.generateLineRenders) {
@@ -172,7 +174,8 @@ export class GeometryLoader {
 				this.renderLayer.viewer.addViewObject(uniqueId, viewObject);				
 			}
 
-			var pickColor = this.renderLayer.viewer.getPickColor(uniqueId);
+			var viewObject = this.renderLayer.viewer.viewObjects.get(uniqueId);
+			var pickColor = this.renderLayer.viewer.getPickColorForPickId(viewObject.pickId);
 			var color32 = pickColor[0] + pickColor[1] * 256 + pickColor[2] * 256 * 256 + pickColor[3] * 256 * 256 * 256;
 			var lenObjectPickColors = nrObjectColors;
 			pickColors32.fill(color32, pickColors.i / 4, (pickColors.i + lenObjectPickColors) / 4);
@@ -334,21 +337,23 @@ export class GeometryLoader {
 			this.preparedGpuBuffer = this.renderLayer.addCompleteBuffer(this.preparedBuffer, this.gpuBufferManager);
 		}
 
-		this.preparedGpuBuffer.update(this.preparedBuffer.indicesRead, this.preparedBuffer.positionsRead, this.preparedBuffer.normalsRead, this.preparedBuffer.colorsRead);
-		this.renderLayer.viewer.dirty = 1;
-		this.renderLayer.incLoadedTriangles(totalNrIndices / 3);
-		
-		if (this.preparedBuffer.nrObjectsRead == this.preparedBuffer.nrObjects) {
-			this.preparedGpuBuffer.finalize();
-
-			for (let oid of this.uniqueIdsLoaded) {
-				this.renderLayer.viewer.uniqueIdToBufferSet.set(oid, [this.preparedGpuBuffer]);
+		if (!this.settings.fakeLoading) {
+			this.preparedGpuBuffer.update(this.preparedBuffer.indicesRead, this.preparedBuffer.positionsRead, this.preparedBuffer.normalsRead, this.preparedBuffer.colorsRead);
+			this.renderLayer.viewer.dirty = 1;
+			
+			if (this.preparedBuffer.nrObjectsRead == this.preparedBuffer.nrObjects) {
+				this.preparedGpuBuffer.finalize();
+				
+				for (let uniqueId of this.uniqueIdsLoaded) {
+					this.renderLayer.viewer.uniqueIdToBufferSet.set(uniqueId, [this.preparedGpuBuffer]);
+				}
+				
+				this.uniqueIdsLoaded.length = 0;
+				this.preparedGpuBuffer = null;
+				this.preparedBuffer = null;
 			}
-
-			this.uniqueIdsLoaded.length = 0;
-			this.preparedGpuBuffer = null;
-			this.preparedBuffer = null;
 		}
+		this.renderLayer.incLoadedTriangles(totalNrIndices / 3);
 
 		stream.align8();
 
@@ -489,10 +494,10 @@ export class GeometryLoader {
 						// We don't have the data yet, it might come in this stream, or maybe in a later stream
 						var list = this.dataToInfo.get(geometryDataOid);
 						if (list == null) {
-							list = [oid];
+							list = [uniqueId];
 							this.dataToInfo.set(geometryDataOid, list);
 						} else {
-							list.push(oid);
+							list.push(uniqueId);
 						}
 					}
 				}
