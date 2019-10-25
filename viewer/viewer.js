@@ -14,7 +14,6 @@ import {FrozenBufferSet} from "./frozenbufferset.js";
 import {Utils} from "./utils.js";
 import {SSQuad} from "./ssquad.js";
 import {FreezableSet} from "./freezableset.js";
-import {DefaultCss} from "./defaultcss.js";
 import {DefaultColors} from "./defaultcolors.js";
 import {AvlTree} from "./collections/avltree.js";
 
@@ -65,17 +64,17 @@ export class Viewer {
         this.width = width;
         this.height = height;
 
-        new DefaultCss().apply(canvas);
-        
         this.defaultColors = settings.defaultColors ? settings.defaultColors : DefaultColors;
         
         this.stats = stats;
         this.settings = settings;
         this.canvas = canvas;
         this.camera = new Camera(this);
-        this.overlay = new SvgOverlay(this.canvas, this.camera);
+        if (settings.useOverlay) {
+        	this.overlay = new SvgOverlay(this.canvas, this.camera);
+        }
         
-        this.gl = this.canvas.getContext('webgl2', {stencil: true, premultipliedAlpha: false});
+        this.gl = this.canvas.getContext('webgl2', {stencil: true, premultipliedAlpha: false, preserveDrawingBuffer: true});
 
         if (!this.gl) {
             alert('Unable to initialize WebGL. Your browser or machine may not support it.');
@@ -113,8 +112,11 @@ export class Viewer {
         
         // User can override this, default assumes strings to be used as unique object identifiers
         if (this.settings.loaderSettings.useUuidAndRid) {
+        	const collator = new Intl.Collator();
+        	// TODO there is really no need to use a locale-aware comparator here, but somehow > or < does not seem to work, where it work should for string
         	this.uniqueIdCompareFunction = (a, b) => {
-        		return a.localeCompare(b);
+//        		return a == b ? 0 : (a > b ? 1 : -1);
+        		return collator.compare(a, b);
             };
             this.idAugmentationFunction = (id) => ("O" + id);
         } else {
@@ -169,27 +171,30 @@ export class Viewer {
 
         this.eventHandler = new EventHandler();
         
-        // Tabindex required to be able add a keypress listener to canvas
-        canvas.setAttribute("tabindex", "0");
-        canvas.addEventListener("keypress", (evt) => {
-            if (evt.key === 'H') {
-                this.resetVisibility();
-            } else if (evt.key === 'h') {
-                this.setVisibility(this.selectedElements, false, false);
-                this.selectedElements.clear();
-            } else if (evt.key === 'C') {
-                this.resetColors();
-            } else if (evt.key === 'c' || evt.key === 'd') {
-                let R = Math.random;
-                let clr = [R(), R(), R(), evt.key === 'd' ? R() : 1.0];
-                this.setColor(new Set(this.selectedElements), clr);
-                this.selectedElements.clear();
-            } else {
-            	// Don't do a drawScene for every key pressed
-            	return;
-            }
-            this.drawScene();
-        });
+        if ("OffscreenCanvas" in window && canvas instanceof OffscreenCanvas) {
+        } else {
+        	// Tabindex required to be able add a keypress listener to canvas
+        	canvas.setAttribute("tabindex", "0");
+        	canvas.addEventListener("keypress", (evt) => {
+        		if (evt.key === 'H') {
+        			this.resetVisibility();
+        		} else if (evt.key === 'h') {
+        			this.setVisibility(this.selectedElements, false, false);
+        			this.selectedElements.clear();
+        		} else if (evt.key === 'C') {
+        			this.resetColors();
+        		} else if (evt.key === 'c' || evt.key === 'd') {
+        			let R = Math.random;
+        			let clr = [R(), R(), R(), evt.key === 'd' ? R() : 1.0];
+        			this.setColor(new Set(this.selectedElements), clr);
+//        			this.selectedElements.clear();
+        		} else {
+        			// Don't do a drawScene for every key pressed
+        			return;
+        		}
+//            this.drawScene();
+        	});
+        }
     }
 
     callByType(method, types, ...args) {
@@ -367,8 +372,8 @@ export class Viewer {
 									
 									copiedBufferSet.colorBuffer = Utils.createBuffer(this.gl, newClrBuffer, null, null, 4);
 									
-									let obj = bufferSet.objects.find(o => o.id === uniqueId);
-									bufferSet.setObjects(this.gl, bufferSet.objects.filter(o => o.id !== uniqueId));
+									let obj = bufferSet.objects.find(o => o.uniqueId === uniqueId);
+									bufferSet.setObjects(this.gl, bufferSet.objects.filter(o => o.uniqueId !== uniqueId));
 									copiedBufferSet.setObjects(this.gl, [obj]);
 									
 									copiedBufferSet.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
@@ -410,7 +415,9 @@ export class Viewer {
         var promise = new Promise((resolve, reject) => {
             this.dirty = 2;
             this.then = 0;
-            this.running = true;
+            if (this.settings.autoRender) {
+            	this.running = true;
+            }
             this.firstRun = true;
 
             this.fps = 0;
@@ -457,7 +464,7 @@ export class Viewer {
         if (this.dirty == 2 || (this.dirty == 1 && now - this.lastRepaint > 500)) {
         	let reason = this.dirty;
             this.dirty = 0;
-            this.drawScene(this.buffers, deltaTime, reason);
+            this.drawScene(reason, {without: this.invisibleElements});
             this.lastRepaint = now;
         }
 
@@ -483,7 +490,15 @@ export class Viewer {
         }
     }
 
-    drawScene(buffers, deltaTime, reason) {
+    internalRender(elems, t) {
+        for (var transparency of (t || [false, true])) {
+            for (var renderLayer of this.renderLayers) {
+                renderLayer.render(transparency, elems);
+            }
+        }
+    }
+    
+    drawScene(reason, what = {without: this.invisibleElements}) {
         // Locks the camera so that intermittent mouse events will not
         // change the matrices until the camera is unlocked again.
         // @todo This might need some work to make sure events are
@@ -513,26 +528,9 @@ export class Viewer {
 
         gl.enable(gl.CULL_FACE);
 
-        let render = (elems, t) => {
-            for (var transparency of (t || [false, true])) {
-                for (var renderLayer of this.renderLayers) {
-                    renderLayer.render(transparency, elems);
-                }
-            }
-        }
-
         if (this.modelBounds) {
             if (!this.cameraSet) { // HACK to look at model origin as soon as available
-                this.camera.target = [0, 0, 0];
-                this.camera.eye = [0, 1, 0];
-                this.camera.up = [0, 0, 1];
-                this.camera.worldAxis = [ // Set the +Z axis as World "up"
-                    1, 0, 0, // Right
-                    0, 0, 1, // Up
-                    0, -1, 0  // Forward
-                ];
-                this.camera.viewFit(this.modelBounds); // Position camera so that entire model bounds are in view
-                this.cameraSet = true;
+            	this.resetToDefaultView();
             }
 
             if (!this.sectionPlaneIsDisabled) {
@@ -551,11 +549,11 @@ export class Viewer {
 
                 gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR); // increment on pass
                 gl.cullFace(gl.BACK);
-                render({without: this.invisibleElements}, [false]);
+                this.internalRender(what, [false]);
 
                 gl.stencilOp(gl.KEEP, gl.KEEP, gl.DECR); // decrement on pass
                 gl.cullFace(gl.FRONT);
-                render({without: this.invisibleElements}, [false]);
+                this.internalRender(what, [false]);
 
                 this.sectionPlaneValues.set(this.sectionPlaneValues2);
                 const eyePlaneDist = this.lastSectionPlaneAdjustment = Math.abs(vec3.dot(this.camera.eye, this.sectionPlaneValues2) - this.sectionPlaneValues2[3]);
@@ -578,30 +576,30 @@ export class Viewer {
         if (this.useOrderIndependentTransparency) {
         	  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
               gl.disable(gl.BLEND);
-              render({without: this.invisibleElements}, [false]);
+              this.internalRender(what, [false]);
 
               this.oitBuffer.bind();
               gl.clearColor(0, 0, 0, 0);
               this.oitBuffer.clear();
               // @todo It should be possible to eliminate this step. It's necessary
               // to repopulate the depth-buffer with opaque elements.
-              render({without: this.invisibleElements}, [false]);
+              this.internalRender(what, [false]);
               this.oitBuffer.clear(false);
               gl.enable(gl.BLEND);
               gl.blendFunc(gl.ONE, gl.ONE);
               gl.depthMask(false);
       
-              render({without: this.invisibleElements}, [true]);
+              this.internalRender(what, [true]);
       
               gl.bindFramebuffer(gl.FRAMEBUFFER, null);
               gl.viewport(0, 0, this.width, this.height);
               this.quad.draw(this.oitBuffer.colorBuffer, this.oitBuffer.alphaBuffer);
         } else {
             gl.disable(gl.BLEND);
-            render({without: this.invisibleElements}, [false]);
+            this.internalRender(what, [false]);
             gl.enable(gl.BLEND);
             gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-            render({without: this.invisibleElements}, [true]);
+            this.internalRender(what, [true]);
         }
 
         // From now on section plane is disabled.
@@ -619,7 +617,7 @@ export class Viewer {
             gl.disable(gl.DEPTH_TEST);
             gl.colorMask(false, false, false, false);
             
-            render({with: this.selectedElements, pass: 'stencil'});
+            this.internalRender({with: this.selectedElements, pass: 'stencil'});
 
             gl.stencilFunc(gl.NOTEQUAL, 1, 0xff);
             gl.stencilMask(0x00);
@@ -652,6 +650,20 @@ export class Viewer {
 //		    0, 0, this.width, this.height,
 //		    this.gl.COLOR_BUFFER_BIT, this.gl.NEAREST
 //		);
+    }
+    
+    resetToDefaultView() {
+        this.camera.target = [0, 0, 0];
+        this.camera.eye = [0, 1, 0];
+        this.camera.up = [0, 0, 1];
+        this.camera.worldAxis = [ // Set the +Z axis as World "up"
+            1, 0, 0, // Right
+            0, 0, 1, // Up
+            0, -1, 0  // Forward
+        ];
+        this.camera.viewFit(this.modelBounds); // Position camera so that entire model bounds are in view
+        this.cameraSet = true;
+        this.camera.forceBuild();
     }
 
     removeSectionPlaneWidget() {
@@ -817,7 +829,7 @@ export class Viewer {
                     this.selectedElements.delete(uniqueId);
                     this.eventHandler.fire("selection_state_changed", [uniqueId], false);
                 } else {
-                    this.selectedElements.add(uniqueId);
+                    this.addToSelection(uniqueId);
                     this.eventHandler.fire("selection_state_changed", [uniqueId], true);
                 }
             }
@@ -832,14 +844,26 @@ export class Viewer {
         return {object: null, coordinates: tmp_unproject, depth: depth};
     }
 
+    addToSelection(uniqueId) {
+    	this.selectedElements.add(uniqueId);
+    	let bufferSets = this.uniqueIdToBufferSet.get(uniqueId);
+    	for (var bufferSet of bufferSets) {
+    		bufferSet.generateLines(uniqueId, this.gl);
+    	}
+    }
+    
+    getPickColorForPickId(pickId) {
+    	var pickColor = new Uint8Array([pickId & 0x000000FF, (pickId & 0x0000FF00) >> 8, (pickId & 0x00FF0000) >> 16, (pickId & 0xFF000000) > 24]);
+        return pickColor;
+    }
+    
     getPickColor(uniqueId) { // Converts an integer to a pick color
     	var viewObject = this.viewObjects.get(uniqueId);
     	if (viewObject == null) {
     		console.error("No viewObject found for " + uniqueId);
     	}
     	var pickId = viewObject.pickId;
-    	var pickColor = new Uint8Array([pickId & 0x000000FF, (pickId & 0x0000FF00) >> 8, (pickId & 0x00FF0000) >> 16, (pickId & 0xFF000000) > 24]);
-        return pickColor;
+    	return this.getPickColorForPickId(pickId);
     }
 
     setModelBounds(modelBounds) {
@@ -913,6 +937,21 @@ export class Viewer {
         this.dirty = 2;
     }
 
+	screenshot(callback) {
+		if (this.canvas instanceof OffscreenCanvas) {
+			if (this.canvas.convertToBlob) {
+				return this.canvas.convertToBlob();
+			} else if (this.canvas.toBlob) {
+				// Firefox
+				return this.canvas.toBlob();
+			}
+		} else {
+			return new Promise((resolve, reject) => {
+				return this.canvas.toBlob(resolve);
+			});
+		}
+	}
+    
     resetColors() {
         return this.resetColor(
             Array.from(this.hiddenDueToSetColor.keys()).concat(
