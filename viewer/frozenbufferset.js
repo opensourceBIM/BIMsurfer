@@ -19,7 +19,9 @@ export class FrozenBufferSet extends AbstractBufferSet {
     {
         super(viewer);
 
-        this.uniqueIdToIndex = originalBuffer ? originalBuffer.uniqueIdToIndex : null;
+        if (originalBuffer) {
+        	this.uniqueIdToIndex = originalBuffer.uniqueIdToIndex;
+        }
         // @todo make these something like LRU caches?
         this.visibleRanges = new Map();
         this.lineIndexBuffers = new Map();
@@ -80,11 +82,12 @@ export class FrozenBufferSet extends AbstractBufferSet {
         var instanceNormalMatrices = new Float32Array(N * 9);
         var instancePickColors = new Uint8Array(N * 4);
 
-        objects.forEach((object, index) => {
-            instanceMatrices.set(object.matrix, index * 16);
-            instanceNormalMatrices.set(object.normalMatrix, index * 9);
-            instancePickColors.set(this.viewer.getPickColor(object.uniqueId), index * 4);
-        });
+        for (var index=0; index<objects.length; index++) {
+        	let object = objects[index];
+        	instanceMatrices.set(object.matrix, index * 16);
+        	instanceNormalMatrices.set(object.normalMatrix, index * 9);
+        	instancePickColors.set(this.viewer.getPickColor(object.uniqueId), index * 4);
+        }
         
         if (this.instanceMatricesBuffer === null) {
             this.instanceMatricesBuffer = Utils.createBuffer(gl, instanceMatrices, null, null, 16);
@@ -119,7 +122,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
             null,
 
 			this.indexBuffer.N,
-			this.lineIndexBuffer.N,
+			this.lineIndexBuffer ? this.lineIndexBuffer.N : 0,
             this.normalBuffer.N,
             this.positionBuffer.N,
             this.colorBuffer.N,
