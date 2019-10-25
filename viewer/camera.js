@@ -120,56 +120,66 @@ export class Camera {
         this._dirty = true;
     }
 
+    forceBuild() {
+   		vec3.set(this._up, 0, 0, 1);
+        vec3.subtract(tempVecBuild, this._target, this._eye);
+        vec3.normalize(tempVecBuild, tempVecBuild);
+        vec3.cross(this._up, tempVecBuild, this._up);
+        vec3.cross(this._up, this._up, tempVecBuild);
+        if (vec3.equals(this._up, vec3.fromValues(0, 0, 0))) {
+        	// Not good, choose something
+        	vec3.set(this._up, 0, 1, 0);
+        }
+
+        mat4.lookAt(this._viewMatrix, this._eye, this._target, this._up);
+        mat4.identity(tempMat4);
+        mat4.multiply(this._viewMatrix, tempMat4, this._viewMatrix); // Why?
+        mat3.fromMat4(tempMat4b, this._viewMatrix);
+        mat3.invert(tempMat4b, tempMat4b);
+        mat3.transpose(this._viewNormalMatrix, tempMat4b);
+        
+        let [near, far] = [+Infinity, -Infinity];
+
+        if (this.autonear) {
+        	for (var v of this._modelBounds) {
+                vec3.transformMat4(tmp_modelBounds, v, this._viewMatrix);
+                let z = -tmp_modelBounds[2];
+                if (z < near) {
+                    near = z;
+                }
+                if (z > far) {
+                    far = z;
+                }
+            }
+
+            if (near < 1.e-3) {
+                near = far / 1000.;
+            }
+        } else {
+            [near, far] = [+100, +1000000.];
+        }
+
+        this.perspective.near = near;
+        this.perspective.far = far;
+        this.orthographic.near = near;
+        this.orthographic.far = far;        
+
+        mat4.invert(this._viewMatrixInverted, this._viewMatrix);
+        mat4.multiply(this._viewProjMatrix, this.projMatrix, this._viewMatrix);
+        mat4.invert(this._viewProjMatrixInverted, this._viewProjMatrix);
+
+        this._dirty = false;
+        
+//        console.log("Rebuilt", this._up, this._viewMatrix);
+        
+        for (var listener of this.listeners) {
+        	listener();
+        }
+    }
+    
     _build() {
         if (this._dirty && !this._locked && this._modelBounds) {
-            vec3.set(this._up, 0,0,1);
-            vec3.subtract(tempVecBuild, this._target, this._eye);
-            vec3.normalize(tempVecBuild, tempVecBuild);
-            vec3.cross(this._up, tempVecBuild, this._up);
-            vec3.cross(this._up, this._up, tempVecBuild);
-
-            mat4.lookAt(this._viewMatrix, this._eye, this._target, this._up);
-            mat4.identity(tempMat4);
-            mat4.multiply(this._viewMatrix, tempMat4, this._viewMatrix); // Why?
-            mat3.fromMat4(tempMat4b, this._viewMatrix);
-            mat3.invert(tempMat4b, tempMat4b);
-            mat3.transpose(this._viewNormalMatrix, tempMat4b);
-            
-            let [near, far] = [+Infinity, -Infinity];
-
-            if (this.autonear) {
-            	for (var v of this._modelBounds) {
-                    vec3.transformMat4(tmp_modelBounds, v, this._viewMatrix);
-                    let z = -tmp_modelBounds[2];
-                    if (z < near) {
-                        near = z;
-                    }
-                    if (z > far) {
-                        far = z;
-                    }
-                }
-
-                if (near < 1.e-3) {
-                    near = far / 1000.;
-                }
-            } else {
-                [near, far] = [+100, +1000000.];
-            }
-
-            this.perspective.near = near;
-            this.perspective.far = far;
-            this.orthographic.near = near;
-            this.orthographic.far = far;        
-
-            mat4.invert(this._viewMatrixInverted, this._viewMatrix);
-            mat4.multiply(this._viewProjMatrix, this.projMatrix, this._viewMatrix);
-            mat4.invert(this._viewProjMatrixInverted, this._viewProjMatrix);
-
-            this._dirty = false;
-
-            for (var listener of this.listeners) {
-            	listener();
-            }
+        	this.forceBuild();
         }
     }
 
