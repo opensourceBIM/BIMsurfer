@@ -1,4 +1,5 @@
 import {AbstractBufferSet} from "./abstractbufferset.js";
+import {AvlTree} from "./collections/avltree.js";
 
 /**
  * @ignore
@@ -22,6 +23,6 @@ export class BufferSet extends AbstractBufferSet {
         this.color = color;
         this.bytes = 0;
         
-        this.uniqueIdToIndex = new Map();
+        this.uniqueIdToIndex = new AvlTree(viewer.inverseUniqueIdCompareFunction);
     };
 }
