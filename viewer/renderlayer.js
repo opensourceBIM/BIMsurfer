@@ -31,7 +31,7 @@ export class RenderLayer {
 		WEBGL_multi_draw = this.gl.getExtension("WEBGL_multi_draw");
 		this.geometryDataToReuse = geometryDataToReuse;
 		this.geometryCache = new GeometryCache(this);
-		this.instanceSelectionData = new Uint32Array(128);
+		this.instanceSelectionData = new Uint32Array(1024);
 		this.previousInstanceVisibilityState = null;
 
 		this.lines = null;
@@ -147,22 +147,18 @@ export class RenderLayer {
 				if (this.settings.quantizeVertices) {
 					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.vertexQuantizationMatrixWithGlobalTranslation);
 				}
-	
+				
 				buffer.positions.set(vertex, buffer.positionsIndex);
 				buffer.positionsIndex += 3;
 			}
 			var floatNormal = vec3.create();
 			var intNormal = new Int8Array(3);
 			for (var i = 0; i < geometry.normals.length; i += 3) {
-
 				if (loaderQuantizeNormals) {
-
 					floatNormal[0] = geometry.normals[i] / 127;
 					floatNormal[1] = geometry.normals[i + 1] / 127;
 					floatNormal[2] = geometry.normals[i + 2] / 127;
-
 				} else {
-
 					floatNormal[0] = geometry.normals[i];
 					floatNormal[1] = geometry.normals[i + 1];
 					floatNormal[2] = geometry.normals[i + 2];
@@ -174,13 +170,11 @@ export class RenderLayer {
 				// Also the number becomes really small, resulting in all zeros when quantizing again, that can't be right				
 
 				if (quantizeNormals) {
-
 					intNormal[0] = floatNormal[0] * 127;
 					intNormal[1] = floatNormal[1] * 127;
 					intNormal[2] = floatNormal[2] * 127;
 
 					buffer.normals.set(intNormal, buffer.normalsIndex);
-
 				} else {
 					buffer.normals.set(floatNormal, buffer.normalsIndex);
 				}
@@ -227,7 +221,7 @@ export class RenderLayer {
 				buffer.pickColorsIndex += 4;
 			}
 
-			var li = (buffer.uniqueIdToIndex.get(object.id) || []);
+			var li = (buffer.uniqueIdToIndex.get(object.uniqueId) || []);
 			var idx = {
 				start: buffer.indicesIndex, 
 				length: geometry.indices.length,
@@ -235,7 +229,7 @@ export class RenderLayer {
 				colorLength: geometry.colors.length
 			};
 			li.push(idx);
-			buffer.uniqueIdToIndex.set(object.id, li);
+			buffer.uniqueIdToIndex.set(object.uniqueId, li);
 			
 			var index = Array(3);
 			for (var i=0; i<geometry.indices.length; i+=3) {
@@ -312,7 +306,7 @@ export class RenderLayer {
 		const numInstances = geometry.objects.length;
 
 		const positionBuffer = Utils.createBuffer(this.gl, this.bufferTransformer.convertVertices(geometry.croid, geometry.positions));
-		const normalBuffer = Utils.createBuffer(this.gl, this.bufferTransformer.convertNormals(geometry.normals), null, this.gl.ARRAY_BUFFER, 2);
+		const normalBuffer = Utils.createBuffer(this.gl, this.bufferTransformer.convertNormals(geometry.normals), null, this.gl.ARRAY_BUFFER, this.settings.loaderSettings.octEncodeNormals ? 2 : 3);
 		const colorBuffer = geometry.colors != null
 			? Utils.createBuffer(this.gl, geometry.colors, null, this.gl.ARRAY_BUFFER, 4)
 			: null;
@@ -460,8 +454,8 @@ export class RenderLayer {
 		if (buffer.reuse) {
 			if (this.viewer.settings.quantizeVertices) {
 				if (buffer.croid) {
-					if (this.lastCroidRendered === buffer.croid) {
-						// Skip it
+					if (this.lastCroidRendered === buffer.croid && false) {
+						// Skip it, this needs clarification, disabling for now because that seems to fix picking for instanced rendering
 					} else {
 						let uqm = this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(buffer.croid);
 						gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, uqm);
@@ -513,6 +507,7 @@ export class RenderLayer {
 				const visibleRanges = buffer.computeVisibleRangesAsBuffers(visibleElements, this.gl);
 				if (visibleRanges && visibleRanges.pos > 0) {
 					// TODO add buffer.nrTrianglesToDraw code
+					// TODO can we really not make a new view as bytes of buffer?
 					if (visibleRanges.offsetsBytes == null) {
 						visibleRanges.offsetsBytes = new Int32Array(visibleRanges.pos);
 						for (var i=0; i<visibleRanges.pos; i++) {
@@ -624,7 +619,7 @@ export class RenderLayer {
 
 		if (!this.settings.fakeLoading) {
 			const positionBuffer = Utils.createBuffer(this.gl, buffer.positions, buffer.positionsIndex);
-			const normalBuffer = Utils.createBuffer(this.gl, buffer.normals, buffer.normalsIndex, this.gl.ARRAY_BUFFER, 2);
+			const normalBuffer = Utils.createBuffer(this.gl, buffer.normals, buffer.normalsIndex, this.gl.ARRAY_BUFFER, this.settings.loaderSettings.octEncodeNormals ? 2 : 3);
 			var colorBuffer = buffer.colors
 				? Utils.createBuffer(this.gl, buffer.colors, buffer.colorsIndex, this.gl.ARRAY_BUFFER, 4)
 				: null;
@@ -730,7 +725,7 @@ export class RenderLayer {
 				for (let buffer of buffers) {
 					for (var id of ids) {
 						if (buffer.lineIndexBuffers) {
-							let lines = buffer.lineIndexBuffers.get(id);
+							let lines = buffer.getLines(id, this.gl);
 							if (lines) {
 								if (!lastLineRenderer) {
 									// Kind of a dirty hack to only do the initialization once, we know the init result is the same for all buffers in this set, this improves the render speed when a lot of objects are selected
