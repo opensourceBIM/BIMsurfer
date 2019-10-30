@@ -7,6 +7,7 @@ import {Utils} from "./utils.js";
  */
 export class ReuseLoader {
 	constructor(viewer, reuseLowerThreshold, bimServerApi, fieldsToInclude, roids, quantizationMap, geometryCache, geometryDataToReuse) {
+		debugger;
 		this.settings = viewer.settings;
 		this.viewer = viewer;
 		this.reuseLowerThreshold = reuseLowerThreshold;
@@ -54,6 +55,7 @@ export class ReuseLoader {
 	 * We just store the incoming geometry in the (global) GeometryCache
 	 */
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, lineIndices, hasTransparency, reused) {
+		debugger;
 		this.nrReused++;
 		var bytes = Utils.calculateBytesUsed(this.settings, positions.length, colors.length, indices.length, lineIndices ? lineIndices.length : 0, normals.length);
 		this.bytesReused += bytes;
@@ -66,6 +68,7 @@ export class ReuseLoader {
 				colors: colors,
 				color: color,
 				indices: indices,
+				lineIndices: lineIndices,
 				hasTransparency: hasTransparency,
 				reused: reused, // How many times this geometry is reused, this does not necessarily mean the viewer is going to utilize this reuse
 				reuseMaterialized: 0, // How many times this geometry has been reused in the viewer, when this number reaches "reused" we can flush the buffer fo' sho'

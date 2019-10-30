@@ -30,6 +30,7 @@ export class Settings {
 			},
 			realtimeSettings: {
 				drawTileBorders: "boolean",
+				drawLineRenders: "boolean",
 				orderIndependentTransparency: "boolean",
 				loadAllTiles: "button"
 			}
@@ -58,6 +59,7 @@ export class Settings {
 				useUuidAndRid: false
 			},
 			realtimeSettings: {
+				drawLineRenders: true,
 				drawTileBorders: true,
 				orderIndependentTransparency: true
 			}
@@ -191,6 +193,10 @@ export class Settings {
 		}
 	}
 
+	drawLineRenders(value) {
+		window.bimServerViewer.viewer.dirty = 2;
+	}
+	
 	orderIndependentTransparency(value) {
 		window.bimServerViewer.viewer.useOrderIndependentTransparency = value;
 		window.bimServerViewer.viewer.dirty = 2;

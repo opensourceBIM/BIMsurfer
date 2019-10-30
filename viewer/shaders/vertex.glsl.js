@@ -20,6 +20,7 @@ in float direction;
 #endif
 
 #ifndef WITH_PICKING
+#ifndef WITH_LINES
 #ifdef WITH_QUANTIZENORMALS
 #ifdef WITH_OCT_ENCODE_NORMALS
 in ivec2 vertexNormal;
@@ -30,13 +31,16 @@ in ivec3 vertexNormal;
 in vec3 vertexNormal;
 #endif
 #endif
+#endif
 
 #ifndef WITH_USEOBJECTCOLORS
 #ifndef WITH_PICKING
+#ifndef WITH_LINES
 #ifdef WITH_QUANTIZECOLORS
 in uvec4 vertexColor;
 #else
 in vec4 vertexColor;
+#endif
 #endif
 #endif
 #endif
@@ -47,7 +51,9 @@ uniform uint numContainedInstances;
 uniform uint containedInstances[1024];
 uniform uint containedMeansHidden;
 #ifndef WITH_PICKING
+#ifndef WITH_LINES
 in mat3 instanceNormalMatrices;
+#endif
 #endif
 #endif
 
@@ -79,7 +85,9 @@ uniform mat4 matrix;
 uniform float aspect;
 uniform float thickness;
 #else
+#ifndef WITH_LINES
 uniform mat3 viewNormalMatrix;
+#endif
 #endif
 
 uniform mat4 projectionMatrix;
@@ -104,6 +112,7 @@ void main(void) {
 #endif
 
 #ifndef WITH_PICKING
+#ifndef WITH_LINES
 #ifdef WITH_QUANTIZENORMALS
 #ifdef WITH_OCT_ENCODE_NORMALS
 	vec2 normal = vec2(float(vertexNormal.x), float(vertexNormal.y));
@@ -126,11 +135,13 @@ void main(void) {
     vec3 floatNormal = vertexNormal;
 #endif
 #endif
+#endif
 
 #ifdef WITH_USEOBJECTCOLORS
     vec4 floatColor = objectColor;
 #else
 #ifndef WITH_PICKING
+#ifndef WITH_LINES
 #ifdef WITH_QUANTIZECOLORS
     vec4 floatColor = vec4(float(vertexColor.x) / 255.0, float(vertexColor.y) / 255.0, float(vertexColor.z) / 255.0, float(vertexColor.w) / 255.0);
 #else
@@ -138,11 +149,14 @@ void main(void) {
 #endif
 #endif
 #endif
+#endif
 
 #ifdef WITH_INSTANCING
     floatVertex = vec4(postProcessingTranslation, 0) + instanceMatrices * floatVertex;
 #ifndef WITH_PICKING
+#ifndef WITH_LINES
     floatNormal = instanceNormalMatrices * floatNormal;
+#endif
 #endif
 #endif
 
@@ -199,6 +213,10 @@ void main(void) {
     color = vertexPickColor;
 #endif
 #else
+#ifdef WITH_LINES
+	// Line rendering color
+	color = vec4(0.3, 0.3, 0.3, 1);
+#else
     vec3 viewNormal = normalize(viewNormalMatrix * floatNormal);
     // This does not seem to work, I think the "abs" results in the model being dark on 2 sides, and being light on the other 2 sides
 //    float lambert1 = abs(dot(floatNormal, normalize(lightData.dir)));
@@ -206,6 +224,7 @@ void main(void) {
 //    color = vec4((lambert1 * 0.85 + lambert2 * 0.2 + 0.3) * floatColor.rgb, floatColor.a);
     color = vec4((lambert2 * 0.7 + 0.3) * floatColor.rgb, floatColor.a);
 //    color = floatColor;
+#endif
 #endif
 
 #endif

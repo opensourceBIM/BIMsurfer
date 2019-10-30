@@ -36,6 +36,7 @@ export class BufferManager {
 			vertices: this.MAX_BUFFER_SIZE,
 			normals: this.MAX_BUFFER_SIZE,
 			indices: this.MAX_BUFFER_SIZE * this.indicesVerticesFactor,
+			lineIndices: this.MAX_BUFFER_SIZE * this.indicesVerticesFactor,
 			colors: this.MAX_BUFFER_SIZE * this.colorBufferFactor,
 			pickColors: this.MAX_BUFFER_SIZE * this.colorBufferFactor
 		};
@@ -50,6 +51,7 @@ export class BufferManager {
 		var result = 
 			(sizes.vertices + (buffer != null ? buffer.positionsIndex : 0) > this.MAX_BUFFER_SIZE) || 
 			(sizes.indices + (buffer != null ? buffer.indicesIndex : 0) > this.MAX_BUFFER_SIZE * this.indicesVerticesFactor) ||
+			(sizes.lineIndices + (buffer != null ? buffer.lineIndicesIndex : 0) > this.MAX_BUFFER_SIZE * this.indicesVerticesFactor) ||
 			(sizes.pickColors + (buffer != null ? buffer.pickColorsIndex : 0) > this.MAX_BUFFER_SIZE * this.colorBufferFactor);
 		
 		// Not storing the results in a variable resulted in this always returning something that evaluates to false...
@@ -61,7 +63,8 @@ export class BufferManager {
 		var result = 
 			this.defaultSizes.vertices * (this.settings.quantizeVertices ? 2 : 4) +
 			this.defaultSizes.normals * (this.settings.quantizeNormals ? 1 : 4) +
-			this.defaultSizes.indices * 4;
+			this.defaultSizes.indices * 4 +
+			this.defaultSizes.lineIndices * 4;
 
 		return result;
 	}
@@ -99,7 +102,7 @@ export class BufferManager {
 	 * Default implementation to create a buffer, subclasses can add other buffers
 	 */
 	createBufferSet(hasTransparency, color, sizes) {
-		return new BufferSet(this.viewer, this.settings, hasTransparency, color, sizes)
+		return new BufferSet(this.viewer, this.settings, hasTransparency, color, sizes);
 	}
 	
 	createBufferSetPooled(hasTransparency, color, sizes) {

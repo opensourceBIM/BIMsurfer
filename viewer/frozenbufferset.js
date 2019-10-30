@@ -11,7 +11,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
         positionBuffer, normalBuffer, colorBuffer, pickColorBuffer, indexBuffer, lineIndexBuffer,				
         color, colorHash,
         nrIndices, nrLineIndices, nrNormals, nrPositions, nrColors,
-        vao, vaoPick,
+        vao, vaoPick, lineRenderVao,
         hasTransparency, reuse, owner, manager, 
 
         // only in case of reuse
@@ -19,6 +19,10 @@ export class FrozenBufferSet extends AbstractBufferSet {
     {
         super(viewer);
 
+        if (lineIndexBuffer == null) {
+        	debugger;
+        }
+        
         if (originalBuffer) {
         	this.uniqueIdToIndex = originalBuffer.uniqueIdToIndex;
         }
@@ -44,6 +48,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
 
         this.vao = vao;
         this.vaoPick = vaoPick;
+        this.lineRenderVao = lineRenderVao;
 
         this.hasTransparency = hasTransparency;
         this.reuse = reuse;
@@ -130,6 +135,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
             // vaos
             null,
             null,
+            null,
 
             this.hasTransparency,
             this.reuse,
@@ -142,9 +148,9 @@ export class FrozenBufferSet extends AbstractBufferSet {
         return b;
     }
 
-    buildVao(gl, settings, programInfo, pickProgramInfo) {
+    buildVao(gl, settings, programInfo, pickProgramInfo, lineProgramInfo) {
 
-        let bindLocationPairs = (locations) => {
+    	let bindLocationPairs = (locations) => {
             for (let [location, buffer] of locations) {
                 gl.bindBuffer(buffer.gl_type, buffer);
                 let fn = buffer.attrib_type == gl.FLOAT
@@ -188,6 +194,37 @@ export class FrozenBufferSet extends AbstractBufferSet {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
         gl.bindVertexArray(null);
 
+        // Line render drawing VAO
+        var lineRenderVao = this.lineRenderVao = gl.createVertexArray();
+        gl.bindVertexArray(lineRenderVao);
+        
+        locations = [
+            [lineProgramInfo.attribLocations.vertexPosition, this.positionBuffer]
+        ];
+        bindLocationPairs(locations);
+
+        if (this.instanceMatricesBuffer) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceMatricesBuffer);
+            for (let i = 0; i < 4; ++i) {
+                gl.enableVertexAttribArray(lineProgramInfo.attribLocations.instanceMatrices + i);
+                gl.vertexAttribPointer(lineProgramInfo.attribLocations.instanceMatrices + i, 4, gl.FLOAT, false, 64, 16 * i);
+                gl.vertexAttribDivisor(lineProgramInfo.attribLocations.instanceMatrices + i, 1);
+            }
+
+            if (lineProgramInfo.attribLocations.instanceNormalMatrices) {
+            	// Line renders do not use normals
+            	gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceNormalMatricesBuffer);
+            	for (let i = 0; i < 3; ++i) {
+            		gl.enableVertexAttribArray(lineProgramInfo.attribLocations.instanceNormalMatrices + i);
+            		gl.vertexAttribPointer(lineProgramInfo.attribLocations.instanceNormalMatrices + i, 3, gl.FLOAT, false, 36, 12 * i);
+            		gl.vertexAttribDivisor(lineProgramInfo.attribLocations.instanceNormalMatrices + i, 1);
+            	}
+            }
+        }
+
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.lineIndexBuffer);
+        gl.bindVertexArray(null);
+        
         // Picking VAO
         var vaoPick = this.vaoPick = gl.createVertexArray();
         gl.bindVertexArray(vaoPick);

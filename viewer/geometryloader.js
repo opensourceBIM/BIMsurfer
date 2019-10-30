@@ -163,6 +163,10 @@ export class GeometryLoader {
 			var nrVertices = stream.readInt();
 			var minIndex = stream.readInt();
 			var maxIndex = stream.readInt();
+			if (this.loaderSettings.generateLineRenders) {
+				var minLineIndex = stream.readInt();
+				var maxLineIndex = stream.readInt();
+			}
 			var nrObjectColors = nrVertices / 3 * 4;
 
 			if (!createdObjects) {
@@ -188,7 +192,7 @@ export class GeometryLoader {
 				var object = createdObjects.get(uniqueId);
 				object.density = density;
 			}
-
+			
 			const meta = {
 				start: previousStartIndex + startIndex,
 				length: nrIndices,
@@ -197,8 +201,11 @@ export class GeometryLoader {
 				color: previousColorIndex + currentColorIndex,
 				colorLength: nrObjectColors,
 				minIndex: minIndex,
-				maxIndex: maxIndex
+				maxIndex: maxIndex,
+				minLineIndex: minLineIndex,
+				maxLineIndex: maxLineIndex
 			};
+			
 			this.preparedBuffer.uniqueIdToIndex.set(uniqueId, [meta]);
 			collectedMetaObjects.push(meta);
 			if (colorPackSize == 0) {
@@ -562,6 +569,14 @@ export class GeometryLoader {
 		} else {
 			var indices = stream.readShortArray(numIndices);
 		}
+		if (this.loaderSettings.generateLineRenders) {
+			var numLineIndices = stream.readInt();
+			if (useIntForIndices) {
+				var lineIndices = stream.readIntArray(numLineIndices);
+			} else {
+				var lineIndices = stream.readShortArray(numLineIndices);
+			}
+		}
 		var color = this.readColors(stream, type);
 		var numPositions = stream.readInt();
 		if (this.loaderSettings.quantizeVertices) {
@@ -619,7 +634,8 @@ export class GeometryLoader {
 		if (colors.length == 0) {
 			debugger;
 		}
-		this.renderLayer.createGeometry(this.loaderId, roid, croid, geometryDataOid, positions, normals, colors, color, indices, null, hasTransparency, reused);
+		console.log(lineIndices);
+		this.renderLayer.createGeometry(this.loaderId, roid, croid, geometryDataOid, positions, normals, colors, color, indices, lineIndices, hasTransparency, reused);
 	}
 
 	readColors(stream, type) {

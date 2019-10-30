@@ -110,6 +110,9 @@ export class DefaultSettings {
 		if (settings.realtimeSettings.orderIndependentTransparency == null) {
 			settings.realtimeSettings.orderIndependentTransparency = true;
 		}
+		if (settings.realtimeSettings.drawLineRenders == null) {
+			settings.realtimeSettings.drawLineRenders = false;
+		}
 		return settings;
 	}
 }

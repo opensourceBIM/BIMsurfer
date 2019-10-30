@@ -25,19 +25,27 @@ export class AbstractBufferSet {
      */
     joinConsecutiveRangesAsBuffers(input) {
     	var result = {
-    		offsets: new Int32Array(input.pos),
+    		offsetsBytes: new Int32Array(input.pos),
     		counts: new Int32Array(input.pos),
+    		lineRenderOffsetsBytes: new Int32Array(input.pos),
+    		lineRenderCounts: new Int32Array(input.pos),
     		pos: 0
     	};
 		for (var i=0; i<input.pos; i++) {
-			var offset = input.offsets[i];
+			var offset = input.offsetsBytes[i] / 4;
 			var totalCount = input.counts[i];
-			while (i < input.pos && input.offsets[i] + input.counts[i] == input.offsets[i + 1]) {
+			var lineRenderOffset = input.lineRenderOffsetsBytes[i] / 4;
+			var lineRenderTotalCount = input.lineRenderCounts[i];
+			while (i < input.pos && input.offsetsBytes[i] / 4 + input.counts[i] == input.offsetsBytes[i + 1] / 4) {
 				i++;
 				totalCount += input.counts[i];
+				// Assuming a lot here!
+				lineRenderTotalCount += input.lineRenderCounts[i];
 			}
-			result.offsets[result.pos] = offset;
+			result.offsetsBytes[result.pos] = offset * 4;
 			result.counts[result.pos] = totalCount;
+			result.lineRenderOffsetsBytes[result.pos] = lineRenderOffset * 4;
+			result.lineRenderCounts[result.pos] = lineRenderTotalCount;
 			result.pos++;
 		}
 //		console.log("Joined", input.pos, result.pos);
@@ -52,36 +60,51 @@ export class AbstractBufferSet {
     		// Special case, inverting all
     		return {
     			counts: new Int32Array([this.nrIndices]),
-    			offsets: new Int32Array([0]),
+    			offsetsBytes: new Int32Array([0]),
+    			lineRenderCounts: new Int32Array([this.nrLineIndices]),
+    			lineRenderOffsetsBytes: new Int32Array([0]),
     			pos: 1
     		}
     	}
     	var maxNrRanges = this.uniqueIdToIndex.size / 2;
     	var complement = {
     		counts: new Int32Array(maxNrRanges),
-    		offsets: new Int32Array(maxNrRanges),
+    		offsetsBytes: new Int32Array(maxNrRanges),
+    		lineRenderCounts: new Int32Array(maxNrRanges),
+    		lineRenderOffsetsBytes: new Int32Array(maxNrRanges),
     		pos: 0
     	};
     	var previousIndex = 0;
+    	var previousLineRenderIndex = 0;
     	for (var i=0; i<=input.pos; i++) {
     		if (i == input.pos) {
     			if (offset + count != this.nrIndices) {
     				// Complement the last range
-        			complement.offsets[complement.pos] = previousIndex;
+        			complement.offsetsBytes[complement.pos] = previousIndex * 4;
         			complement.counts[complement.pos] = this.nrIndices - previousIndex;
+        			// Assuming a lot here
+        			complement.lineRenderOffsetsBytes[complement.pos] = previousLineRenderIndex * 4;
+        			complement.lineRenderCounts[complement.pos] = this.nrLineIndices - previousLineRenderIndex;
         			complement.pos++;
     			}
     			continue;
     		}
     		var count = input.counts[i];
-    		var offset = input.offsets[i];
+    		var offset = input.offsetsBytes[i] / 4;
+    		var lineRenderCount = input.lineRenderCounts[i];
+    		var lineRenderOffset = input.lineRenderOffsetsBytes[i] / 4;
+    		
     		var newCount = offset - previousIndex;
+    		var newLineRenderCount = lineRenderOffset - previousLineRenderIndex;
     		if (newCount > 0) {
-    			complement.offsets[complement.pos] = previousIndex;
+    			complement.offsetsBytes[complement.pos] = previousIndex * 4;
     			complement.counts[complement.pos] = offset - previousIndex;
+    			complement.lineRenderOffsetsBytes[complement.pos] = previousLineRenderIndex * 4;
+    			complement.lineRenderCounts[complement.pos] = lineRenderOffset - previousLineRenderIndex;
     			complement.pos++;
     		}
     		previousIndex = offset + count;
+    		previousLineRenderIndex = lineRenderOffset + lineRenderCount;
     	}
     	// TODO trim buffers?
 //    	console.log(complement.pos, complement.counts.length);
@@ -111,6 +134,7 @@ export class AbstractBufferSet {
     	
     	this.batchGpuBuffers = {
    			indices: new Uint32Array(bounds.endIndex - bounds.startIndex),
+   			lineIndices: new Uint32Array(bounds.endLineIndex - bounds.startLineIndex),
    			bounds: bounds
        	};
 
@@ -119,6 +143,12 @@ export class AbstractBufferSet {
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
         gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, bounds.startIndex * 4, this.batchGpuBuffers.indices, 0, bounds.endIndex - bounds.startIndex);
+        
+        if (this.lineIndexBuffer == null) {
+        	debugger;
+        }
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.lineIndexBuffer);
+        gl.getBufferSubData(gl.ELEMENT_ARRAY_BUFFER, bounds.startLineIndex * 4, this.batchGpuBuffers.lineIndices, 0, bounds.endLineIndex - bounds.startLineIndex);
 
         for (var name of toCopy) {
             let buffer = this[name];
@@ -201,8 +231,6 @@ export class AbstractBufferSet {
         }, this.unquantizationMatrix);
 
 		if (this.lineIndexBuffer != null) {
-			debugger;
-
 			// TODO this is where we are
 			// Problem here is that the buffer is now already created on the GPU, but we need to convert it to a fatlinerenderer...
 			// So we could either generate the line render buffers as fat lines already (taking more network), but real quick to send to GPU, or
@@ -210,18 +238,33 @@ export class AbstractBufferSet {
 			// This last option sucks if we want to always do line rendering of all objects
 			// 2 triangles of data per line is a lot...
 
-			lineRenderer.init(this.lineIndexBuffer.N);
 			const bounds = this.batchGpuBuffers.bounds;
 			const vertexOffset = -bounds.minIndex * 3;
-			for (let e of s) {
-				const a = Math.floor(e / 67108864);
-				const b = e - a * 67108864;
+			
+			let gpu_data = this.batchGpuBuffers["positionBuffer"];
+
+			let index = this.uniqueIdToIndex.get(uniqueId);
+			let idx = index[0];
+			let [offset, length] = [idx.lineIndicesStart, idx.lineIndicesLength];
+			let [minLineIndex, maxLineIndex] = [idx.minLineIndex, idx.maxLineIndex];
+			
+			var indexOffset = offset - bounds.startLineIndex;
+
+			let numVertices = maxLineIndex - minLineIndex + 1;
+
+			lineRenderer.init(length);
+
+			const lineIndices = this.batchGpuBuffers.lineIndices;
+			for (var i=0; i<length; i+=2) {
+				let a = lineIndices[indexOffset + i];
+				let b = lineIndices[indexOffset + i + 1];
 				const as = vertexOffset + a * 3;
 				const bs = vertexOffset + b * 3;
 				let A = gpu_data.subarray(as, as + 3);
 				let B = gpu_data.subarray(bs, bs + 3);
 				lineRenderer.pushVertices(A, B);
 			}
+			
 			lineRenderer.finalize();
 
 			return lineRenderer;
@@ -290,6 +333,8 @@ export class AbstractBufferSet {
     		const oid = idRange[0];
     		const range = idRange[1];
     		let idx = this.uniqueIdToIndex.get(oid)[0];
+    		
+    		// Regular indices
     		if (bounds.startIndex == null || range[0] < bounds.startIndex) {
     			bounds.startIndex = range[0];
     		}
@@ -302,6 +347,24 @@ export class AbstractBufferSet {
     		if (bounds.maxIndex == null || idx.maxIndex + 1 > bounds.maxIndex) {
     			// This one seems to be wrong
     			bounds.maxIndex = idx.maxIndex + 1;
+    		}
+
+    		// Line indices
+    		if (bounds.startLineIndex == null || range[2] < bounds.startLineIndex) {
+    			bounds.startLineIndex = range[2];
+    		}
+    		if (bounds.endLineIndex == null || range[3] > bounds.endLineIndex) {
+    			bounds.endLineIndex = range[3];
+    		}
+    		if (bounds.startLineIndex > bounds.endLineIndex) {
+    			debugger;
+    		}
+    		if (bounds.minLineIndex == null || idx.minLineIndex < bounds.minLineIndex) {
+    			bounds.minLineIndex = idx.minLineIndex;
+    		}
+    		if (bounds.maxLineIndex == null || idx.maxLineIndex + 1 > bounds.maxLineIndex) {
+    			// This one seems to be wrong
+    			bounds.maxLineIndex = idx.maxLineIndex + 1;
     		}
     	}
     	return bounds;
@@ -405,7 +468,7 @@ export class AbstractBufferSet {
     			var indices = this.uniqueIdToIndex.get(uniqueId1);
     			for (var j = 0; j < indices.length; ++j) {
     				const mapping = indices[j];
-    				yield [uniqueId1, [mapping.start, mapping.start + mapping.length]];
+    				yield [uniqueId1, [mapping.start, mapping.start + mapping.length, mapping.lineIndicesStart, mapping.lineIndicesStart + mapping.lineIndicesLength]];
     			}
     			next1 = iterator1.next();
     			next2 = iterator2.next();
@@ -456,7 +519,9 @@ export class AbstractBufferSet {
     	if (ids === null || ids.size === 0) {
     		let result =  {
     			counts: new Int32Array([this.nrIndices]),
-    			offsets: new Int32Array([0]),
+    			offsetsBytes: new Int32Array([0]),
+        		lineRenderCounts: new Int32Array([this.nrLineIndices]),
+        		lineRenderOffsetsBytes: new Int32Array([0]),
     			pos: 1
     		};
     		return this.storeInCacheAndReturn(null, result, nonce);
@@ -471,20 +536,24 @@ export class AbstractBufferSet {
     	} else {
 			// If we don't have this mapping, we're dealing with a dedicated
 			// non-instanced bufferset for one particular overriden object
-			id_ranges = [[this.uniqueId & 0x8FFFFFFF, [0, this.nrIndices]]];
+			id_ranges = [[this.uniqueId & 0x8FFFFFFF, [0, this.nrIndices, 0, this.nrLineIndices]]];
     	}
     	
     	var result = {
     		counts: new Int32Array(id_ranges.length),
-    		offsets: new Int32Array(id_ranges.length),
+    		offsetsBytes: new Int32Array(id_ranges.length),
+    		lineRenderCounts: new Int32Array(id_ranges.length),
+    		lineRenderOffsetsBytes: new Int32Array(id_ranges.length),
     		pos: id_ranges.length
     	};
     	
     	var c = 0;
     	for (const range of id_ranges) {
     		const realRange = range[1];
-    		result.offsets[c] = realRange[0];
+    		result.offsetsBytes[c] = realRange[0] * 4;
     		result.counts[c] = realRange[1] - realRange[0];
+    		result.lineRenderOffsetsBytes[c] = realRange[2] * 4;
+    		result.lineRenderCounts[c] = realRange[3] - realRange[2];
     		c++;
     	}
     	
@@ -526,6 +595,7 @@ export class AbstractBufferSet {
     }
     
     generateLines(requestedId, gl) {
+    	// TODO this method should generate lines for just one object
     	if (this.lastIdRanges) {
     		let bounds = this.getBounds(this.lastIdRanges);
     		
@@ -558,6 +628,7 @@ export class AbstractBufferSet {
 		this.normalsIndex = 0;
 		this.pickColorsIndex = 0;
 		this.indicesIndex = 0;
+		this.lineIndicesIndex = 0;
 		this.nrIndices = 0;
 		this.bytes = 0;
 		this.visibleRanges = new Map();
@@ -572,17 +643,21 @@ export class AbstractBufferSet {
             return this.copyEmpty();
         } else {
     		let idx = this.uniqueIdToIndex.get(uniqueId)[0];
+
     		let [offset, length] = [idx.start, idx.length];
-    		
 			const indices = new Uint32Array(length);
-			
 			let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
-
 			let bounds = this.batchGpuBuffers.bounds;
-
 			for (let i=0; i<length; i++) {
-    			indices[i] = this.batchGpuBuffers.indices[-bounds.startIndex + offset + i] - minIndex;
-    		}
+				indices[i] = this.batchGpuBuffers.indices[-bounds.startIndex + offset + i] - minIndex;
+			}
+
+			let [lineIndexOffset, lineIndexLength] = [idx.lineIndicesStart, idx.lineIndicesLength];
+			const lineIndices = new Uint32Array(lineIndexLength);
+			let [minLineIndex, maxLineIndex] = [idx.minLineIndex, idx.maxLineIndex];
+			for (let i=0; i<lineIndexLength; i++) {
+				lineIndices[i] = this.batchGpuBuffers.lineIndices[-bounds.startLineIndex + lineIndexOffset + i] - minLineIndex;
+			}
     		
     		let numVertices = maxIndex - minIndex + 1;
     		
@@ -607,6 +682,8 @@ export class AbstractBufferSet {
     		returnDictionary.isCopy = true;
     		returnDictionary["indices"] = indices;
     		returnDictionary["nrIndices"] = indices.length;
+    		returnDictionary["lineIndices"] = lineIndices;
+    		returnDictionary["nrLineIndices"] = lineIndices.length;
         }
 
 		return returnDictionary;

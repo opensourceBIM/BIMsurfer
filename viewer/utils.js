@@ -152,6 +152,10 @@ export class Utils {
 		return Utils.createBuffer(gl, data, n, gl.ELEMENT_ARRAY_BUFFER);
 	}
 
+	static createLineIndexBuffer(gl, data, n) {
+		return Utils.createBuffer(gl, data, n, gl.ELEMENT_ARRAY_BUFFER, 2);
+	}
+
 	static transformBounds(inputBounds, translation) {
 		let newBounds = new Float32Array(6);
 		vec3.add(newBounds, inputBounds, translation);

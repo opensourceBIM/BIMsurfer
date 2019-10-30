@@ -206,6 +206,7 @@ export class Viewer {
     }
 
     setVisibility(elems, visible, sort=true) {
+    	debugger;
         elems = Array.from(elems);
         // @todo. until is properly asserted, documented somewhere, it's probably best to explicitly sort() for now.
         elems.sort(this.uniqueIdCompareFunction);
@@ -369,6 +370,7 @@ export class Viewer {
 								if (copiedBufferSet instanceof FrozenBufferSet) {
 									var programInfo = this.programManager.getProgram(this.programManager.createKey(true, false));
 									var pickProgramInfo = this.programManager.getProgram(this.programManager.createKey(true, true));
+									var lineProgramInfo = this.programManager.getProgram(this.programManager.createKey(true, false, true));
 									
 									copiedBufferSet.colorBuffer = Utils.createBuffer(this.gl, newClrBuffer, null, null, 4);
 									
@@ -376,7 +378,7 @@ export class Viewer {
 									bufferSet.setObjects(this.gl, bufferSet.objects.filter(o => o.uniqueId !== uniqueId));
 									copiedBufferSet.setObjects(this.gl, [obj]);
 									
-									copiedBufferSet.buildVao(this.gl, this.settings, programInfo, pickProgramInfo);
+									copiedBufferSet.buildVao(this.gl, this.settings, programInfo, pickProgramInfo, lineProgramInfo);
 									copiedBufferSet.manager.pushBuffer(copiedBufferSet);
 									buffer = copiedBufferSet;
 									

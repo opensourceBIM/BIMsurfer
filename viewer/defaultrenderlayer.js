@@ -53,6 +53,7 @@ export class DefaultRenderLayer extends RenderLayer {
 			vertices: geometry.positions.length,
 			normals: geometry.normals.length,
 			indices: geometry.indices.length,
+			lineIndices: geometry.lineIndices.length,
 			colors: (geometry.colors != null ? geometry.colors.length : 0),
 			pickColors: geometry.positions.length
 		};
@@ -120,16 +121,21 @@ export class DefaultRenderLayer extends RenderLayer {
 		return gpuBuffer;
 	}
 
-	renderBuffers(transparency, reuse, visibleElements) {
+	renderBuffers(transparency, reuse, lines, visibleElements) {
 		var buffers = this.gpuBufferManager.getBuffers(transparency, reuse);
 		if (buffers.length > 0) {
 			let picking = visibleElements.pass === 'pick';
+			
+			if (picking && lines) {
+				// No rendering of lines for picking
+				return;
+			}
 
-			var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(reuse, picking));
+			var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(reuse, picking, lines));
 			this.gl.useProgram(programInfo.program);
 			// TODO find out whether it's possible to do this binding before the program is used (possibly just once per frame, and better yet, a different location in the code)
 
-			if (!picking) {
+			if (!picking && !lines) {
 				this.viewer.lighting.render(programInfo.uniformBlocks.LightData);
 				this.gl.uniformMatrix3fv(programInfo.uniformLocations.viewNormalMatrix, false, this.viewer.camera.viewNormalMatrix);
 			}
@@ -139,7 +145,7 @@ export class DefaultRenderLayer extends RenderLayer {
 			this.gl.uniform3fv(programInfo.uniformLocations.postProcessingTranslation, this.postProcessingTranslation);
 			this.gl.uniform4fv(programInfo.uniformLocations.sectionPlane, this.viewer.sectionPlaneValues);
 
-			this.renderFinalBuffers(buffers, programInfo, visibleElements);
+			this.renderFinalBuffers(buffers, programInfo, visibleElements, lines);
 		}
 	}
 
