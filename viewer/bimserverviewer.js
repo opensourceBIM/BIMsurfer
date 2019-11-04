@@ -74,8 +74,8 @@ export class BimServerViewer extends AbstractViewer {
 		});
 	}
 	
-	loadRevision(revision) {
-		this.loadRevisionByRoid(revision.oid);
+	loadRevision(api, revision) {
+		this.loadRevisionByRoid(api, revision.oid);
 	}
 	
 	/*
