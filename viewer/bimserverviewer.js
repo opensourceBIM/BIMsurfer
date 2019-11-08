@@ -266,8 +266,8 @@ export class BimServerViewer extends AbstractViewer {
 					layerSet.add(defaultRenderLayer);
 					this.viewer.renderLayers.add(defaultRenderLayer);
 
-					defaultRenderLayer.setProgressListener((nrPrimitivesLoaded) => {
-						var percentage = 100 * nrPrimitivesLoaded / nrPrimitivesBelow;
+					defaultRenderLayer.setProgressListener((nrTrianglesLoaded, nrLinesLoaded) => {
+						var percentage = 100 * nrTrianglesLoaded / nrPrimitivesBelow;
 						this.updateProgress(percentage);
 					});
 
