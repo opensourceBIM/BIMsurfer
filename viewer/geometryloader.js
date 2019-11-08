@@ -360,7 +360,7 @@ export class GeometryLoader {
 				this.preparedBuffer = null;
 			}
 		}
-		this.renderLayer.incLoadedTriangles(totalNrIndices / 3);
+		this.renderLayer.incLoadedPrimitives(totalNrIndices / 3, totalNrLineIndices / 2);
 
 		stream.align8();
 
@@ -634,7 +634,6 @@ export class GeometryLoader {
 		if (colors.length == 0) {
 			debugger;
 		}
-		console.log(lineIndices);
 		this.renderLayer.createGeometry(this.loaderId, roid, croid, geometryDataOid, positions, normals, colors, color, indices, lineIndices, hasTransparency, reused);
 	}
 
@@ -732,7 +731,7 @@ export class GeometryLoader {
 	
 	start() {
 		if (this.renderLayer.progressListener != null) {
-			this.renderLayer.progressListener(0);
+			this.renderLayer.progressListener(0, 0);
 		}
 		
 		if (this.onStart != null) {
