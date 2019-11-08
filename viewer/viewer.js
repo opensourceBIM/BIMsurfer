@@ -206,7 +206,6 @@ export class Viewer {
     }
 
     setVisibility(elems, visible, sort=true) {
-    	debugger;
         elems = Array.from(elems);
         // @todo. until is properly asserted, documented somewhere, it's probably best to explicitly sort() for now.
         elems.sort(this.uniqueIdCompareFunction);
@@ -495,8 +494,13 @@ export class Viewer {
     internalRender(elems, t) {
         for (var transparency of (t || [false, true])) {
             for (var renderLayer of this.renderLayers) {
-                renderLayer.render(transparency, elems);
+                renderLayer.render(transparency, false, elems);
             }
+    		if (this.settings.realtimeSettings.drawLineRenders) {
+                for (var renderLayer of this.renderLayers) {
+                    renderLayer.render(transparency, true, elems);
+                }
+    		}
         }
     }
     
@@ -792,7 +796,7 @@ export class Viewer {
 
         for (var transparency of [false, true]) {
         	for (var renderLayer of this.renderLayers) {
-                renderLayer.render(transparency, {without: this.invisibleElements, pass: 'pick'});
+                renderLayer.render(transparency, false, {without: this.invisibleElements, pass: 'pick'});
         	}
         }
         

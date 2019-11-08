@@ -37,7 +37,10 @@ export class RenderLayer {
 		this.lines = null;
 		this.loaders = new Map();
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
+		
 		this.nrPrimitivesLoaded = 0;
+		this.nrTrianglesLoaded = 0;
+		this.nrLinesLoaded = 0;
 		
 		this.postProcessingTranslation = vec3.create();
 	}
@@ -396,10 +399,12 @@ export class RenderLayer {
 		loader.geometries.delete(geometry.id);
 		gpuBufferManager.pushBuffer(buffer);
 
+		this.nrTrianglesLoaded += buffer.nrTrianglesToDraw;
+		this.nrLinesLoaded += buffer.nrLinesToDraw;
 		this.nrPrimitivesLoaded += buffer.nrTrianglesToDraw + buffer.nrLinesToDraw;
 		this.viewer.stats.inc("Primitives", "Nr primitives loaded", buffer.nrTrianglesToDraw + buffer.nrLinesToDraw);
 		if (this.progressListener != null) {
-			this.progressListener(this.nrPrimitivesLoaded);
+			this.progressListener(this.nrTrianglesLoaded, this.nrLinesLoaded);
 		}
 
 		var toadd = 
@@ -445,16 +450,10 @@ export class RenderLayer {
 		this.lastCroidRendered = null;
 	}
 	
-	render(transparency, visibleElements) {
-		this.renderBuffers(transparency, false, false, visibleElements);
+	render(transparency, lineRender, visibleElements) {
+		this.renderBuffers(transparency, false, lineRender, visibleElements);
 		if (this.settings.gpuReuse) {
-			this.renderBuffers(transparency, true, false, visibleElements);
-		}
-		if (this.settings.realtimeSettings.drawLineRenders) {
-			this.renderBuffers(transparency, false, true, visibleElements);
-			if (this.settings.gpuReuse) {
-				this.renderBuffers(transparency, true, true, visibleElements);
-			}
+			this.renderBuffers(transparency, true, lineRender, visibleElements);
 		}
 	}
 	
@@ -653,11 +652,14 @@ export class RenderLayer {
 		return newBuffer;
 	}
 	
-	incLoadedTriangles(triangles) {
-		this.nrPrimitivesLoaded += triangles;
-		this.viewer.stats.inc("Primitives", "Nr primitives loaded", triangles);
+	incLoadedPrimitives(triangles, lines) {
+		this.nrTrianglesLoaded += triangles;
+		this.nrLinesLoaded += lines;
+		this.nrPrimitivesLoaded += triangles + lines;
+
+		this.viewer.stats.inc("Primitives", "Nr primitives loaded", triangles + lines);
 		if (this.progressListener != null) {
-			this.progressListener(this.nrPrimitivesLoaded);
+			this.progressListener(this.nrTrianglesLoaded, this.nrLinesLoaded);
 		}
 	}
 	
@@ -745,10 +747,12 @@ export class RenderLayer {
 		}
 		
 		if (!buffer.isCopy) {
-			this.nrPrimitivesLoaded += buffer.nrIndices / 3;
-			this.viewer.stats.inc("Primitives", "Nr primitives loaded", buffer.nrIndices / 3);
+			this.nrTrianglesLoaded += buffer.nrIndices / 3;
+			this.nrLinesLoaded += buffer.lineIndices / 3;
+			this.nrPrimitivesLoaded += buffer.nrIndices / 3 + buffer.lineIndices / 3;
+			this.viewer.stats.inc("Primitives", "Nr primitives loaded", buffer.nrIndices / 3 + buffer.lineIndices / 3);
 			if (this.progressListener != null) {
-				this.progressListener(this.nrPrimitivesLoaded);
+				this.progressListener(this.nrTrianglesLoaded, this.nrLinesLoaded);
 			}
 			this.viewer.stats.inc("Data", "GPU bytes", buffer.bytes);
 			this.viewer.stats.inc("Data", "GPU bytes total", buffer.bytes);
