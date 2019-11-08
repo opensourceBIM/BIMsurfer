@@ -185,8 +185,8 @@ export class Interactive {
 	showViewer(revision) {
 		this.showTab("viewer");
 		var canvas = document.getElementById("glcanvas");
-		this.bimServerViewer = new BimServerViewer(this.api, this.settings, canvas, window.innerWidth, window.innerHeight);
-		this.bimServerViewer.loadRevision(revision);
+		this.bimServerViewer = new BimServerViewer(this.settings, canvas, window.innerWidth, window.innerHeight, null);
+		this.bimServerViewer.loadRevision(this.api, revision);
 	}
 
 	connectServer(server) {

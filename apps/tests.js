@@ -105,9 +105,9 @@ export default class Tests {
 		canvas.classList.add("viewer");
 		var viewers = document.getElementById("viewers");
 		viewers.appendChild(canvas);
-		this.bimServerViewer = new BimServerViewer(this.api, settings, canvas, 320, 240, stats);
+		this.bimServerViewer = new BimServerViewer(settings, canvas, 320, 240, stats);
 
-		return this.bimServerViewer.loadRevisionByRoid(roid);
+		return this.bimServerViewer.loadRevisionByRoid(this.api, roid);
 	}
 }
 

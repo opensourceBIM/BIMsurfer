@@ -42,10 +42,10 @@ export class Minimal {
 					var canvas = document.getElementById("glcanvas");
 					
 					// Create a new BimServerViewer
-					this.bimServerViewer = new BimServerViewer(this.api, this.demoSettings.viewerSettings, canvas, window.innerWidth, window.innerHeight);
+					this.bimServerViewer = new BimServerViewer(this.demoSettings.viewerSettings, canvas, window.innerWidth, window.innerHeight, null);
 
 					// Load the model
-					this.bimServerViewer.loadModel(project);
+					this.bimServerViewer.loadModel(this.api, project);
 				}, function(error) {
 					console.error(error.message);
 				});
