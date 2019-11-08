@@ -528,7 +528,7 @@ export class AbstractBufferSet {
     	}
     	
     	var iterator1 = this.uniqueIdToIndex.keys();
-    	var iterator2 = ids[Symbol.iterator]();
+    	var iterator2 = ids._set[Symbol.iterator]();
     	
     	var id_ranges = null;
     	if (this.uniqueIdToIndex) {
