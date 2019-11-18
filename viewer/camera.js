@@ -288,10 +288,12 @@ export class Camera {
      @param {Float32Array} eye 3D position of the camera in World space.
      */
     set eye(eye) {
-        this._eye.set(eye || [0.0, 0.0, -10.0]);
-        this._setDirty();
-    	for (var listener of this.lowVolumeListeners) {
-    		listener();
+    	if (!vec3.equals(this._eye, eye)) {
+    		this._eye.set(eye || [0.0, 0.0, -10.0]);
+    		this._setDirty();
+    		for (var listener of this.lowVolumeListeners) {
+    			listener();
+    		}
     	}
     }
 
@@ -308,10 +310,12 @@ export class Camera {
      @param {Float32Array} target 3D position of the point of interest in World space.
      */
     set target(target) {
-        this._target.set(target || [0.0, 0.0, 0.0]);
-        this._setDirty();
-    	for (var listener of this.lowVolumeListeners) {
-    		listener();
+    	if (!vec3.equals(this._target, target)) {
+    		this._target.set(target || [0.0, 0.0, 0.0]);
+    		this._setDirty();
+    		for (var listener of this.lowVolumeListeners) {
+    			listener();
+    		}
     	}
     }
 
@@ -324,9 +328,11 @@ export class Camera {
     }
 
     set center(v) {
-        this._center.set(v);
-        vec3.negate(this._negatedCenter, this._center);
-        this.listeners.forEach((fn) => { fn(); });
+    	if (!vec3.equals(this._center, v)) {
+    		this._center.set(v);
+    		vec3.negate(this._negatedCenter, this._center);
+    		this.listeners.forEach((fn) => { fn(); });
+    	}
     }
 
     get center() {
