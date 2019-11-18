@@ -7,7 +7,7 @@ import {DataInputStream} from "./datainputstream.js";
 
 import {AvlTree} from "./collections/avltree.js";
 
-const PROTOCOL_VERSION = 19;
+const PROTOCOL_VERSION = 20;
 
 // temporary for emergency quantization
 const v4 = vec4.create();
@@ -151,8 +151,9 @@ export class GeometryLoader {
 			var uniqueId = oid;
 			if (this.loaderSettings.useUuidAndRid) {
 				let uuid = stream.readUuid();
+				let pid = stream.readInt();
 				let rid = stream.readInt();
-				uniqueId = uuid + (rid == 1 ? "" : "-" + rid);
+				uniqueId = uuid + "-" + pid + "-" + rid;
 			}
 			this.uniqueIdsLoaded.push(uniqueId);
 
@@ -463,8 +464,9 @@ export class GeometryLoader {
 			var uniqueId = oid;
 			if (this.loaderSettings.useUuidAndRid) {
 				let uuid = stream.readUuid();
+				let pid = stream.readInt();
 				let rid = stream.readInt();
-				uniqueId = uuid + (rid == 1 ? "" : "-" + rid);
+				uniqueId = uuid + "-" + pid + "-" + rid;
 			}
 			var type = stream.readUTF8();
 			var nrColors = stream.readInt();
@@ -519,8 +521,9 @@ export class GeometryLoader {
 			var uniqueId = oid;
 			if (this.loaderSettings.useUuidAndRid) {
 				let uuid = stream.readUuid();
+				let pid = stream.readInt();
 				let rid = stream.readInt();
-				uniqueId = uuid + (rid == 1 ? "" : "-" + rid);
+				uniqueId = uuid + "-" + pid + "-" + rid;
 			}
 			var type = stream.readUTF8();
 			var nrColors = stream.readInt();
