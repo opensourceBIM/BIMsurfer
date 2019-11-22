@@ -17,6 +17,7 @@ export class Settings {
 			triangleThresholdDefaultLayer: "number",
 			tilingLayerEnabled: "boolean",
 			maxOctreeDepth: "number",
+			resetToDefaultViewOnLoad: "boolean",
 			loaderSettings: {
 				quantizeNormals: "boolean",
 				octEncodeNormals: "boolean",
@@ -48,6 +49,7 @@ export class Settings {
 			triangleThresholdDefaultLayer: 100000,
 			tilingLayerEnabled: true,
 			maxOctreeDepth: 3,
+			resetToDefaultViewOnLoad: true,
 			loaderSettings: {
 				quantizeNormals: true,
 				octEncodeNormals: false,

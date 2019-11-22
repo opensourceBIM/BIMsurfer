@@ -535,7 +535,7 @@ export class Viewer {
         gl.enable(gl.CULL_FACE);
 
         if (this.modelBounds) {
-            if (!this.cameraSet) { // HACK to look at model origin as soon as available
+            if (!this.cameraSet && this.settings.resetToDefaultViewOnLoad) { // HACK to look at model origin as soon as available
             	this.resetToDefaultView();
             }
 
@@ -658,7 +658,7 @@ export class Viewer {
 //		);
     }
     
-    resetToDefaultView() {
+    resetToDefaultView(modelBounds=this.modelBounds) {
         this.camera.target = [0, 0, 0];
         this.camera.eye = [0, 1, 0];
         this.camera.up = [0, 0, 1];
@@ -667,7 +667,7 @@ export class Viewer {
             0, 0, 1, // Up
             0, -1, 0  // Forward
         ];
-        this.camera.viewFit(this.modelBounds); // Position camera so that entire model bounds are in view
+        this.camera.viewFit(modelBounds); // Position camera so that entire model bounds are in view
         this.cameraSet = true;
         this.camera.forceBuild();
     }

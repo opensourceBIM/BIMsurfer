@@ -27,6 +27,9 @@ export class DefaultSettings {
 		if (settings.quantizeColors == null) {
 			settings.quantizeColors = true;
 		}
+		if (settings.resetToDefaultViewOnLoad == null) {
+			settings.resetToDefaultViewOnLoad = true;
+		}
 		if (settings.gpuReuse == null) {
 			settings.gpuReuse = false;
 		}
