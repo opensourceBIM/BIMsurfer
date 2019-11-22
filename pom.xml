@@ -54,7 +54,7 @@
     <dependency>
       <groupId>org.opensourcebim</groupId>
       <artifactId>pluginbase</artifactId>
-      <version>1.5.177-SNAPSHOT</version>
+      <version>1.5.177</version>
     </dependency>
   </dependencies>
   <build>
