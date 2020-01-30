@@ -223,7 +223,7 @@ export class ProgramManager {
 	setupProgram(vertexShaderSource, fragmentShaderSource, defaultSetup, specificSetup, key) {
 //		console.log("setupProgram", key, this.keyToJson(key));
 		var p = new Promise((resolve, reject) => {
-			var shaderProgram = this.initShaderProgram(this.gl, "vertex shader", vertexShaderSource, "fragment shader", fragmentShaderSource, key);
+			var shaderProgram = this.initShaderProgram(this.gl, "vertex shader", vertexShaderSource, "fragment shader", fragmentShaderSource, key, defaultSetup, specificSetup);
 
 			var programInfo = {
 				program: shaderProgram,
@@ -281,9 +281,17 @@ export class ProgramManager {
 		return p;
 	}
 
-	initShaderProgram(gl, vsName, vsSource, fsName, fsSource, key) {
+	initShaderProgram(gl, vsName, vsSource, fsName, fsSource, key, defaultSetup, specificSetup) {
 		const vertexShader = this.loadShader(gl, gl.VERTEX_SHADER, vsName, vsSource, key);
+		if (vertexShader == null) {
+			console.error(defaultSetup, specificSetup);
+			return;
+		}
 		const fragmentShader = this.loadShader(gl, gl.FRAGMENT_SHADER, fsName, fsSource, key);
+		if (fragmentShader == null) {
+			console.error(defaultSetup, specificSetup);
+			return;
+		}
 
 		const shaderProgram = gl.createProgram();
 		gl.attachShader(shaderProgram, vertexShader);
@@ -335,7 +343,7 @@ export class ProgramManager {
 		gl.compileShader(shader);
 		if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
 			console.error(name);
-			console.error(fullSource);
+//			console.error(fullSource);
 			console.error('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
 			gl.deleteShader(shader);
 			return null;
