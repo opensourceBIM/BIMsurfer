@@ -310,6 +310,7 @@ export class BimServerViewer extends AbstractViewer {
 		loaderSettings.globalTranslationVector = Utils.toArray(this.viewer.globalTranslationVector);
 		
 		var query = {
+			doublebuffer: false,
 			type: {
 				name: "IfcProduct",
 				includeAllSubTypes: true,
