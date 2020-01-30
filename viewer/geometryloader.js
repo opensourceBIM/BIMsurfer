@@ -9,9 +9,6 @@ import {AvlTree} from "./collections/avltree.js";
 
 const PROTOCOL_VERSION = 20;
 
-// temporary for emergency quantization
-const v4 = vec4.create();
-
 /**
  * This class is supposed to be and stay BIMserver-free.
  */
@@ -39,6 +36,9 @@ export class GeometryLoader {
 			this.createdTransparentObjects = new Map(); // object id -> object info
 			this.createdOpaqueObjects = new Map(); // object id -> object info
 		}
+		
+		// temporary for emergency quantization
+		this.v4 = vec4.create();
 		
 		this.promise = new Promise((resolve, reject) => {
 			this.resolve = resolve;
@@ -147,13 +147,13 @@ export class GeometryLoader {
 		const collectedMetaObjects = [];
 		
 		for (var i = 0; i < nrObjects; i++) {
-			var oid = stream.readLong();
-			var uniqueId = oid;
+			var uniqueId = null;
 			if (this.loaderSettings.useUuidAndRid) {
-				let uuid = stream.readUuid();
-				let pid = stream.readInt();
-				let rid = stream.readInt();
-				uniqueId = uuid + "-" + pid + "-" + rid;
+				let oid = stream.readInt();
+				let mid = stream.readLong();
+				uniqueId = oid + "-" + mid;
+			} else {
+				uniqueId = stream.readLong();
 			}
 			this.uniqueIdsLoaded.push(uniqueId);
 
@@ -211,7 +211,7 @@ export class GeometryLoader {
 			collectedMetaObjects.push(meta);
 			if (colorPackSize == 0) {
 				// Generate default colors for this object
-				var defaultColor = this.renderLayer.viewer.defaultColors[object.type];
+				var defaultColor = this.renderLayer.viewer.defaultColors[object.type.toUpperCase()];
 				if (defaultColor == null) {
 					defaultColor = this.renderLayer.viewer.defaultColors.DEFAULT;
 				}
@@ -250,10 +250,10 @@ export class GeometryLoader {
 				// admittedly there was code for this in BufferTransformer, but it was commented out?
 				const m4 = this.vertexQuantizationMatrices.vertexQuantizationMatrix;
 				for (var i = 0; i < floats.length; i += 3) {
-					v4.set(floats.subarray(i, i + 3));
-					v4[3] = 1.0;
-					vec4.transformMat4(v4, v4, m4);
-					floats.set(v4.subarray(0, 3), i);
+					this.v4.set(floats.subarray(i, i + 3));
+					this.v4[3] = 1.0;
+					vec4.transformMat4(this.v4, this.v4, m4);
+					floats.set(this.v4.subarray(0, 3), i);
 				}
 				const quantized = new Int16Array(floats);
 
@@ -268,10 +268,10 @@ export class GeometryLoader {
 				const quantized = new Int16Array(floats.length);
 				const m4 = this.vertexQuantizationMatrices.vertexQuantizationMatrix;
 				for (var i = 0; i < floats.length; i += 3) {
-					v4.set(floats.subarray(i, i + 3));
-					v4[3] = 1.0;
-					vec4.transformMat4(v4, v4, m4);
-					quantized.set(v4.subarray(0, 3), i);
+					this.v4.set(floats.subarray(i, i + 3));
+					this.v4[3] = 1.0;
+					vec4.transformMat4(this.v4, this.v4, m4);
+					quantized.set(this.v4.subarray(0, 3), i);
 				}
 				Utils.updateBuffer(this.renderLayer.gl, this.preparedBuffer.vertices, quantized, 0, quantized.length);
 			} else {
@@ -289,6 +289,7 @@ export class GeometryLoader {
 				});
 				for (var i = 0; i < collectedMetaObjects.length; ++i) {
 					const meta = collectedMetaObjects[i];
+					// TODO use uniqueId
 					const oid = loadedViewObjects[i];
 					const aabb = new Float32Array(6);
 					aabb.fill(Infinity);
@@ -440,7 +441,8 @@ export class GeometryLoader {
 			stream.align8();
 			var roid = stream.readLong();
 			var croid = stream.readLong();
-			var hasTransparency = stream.readLong() == 1;
+			let hasTransparencyValue = stream.readLong();
+			var hasTransparency = hasTransparencyValue == 1;
 			var geometryDataId = stream.readLong();
 			this.readGeometry(stream, roid, croid, geometryDataId, geometryDataId, hasTransparency, reused, type, true);
 			if (this.dataToInfo.has(geometryDataId)) {
@@ -460,13 +462,13 @@ export class GeometryLoader {
 		} else if (geometryType == 5) {
 			// Object
 			var inPreparedBuffer = stream.readByte() == 1;
-			var oid = stream.readLong();
-			var uniqueId = oid;
+			var uniqueId = null;
 			if (this.loaderSettings.useUuidAndRid) {
-				let uuid = stream.readUuid();
-				let pid = stream.readInt();
-				let rid = stream.readInt();
-				uniqueId = uuid + "-" + pid + "-" + rid;
+				let oid = stream.readInt();
+				let mid = stream.readLong();
+				uniqueId = oid + "-" + mid;
+			} else {
+				uniqueId = stream.readLong();
 			}
 			var type = stream.readUTF8();
 			var nrColors = stream.readInt();
@@ -483,12 +485,12 @@ export class GeometryLoader {
 			var geometryDataOidFound = geometryDataOid;
 			if (inPreparedBuffer) {
 				if (hasTransparency) {
-					this.createdTransparentObjects.set(oid, {
+					this.createdTransparentObjects.set(uniqueId, {
 						nrColors: nrColors,
 						type: type
 					});
 				} else {
-					this.createdOpaqueObjects.set(oid, {
+					this.createdOpaqueObjects.set(uniqueId, {
 						nrColors: nrColors,
 						type: type
 					});
@@ -517,13 +519,13 @@ export class GeometryLoader {
 			this.createObject(roid, uniqueId, geometryDataOidFound == null ? [] : [geometryDataOidFound], matrix, hasTransparency, type, objectBounds, inPreparedBuffer);
 		} else if (geometryType == 9) {
 			// Minimal object
-			var oid = stream.readLong();
-			var uniqueId = oid;
+			var uniqueId = null;
 			if (this.loaderSettings.useUuidAndRid) {
-				let uuid = stream.readUuid();
-				let pid = stream.readInt();
-				let rid = stream.readInt();
-				uniqueId = uuid + "-" + pid + "-" + rid;
+				let oid = stream.readInt();
+				let mid = stream.readLong();
+				uniqueId = oid + "-" + mid;
+			} else {
+				uniqueId = stream.readLong();
 			}
 			var type = stream.readUTF8();
 			var nrColors = stream.readInt();
@@ -599,6 +601,7 @@ export class GeometryLoader {
 		if (numColors > 0) {
 			if (this.loaderSettings.quantizeColors) {
 				var colors = stream.readUnsignedByteArray(numColors);
+				stream.align8();
 			} else {
 				var colors = stream.readFloatArray(numColors);
 			}
@@ -645,7 +648,7 @@ export class GeometryLoader {
 		if (b == 1) {
 			var color = {r: stream.readFloat(), g: stream.readFloat(), b: stream.readFloat(), a: stream.readFloat()};
 		} else {
-			var defaultColor = this.renderLayer.viewer.defaultColors[type];
+			var defaultColor = this.renderLayer.viewer.defaultColors[type.toUpperCase()];
 			if (defaultColor == null) {
 				var color = {
 					r: 0,
