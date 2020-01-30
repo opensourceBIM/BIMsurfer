@@ -105,10 +105,12 @@ vec3 octDecode(vec2 oct) {
 }
 
 void main(void) {
-#ifdef WITH_QUANTIZEVERTICES
-    vec4 floatVertex = vec4(postProcessingTranslation, 0) + vertexQuantizationMatrix * vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
-#else
-    vec4 floatVertex = vec4(postProcessingTranslation, 0) + vec4(vertexPosition, 1);
+#ifndef WITH_INSTANCING
+	#ifdef WITH_QUANTIZEVERTICES
+		vec4 floatVertex = vec4(postProcessingTranslation, 0) + vertexQuantizationMatrix * vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
+	#else
+	    vec4 floatVertex = vec4(postProcessingTranslation, 0) + vec4(vertexPosition, 1);
+	#endif
 #endif
 
 #ifndef WITH_PICKING
@@ -152,7 +154,11 @@ void main(void) {
 #endif
 
 #ifdef WITH_INSTANCING
-    floatVertex = vec4(postProcessingTranslation, 0) + instanceMatrices * floatVertex;
+	#ifdef WITH_QUANTIZEVERTICES
+		vec4 floatVertex = vec4(postProcessingTranslation, 0) + instanceMatrices * vertexQuantizationMatrix * vec4(float(vertexPosition.x), float(vertexPosition.y), float(vertexPosition.z), 1);
+	#else
+		vec4 floatVertex = vec4(postProcessingTranslation, 0) + instanceMatrices * vec4(vertexPosition, 1);
+	#endif
 #ifndef WITH_PICKING
 #ifndef WITH_LINES
     floatNormal = instanceNormalMatrices * floatNormal;
@@ -163,8 +169,9 @@ void main(void) {
 #ifdef WITH_LINEPRIMITIVES
     // tfk: todo: line matrix could be same as instanceMatrix?
     vec2 aspectVec = vec2(aspect, 1.0);
-    mat4 projViewModel = projectionMatrix * viewMatrix * matrix;
-    vec4 currentProjected = projViewModel * floatVertex;
+    mat4 viewModel = viewMatrix * matrix;
+    mat4 projViewModel = projectionMatrix * viewModel;
+    vec4 currentProjected = projectionMatrix * (vec4(postProcessingTranslation, 0) + viewModel * floatVertex);
     vec2 currentScreen = currentProjected.xy / currentProjected.w * aspectVec;
 
 #ifdef WITH_QUANTIZEVERTICES
