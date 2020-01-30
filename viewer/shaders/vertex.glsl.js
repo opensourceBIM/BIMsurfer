@@ -48,7 +48,7 @@ in vec4 vertexColor;
 #ifdef WITH_INSTANCING
 in mat4 instanceMatrices;
 uniform uint numContainedInstances;
-uniform uint containedInstances[1024];
+uniform uint containedInstances[256];
 uniform uint containedMeansHidden;
 #ifndef WITH_PICKING
 #ifndef WITH_LINES
