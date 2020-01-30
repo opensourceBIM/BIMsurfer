@@ -1,13 +1,11 @@
 import * as mat4 from "./glmatrix/mat4.js";
 import * as vec3 from "./glmatrix/vec3.js";
 
-let tmp = vec3.create();
-
 class SvgOverlayNode {
     constructor(overlay, svgElem) {
         this.overlay = overlay;
         this.svgElem = svgElem;
-        this._lastVisibilityState = null;   
+        this._lastVisibilityState = null;
     }
 
     process() {
@@ -89,6 +87,8 @@ export class SvgOverlay {
         this.track = domNode;
         this.camera = camera;
 
+        this.tmp = vec3.create();
+
         let svg = this.svg = this.create("svg", {id:"viewerOverlay"}, {
             padding: 0,
             margin: 0,
@@ -118,8 +118,8 @@ export class SvgOverlay {
     }
 
     transformPoint(p) {
-        vec3.transformMat4(tmp, p, this.camera.viewProjMatrix);
-        return [+tmp[0] * this.w + this.w, -tmp[1] * this.h + this.h]
+        vec3.transformMat4(this.tmp, p, this.camera.viewProjMatrix);
+        return [+this.tmp[0] * this.w + this.w, -this.tmp[1] * this.h + this.h]
     }
 
     update() {

@@ -8,14 +8,14 @@ import * as vec3 from "./glmatrix/vec3.js";
  * @class WSQuad
  */
 
-let temp = vec3.create();
-
 export class WSQuad {
 
     constructor(viewer, gl) {
         this.gl = gl;
         this.viewer = viewer;
 
+        this.temp = vec3.create();
+        
         let vao = this.vao = gl.createVertexArray();
         gl.bindVertexArray(vao);
 
@@ -105,12 +105,12 @@ export class WSQuad {
             for (let j of zero_one) {
                 for (let k of zero_one) {
                     let p = vec3.fromValues(bounds[3*i+0], bounds[3*j+1], bounds[3*k+2]);
-                    vec3.subtract(temp, p, planeEq);
-                    let d = vec3.dot(planeEq, temp);
-                    vec3.scale(temp, planeEq, d);
-                    vec3.subtract(temp, p, temp);
+                    vec3.subtract(this.temp, p, planeEq);
+                    let d = vec3.dot(planeEq, this.temp);
+                    vec3.scale(this.temp, planeEq, d);
+                    vec3.subtract(this.temp, p, this.temp);
                     for (let i = 0; i < 2; ++i) {
-                        let d = Math.abs(vec3.dot(temp, XY[i]));
+                        let d = Math.abs(vec3.dot(this.temp, XY[i]));
                         if (d > scale) {
                             scale = d;
                         }

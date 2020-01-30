@@ -6,7 +6,6 @@ import {Utils} from "./utils.js";
 import {GeometryCache} from "./geometrycache.js";
 import {FrozenBufferSet} from "./frozenbufferset.js";
 
-const selectionOutlineMatrix = mat4.create();
 const outlineColor = new Float32Array([1.0, 0.5, 0.0, 1.0]);
 const false_true = [false, true];
 const UINT32_MAX = (new Uint32Array((new Int32Array([-1])).buffer))[0];
@@ -34,6 +33,8 @@ export class RenderLayer {
 		this.instanceSelectionData = new Uint32Array(1024);
 		this.previousInstanceVisibilityState = null;
 
+		this.selectionOutlineMatrix = mat4.create();
+		
 		this.lines = null;
 		this.loaders = new Map();
 		this.bufferTransformer = new BufferTransformer(this.settings, viewer.vertexQuantization);
@@ -42,7 +43,7 @@ export class RenderLayer {
 		this.nrTrianglesLoaded = 0;
 		this.nrLinesLoaded = 0;
 		
-		this.postProcessingTranslation = vec3.create();
+		this.postProcessingTranslation = vec3.fromValues(0, 0, 0);
 	}
 
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, lineIndices, hasTransparency, reused) {
@@ -767,7 +768,7 @@ export class RenderLayer {
 			let bufferManager = this.gpuBufferManager;
 			let viewer = bufferManager.viewer;
 			this.lines.renderStart(viewer, this);
-			this.lines.render(this.lineColour || outlineColor, selectionOutlineMatrix, this.lineWidth || 0.01);
+			this.lines.render(this.lineColour || outlineColor, this.selectionOutlineMatrix, this.lineWidth || 0.01);
 			this.lines.renderStop();
 		}
 	}
@@ -797,7 +798,7 @@ export class RenderLayer {
 									// Kind of a dirty hack to only do the initialization once, we know the init result is the same for all buffers in this set, this improves the render speed when a lot of objects are selected
 									lines.renderStart(viewer, this);
 								}
-								lines.render(outlineColor, lines.matrixMap.get(id) || selectionOutlineMatrix, width || 0.005);
+								lines.render(outlineColor, lines.matrixMap.get(id) || this.selectionOutlineMatrix, width || 0.005);
 								lastLineRenderer = lines;
 							}
 						}

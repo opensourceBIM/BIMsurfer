@@ -3,10 +3,6 @@ import * as vec3 from "./glmatrix/vec3.js";
 
 import {FrustumPlane} from "./frustumplane.js";
 
-var tempMat4 = mat4.create();
-var tempVec3 = vec3.create();
-var tempVec3b = vec3.create();
-
 /**
  * Frustum for fast World-space frustum-AABB collision testing
  * 
@@ -16,6 +12,8 @@ var tempVec3b = vec3.create();
 export class Frustum {
 
     constructor() {
+    	this.tempMat4 = mat4.create();
+    	
         this.planes = [ // Allocate now, init when needed
             new FrustumPlane(),
             new FrustumPlane(),
@@ -27,7 +25,7 @@ export class Frustum {
     }
 
     init(viewMatrix, projMatrix) { // Builds frustum planes} from view and projection matrices
-        var m = tempMat4;
+        var m = this.tempMat4;
         mat4.multiply(m, projMatrix, viewMatrix);
         var m0 = m[0], m1 = m[1], m2 = m[2], m3 = m[3];
         var m4 = m[4], m5 = m[5], m6 = m[6], m7 = m[7];

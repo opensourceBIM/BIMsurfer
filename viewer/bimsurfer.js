@@ -1,7 +1,5 @@
 import {BimServerViewer} from "./bimserverviewer.js";
 import {EventHandler} from "./eventhandler.js";
-// @todo why?
-import {BimServerClient} from "http://localhost:8080/apps/bimserverjavascriptapi/bimserverclient.js";
 import {Stats} from "./stats.js";
 
 /**

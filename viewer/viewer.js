@@ -21,7 +21,6 @@ import {COLOR_FLOAT_DEPTH_NORMAL, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 import { WSQuad } from './wsquad.js';
 import {EventHandler} from "./eventhandler.js";
 
-var tmp_unproject = vec3.create();
 
 // When a change in color results in a different
 // transparency state, the objects needs to be hidden
@@ -30,21 +29,6 @@ var tmp_unproject = vec3.create();
 // recreated object will have it's most significant bit
 // set to 1.
 const OVERRIDE_FLAG = (1 << 30);
-
-const X = vec3.fromValues(1., 0., 0.);
-const Y = vec3.fromValues(0., 1., 0.);
-const Z = vec3.fromValues(0., 0., 1.);
-
-const tmp_sectionU = vec3.create();
-const tmp_sectionV = vec3.create();
-
-const tmp_sectionA = vec3.create();
-const tmp_sectionB = vec3.create();
-const tmp_sectionC = vec3.create();
-const tmp_sectionD = vec3.create();
-
-const tmp_section_dir_2d = vec4.create();
-
 
 /**
  * The idea is that this class doesn't know anything about BIMserver, and can possibly be reused in classes other than BimServerViewer
@@ -58,6 +42,11 @@ const tmp_section_dir_2d = vec4.create();
  * @export
  * @class Viewer
  */
+
+const X = vec3.fromValues(1., 0., 0.);
+const Y = vec3.fromValues(0., 1., 0.);
+const Z = vec3.fromValues(0., 0., 1.);
+
 export class Viewer {
 
     constructor(canvas, settings, stats, width, height) {
@@ -85,6 +74,18 @@ export class Viewer {
         	this.bufferSetPool = new BufferSetPool(1000, this.stats);
         }
 
+        this.tmp_unproject = vec3.create();
+
+        this.tmp_sectionU = vec3.create();
+        this.tmp_sectionV = vec3.create();
+
+        this.tmp_sectionA = vec3.create();
+        this.tmp_sectionB = vec3.create();
+        this.tmp_sectionC = vec3.create();
+        this.tmp_sectionD = vec3.create();
+
+        this.tmp_section_dir_2d = vec4.create();
+        
         this.pickIdCounter = 1;
 
         this.sectionPlaneIsDisabled = true;
@@ -434,9 +435,11 @@ export class Viewer {
 
             this.programManager.load().then(() => {
                 resolve();
-                requestAnimationFrame((now) => {
-                    this.render(now);
-                });
+                if (this.running) {
+                	requestAnimationFrame((now) => {
+                		this.render(now);
+                	});
+                }
             });
 
             this.pickBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_FLOAT_DEPTH_NORMAL);
@@ -688,34 +691,34 @@ export class Viewer {
             } else {
                 ref = X;
             }
-            vec3.cross(tmp_sectionU, p.normal, ref);
-            vec3.cross(tmp_sectionV, p.normal, tmp_sectionU);
-            vec3.scale(tmp_sectionU, tmp_sectionU, 500.);
-            vec3.scale(tmp_sectionV, tmp_sectionV, 500.);
+            vec3.cross(this.tmp_sectionU, p.normal, ref);
+            vec3.cross(this.tmp_sectionV, p.normal, this.tmp_sectionU);
+            vec3.scale(this.tmp_sectionU, this.tmp_sectionU, 500.);
+            vec3.scale(this.tmp_sectionV, this.tmp_sectionV, 500.);
 
             // ---
             
-            vec3.add(tmp_sectionA, tmp_sectionU, p.coordinates);
-            vec3.add(tmp_sectionB, tmp_sectionU, p.coordinates);
+            vec3.add(this.tmp_sectionA, this.tmp_sectionU, p.coordinates);
+            vec3.add(this.tmp_sectionB, this.tmp_sectionU, p.coordinates);
 
-            vec3.negate(tmp_sectionU, tmp_sectionU);
+            vec3.negate(this.tmp_sectionU, this.tmp_sectionU);
 
-            vec3.add(tmp_sectionC, tmp_sectionU, p.coordinates);
-            vec3.add(tmp_sectionD, tmp_sectionU, p.coordinates);
-
-            // ---
-
-            vec3.add(tmp_sectionA, tmp_sectionV, tmp_sectionA);
-            vec3.add(tmp_sectionC, tmp_sectionV, tmp_sectionC);
-
-            vec3.negate(tmp_sectionV, tmp_sectionV);
-
-            vec3.add(tmp_sectionB, tmp_sectionV, tmp_sectionB);
-            vec3.add(tmp_sectionD, tmp_sectionV, tmp_sectionD);
+            vec3.add(this.tmp_sectionC, this.tmp_sectionU, p.coordinates);
+            vec3.add(this.tmp_sectionD, this.tmp_sectionU, p.coordinates);
 
             // ---
 
-            let ps = [tmp_sectionA, tmp_sectionB, tmp_sectionD, tmp_sectionC, tmp_sectionA];
+            vec3.add(this.tmp_sectionA, this.tmp_sectionV, this.tmp_sectionA);
+            vec3.add(this.tmp_sectionC, this.tmp_sectionV, this.tmp_sectionC);
+
+            vec3.negate(this.tmp_sectionV, this.tmp_sectionV);
+
+            vec3.add(this.tmp_sectionB, this.tmp_sectionV, this.tmp_sectionB);
+            vec3.add(this.tmp_sectionD, this.tmp_sectionV, this.tmp_sectionD);
+
+            // ---
+
+            let ps = [this.tmp_sectionA, this.tmp_sectionB, this.tmp_sectionD, this.tmp_sectionC, this.tmp_sectionA];
             if (this.sectionplanePoly) {
                 this.sectionplanePoly.points = ps;
             } else {
@@ -748,13 +751,13 @@ export class Viewer {
     }
 
     moveSectionPlane(params) {
-        tmp_section_dir_2d.set(this.sectionPlaneValues2);
-        tmp_section_dir_2d[3] = 0.;
-        vec4.transformMat4(tmp_section_dir_2d, tmp_section_dir_2d, this.camera.viewProjMatrix);
+        this.tmp_section_dir_2d.set(this.sectionPlaneValues2);
+        this.tmp_section_dir_2d[3] = 0.;
+        vec4.transformMat4(this.tmp_section_dir_2d, this.tmp_section_dir_2d, this.camera.viewProjMatrix);
         let cp = [params.canvasPos[0] / this.width, - params.canvasPos[1] / this.height];        
-        vec2.subtract(tmp_section_dir_2d.subarray(2), cp, this.sectionPlaneDownAt);
-        tmp_section_dir_2d[1] /= this.width / this.height;
-        let d = vec2.dot(tmp_section_dir_2d, tmp_section_dir_2d.subarray(2)) * this.sectionPlaneDepth;
+        vec2.subtract(this.tmp_section_dir_2d.subarray(2), cp, this.sectionPlaneDownAt);
+        this.tmp_section_dir_2d[1] /= this.width / this.height;
+        let d = vec2.dot(this.tmp_section_dir_2d, this.tmp_section_dir_2d.subarray(2)) * this.sectionPlaneDepth;
         this.sectionPlaneValues2[3] = this.initialSectionPlaneD + d;
         this.dirty = 2;
     }
@@ -814,11 +817,11 @@ export class Viewer {
         // tfk: I don't know why the pB.d is in [0,1] and needs to be mapped back
         // to [-1, 1] for multiplication with the inverse projMat.
         let z = viewObject ? (this.pickBuffer.depth(x,y) * 2. - 1.) : 1.;
-        vec3.set(tmp_unproject, x / this.width * 2 - 1, - y / this.height * 2 + 1, z);
-        vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.projection.projMatrixInverted);
-        let depth = -tmp_unproject[2];
-        vec3.transformMat4(tmp_unproject, tmp_unproject, this.camera.viewMatrixInverted);
-//        console.log("Picked @", tmp_unproject[0], tmp_unproject[1], tmp_unproject[2], uniqueId, viewObject);
+        vec3.set(this.tmp_unproject, x / this.width * 2 - 1, - y / this.height * 2 + 1, z);
+        vec3.transformMat4(this.tmp_unproject, this.tmp_unproject, this.camera.projection.projMatrixInverted);
+        let depth = -this.tmp_unproject[2];
+        vec3.transformMat4(this.tmp_unproject, this.tmp_unproject, this.camera.viewMatrixInverted);
+//        console.log("Picked @", this.tmp_unproject[0], this.tmp_unproject[1], this.tmp_unproject[2], uniqueId, viewObject);
 
         this.pickBuffer.unbind();
         
@@ -839,7 +842,7 @@ export class Viewer {
                     this.eventHandler.fire("selection_state_changed", [uniqueId], true);
                 }
             }
-            return {object: viewObject, normal: normal, coordinates: tmp_unproject, depth: depth};
+            return {object: viewObject, normal: normal, coordinates: this.tmp_unproject, depth: depth};
         } else if (params.select !== false) {
         	if (this.selectedElements.size > 0) {
         		this.eventHandler.fire("selection_state_changed", this.selectedElements, false);
@@ -847,7 +850,7 @@ export class Viewer {
         	}
         }
 
-        return {object: null, coordinates: tmp_unproject, depth: depth};
+        return {object: null, coordinates: this.tmp_unproject, depth: depth};
     }
 
     addToSelection(uniqueId) {
