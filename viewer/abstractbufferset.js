@@ -8,8 +8,9 @@ var counter = 1;
  */
 export class AbstractBufferSet {
     
-    constructor(viewer) {
+    constructor(viewer, reuse) {
     	this.viewer = viewer;
+    	this.reuse = reuse;
         // Unique id per bufferset, easier to use as Map key
         this.id = counter++;
         
@@ -332,39 +333,51 @@ export class AbstractBufferSet {
     	for (const idRange of id_ranges) {
     		const oid = idRange[0];
     		const range = idRange[1];
-    		let idx = this.uniqueIdToIndex.get(oid)[0];
-    		
-    		// Regular indices
-    		if (bounds.startIndex == null || range[0] < bounds.startIndex) {
-    			bounds.startIndex = range[0];
-    		}
-    		if (bounds.endIndex == null || range[1] > bounds.endIndex) {
-    			bounds.endIndex = range[1];
-    		}
-    		if (bounds.minIndex == null || idx.minIndex < bounds.minIndex) {
-    			bounds.minIndex = idx.minIndex;
-    		}
-    		if (bounds.maxIndex == null || idx.maxIndex + 1 > bounds.maxIndex) {
-    			// This one seems to be wrong
-    			bounds.maxIndex = idx.maxIndex + 1;
-    		}
-
-    		// Line indices
-    		if (bounds.startLineIndex == null || range[2] < bounds.startLineIndex) {
-    			bounds.startLineIndex = range[2];
-    		}
-    		if (bounds.endLineIndex == null || range[3] > bounds.endLineIndex) {
-    			bounds.endLineIndex = range[3];
-    		}
-    		if (bounds.startLineIndex > bounds.endLineIndex) {
-    			debugger;
-    		}
-    		if (bounds.minLineIndex == null || idx.minLineIndex < bounds.minLineIndex) {
-    			bounds.minLineIndex = idx.minLineIndex;
-    		}
-    		if (bounds.maxLineIndex == null || idx.maxLineIndex + 1 > bounds.maxLineIndex) {
-    			// This one seems to be wrong
-    			bounds.maxLineIndex = idx.maxLineIndex + 1;
+    		if (this.uniqueIdToIndex) {
+    			let idx = this.uniqueIdToIndex.get(oid)[0];
+    			
+    			// Regular indices
+    			if (bounds.startIndex == null || range[0] < bounds.startIndex) {
+    				bounds.startIndex = range[0];
+    			}
+    			if (bounds.endIndex == null || range[1] > bounds.endIndex) {
+    				bounds.endIndex = range[1];
+    			}
+    			if (bounds.minIndex == null || idx.minIndex < bounds.minIndex) {
+    				bounds.minIndex = idx.minIndex;
+    			}
+    			if (bounds.maxIndex == null || idx.maxIndex + 1 > bounds.maxIndex) {
+    				// This one seems to be wrong
+    				bounds.maxIndex = idx.maxIndex + 1;
+    			}
+    			
+    			// Line indices
+    			if (bounds.startLineIndex == null || range[2] < bounds.startLineIndex) {
+    				bounds.startLineIndex = range[2];
+    			}
+    			if (bounds.endLineIndex == null || range[3] > bounds.endLineIndex) {
+    				bounds.endLineIndex = range[3];
+    			}
+    			if (bounds.startLineIndex > bounds.endLineIndex) {
+    				debugger;
+    			}
+    			if (bounds.minLineIndex == null || idx.minLineIndex < bounds.minLineIndex) {
+    				bounds.minLineIndex = idx.minLineIndex;
+    			}
+    			if (bounds.maxLineIndex == null || idx.maxLineIndex + 1 > bounds.maxLineIndex) {
+    				// This one seems to be wrong
+    				bounds.maxLineIndex = idx.maxLineIndex + 1;
+    			}
+    		} else {
+    			// TODO
+    			bounds.startIndex = 0;
+    			bounds.endIndex = 0;
+    			bounds.minIndex = 0;
+    			bounds.maxIndex = 0;
+    			bounds.startLineIndex = 0;
+    			bounds.endLineIndex = 0;
+    			bounds.minLineIndex = 0;
+    			bounds.maxLineIndex = 0;
     		}
     	}
     	return bounds;
@@ -482,6 +495,18 @@ export class AbstractBufferSet {
     	}
     }
 	
+    generateIdRanges(uniqueId, gl) {
+    	if (this.uniqueIdToIndex) {
+    		var indices = this.uniqueIdToIndex.get(uniqueId);
+    		for (var j = 0; j < indices.length; ++j) {
+    			const mapping = indices[j];
+    			return [[uniqueId, [mapping.start, mapping.start + mapping.length, mapping.lineIndicesStart, mapping.lineIndicesStart + mapping.lineIndicesLength]]];
+    		}
+    	} else {
+    		return [[uniqueId & 0x8FFFFFFF, [0, this.nrIndices, 0, this.nrLineIndices]]];
+    	}
+    }
+    
     computeVisibleRangesAsBuffers(ids_with_or_without, gl) {
     	if (this.dirty) {
     		// TODO maybe we can reuse something here?
@@ -558,6 +583,7 @@ export class AbstractBufferSet {
     	}
     	
     	this.lastIdRanges = id_ranges;
+    	this.lastExclude = exclude;
     	
     	result = this.joinConsecutiveRangesAsBuffers(result);
     	
@@ -590,27 +616,43 @@ export class AbstractBufferSet {
     	if (lines) {
     		return lines;
     	}
+    	if (this.uniqueIdToIndex != null && !this.uniqueIdToIndex.has(requestedId)) {
+    		return null;
+    	}
     	this.generateLines(requestedId, gl);
     	return null;
     }
     
     generateLines(requestedId, gl) {
-    	// TODO this method should generate lines for just one object
-    	if (this.lastIdRanges) {
-    		let bounds = this.getBounds(this.lastIdRanges);
-    		
-    		this.batchGpuRead(gl, ["positionBuffer"], bounds, () => {
-    			this.lastIdRanges.forEach((range, i) => {
-    				let [id, [a, b]] = range;
-    				if (this.lineIndexBuffers.has(id)) {
-    					return;
-    				}
-    				let lineRenderer = this.createLineRenderer(gl, id, a, b);
-    				this.lineIndexBuffers.set(id, lineRenderer);
-    			});
-    		});
-    		this.viewer.dirty = 2;
+    	if (this.reuse) {
+            let lineRenderer = this.createLineRendererFromInstance(gl, 0, this.indexBuffer.N);
+            // This will result in a different dequantization matrix later on, not sure why
+            lineRenderer.croid = this.croid;
+            this.objects.forEach((ob) => {
+                lineRenderer.matrixMap.set(ob.uniqueId, ob.matrix);
+                this.lineIndexBuffers.set(ob.uniqueId, lineRenderer);
+            });
+            return;
     	}
+
+    	let id_ranges = this.generateIdRanges(requestedId, gl);
+		let bounds = this.getBounds(id_ranges);
+		
+		if (id_ranges.length == 0) {
+			let lineRenderer = this.createLineRenderer(gl, requestedId, 0, 0);
+			this.lineIndexBuffers.set(requestedId, lineRenderer);
+		} else {
+			this.batchGpuRead(gl, ["positionBuffer"], bounds, () => {
+				id_ranges.forEach((range, i) => {
+					let [id, [a, b]] = range;
+					if (id == requestedId) {
+						let lineRenderer = this.createLineRenderer(gl, id, a, b);
+						this.lineIndexBuffers.set(id, lineRenderer);
+					}
+				});
+			});
+		}
+		this.viewer.dirty = 2;
     }
     
     storeInCacheAndReturn(key, result, nonce) {
@@ -632,10 +674,20 @@ export class AbstractBufferSet {
 		this.nrIndices = 0;
 		this.bytes = 0;
 		this.visibleRanges = new Map();
-		this.uniqueIdToIndex = new AvlTree(viewer.inverseUniqueIdCompareFunction);
+		this.uniqueIdSet = new Set();
+		if (!this.reuse) {
+			this.uniqueIdToIndex = new AvlTree(viewer.inverseUniqueIdCompareFunction);
+		}
 		this.lineIndexBuffers = new Map();
 	}
 
+	has(uniqueId) {
+		if (this.uniqueIdSet == null) {
+			debugger;
+		}
+		return this.uniqueIdSet.has(uniqueId);
+	}
+	
 	copy(gl, uniqueId) {
         let returnDictionary = {};
 
@@ -680,6 +732,7 @@ export class AbstractBufferSet {
     		}
     		
     		returnDictionary.isCopy = true;
+    		returnDictionary["uniqueIdSet"] = this.uniqueIdSet;
     		returnDictionary["indices"] = indices;
     		returnDictionary["nrIndices"] = indices.length;
     		returnDictionary["lineIndices"] = lineIndices;

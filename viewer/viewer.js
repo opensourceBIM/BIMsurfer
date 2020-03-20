@@ -500,9 +500,11 @@ export class Viewer {
                 renderLayer.render(transparency, false, elems);
             }
     		if (this.settings.realtimeSettings.drawLineRenders) {
+		        this.gl.depthFunc(this.gl.LESS);
                 for (var renderLayer of this.renderLayers) {
                     renderLayer.render(transparency, true, elems);
                 }
+               this.gl.depthFunc(this.gl.LEQUAL);
     		}
         }
     }
@@ -532,7 +534,7 @@ export class Viewer {
 
         for (var renderLayer of this.renderLayers) {
             renderLayer.prepareRender(reason);
-            renderLayer.renderLines();            
+//            renderLayer.renderLines();
         }
 
         gl.enable(gl.CULL_FACE);

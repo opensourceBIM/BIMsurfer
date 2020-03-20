@@ -17,14 +17,14 @@ export class FrozenBufferSet extends AbstractBufferSet {
         // only in case of reuse
         roid, croid)
     {
-        super(viewer);
+        super(viewer, true);
 
         if (lineIndexBuffer == null) {
         	debugger;
         }
-        
         if (originalBuffer) {
         	this.uniqueIdToIndex = originalBuffer.uniqueIdToIndex;
+        	this.uniqueIdSet = originalBuffer.uniqueIdSet;
         }
         // @todo make these something like LRU caches?
         this.visibleRanges = new Map();

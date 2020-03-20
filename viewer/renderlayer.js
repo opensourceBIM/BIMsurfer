@@ -239,6 +239,7 @@ export class RenderLayer {
 			};
 			li.push(idx);
 			buffer.uniqueIdToIndex.set(object.uniqueId, li);
+			buffer.uniqueIdSet.add(object.uniqueId);
 			
 			var index = Array(3);
 			for (var i=0; i<geometry.indices.length; i+=3) {
@@ -295,15 +296,20 @@ export class RenderLayer {
 	}
 	
 	storeMissingGeometry(geometryLoader, map) {
-		var node = this.loaderToNode[geometryLoader.loaderId];
-		for (var geometryDataId of map.keys()) {
-			var geometryInfoIds = map.get(geometryDataId);
-			this.geometryCache.integrate2(geometryDataId, this.getLoader(geometryLoader.loaderId), node.gpuBufferManager, geometryInfoIds, geometryLoader);
-		}
-		
-		// We need to start loading some GeometryData at some point, and add the missing pieces
-		if (!this.geometryCache.isEmpty()) {
-			this.reuseLoader.load(this.geometryCache.pullToLoad());
+		// TODO this is only applicable for the TilingRenderLayer, in other layers it's usually an indication of an error
+		if (this.loaderToNode != null) {
+			var node = this.loaderToNode[geometryLoader.loaderId];
+			for (var geometryDataId of map.keys()) {
+				var geometryInfoIds = map.get(geometryDataId);
+				this.geometryCache.integrate2(geometryDataId, this.getLoader(geometryLoader.loaderId), node.gpuBufferManager, geometryInfoIds, geometryLoader);
+			}
+			
+			// We need to start loading some GeometryData at some point, and add the missing pieces
+			if (!this.geometryCache.isEmpty()) {
+				this.reuseLoader.load(this.geometryCache.pullToLoad());
+			}
+		} else {
+			console.log("Missing", map);
 		}
 	}
 	
@@ -394,6 +400,7 @@ export class RenderLayer {
 		buffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo, lineProgramInfo);
 
 		geometry.objects.forEach((obj) => {
+			buffer.uniqueIdSet.add(obj.uniqueId);
 			this.viewer.uniqueIdToBufferSet.set(obj.uniqueId, [buffer]);
 		});
 
@@ -638,6 +645,10 @@ export class RenderLayer {
 			newBuffer.unquantizationMatrix = buffer.unquantizationMatrix;
 
 			newBuffer.uniqueIdToIndex = buffer.uniqueIdToIndex;
+			if (buffer.uniqueIdSet == null) {
+				debugger;
+			}
+			newBuffer.uniqueIdSet = buffer.uniqueIdSet;
 			
 			newBuffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo, lineProgramInfo);
 					
@@ -785,21 +796,27 @@ export class RenderLayer {
 
 		var gl = this.gl;
 
-		for (let transparency of false_true) { 
+		for (let transparency of false_true) {
+			// TODO check for reuse setting
 			for (let reuse of false_true) {
 				var buffers = (node || this).gpuBufferManager.getBuffers(transparency, reuse);
 				var lastLineRenderer = null;
 				for (let buffer of buffers) {
+					// TODO iterate over union of buffer.uniqueIds and ids
 					for (var id of ids) {
-						if (buffer.lineIndexBuffers) {
-							let lines = buffer.getLines(id, this.gl);
-							if (lines) {
-								if (!lastLineRenderer) {
-									// Kind of a dirty hack to only do the initialization once, we know the init result is the same for all buffers in this set, this improves the render speed when a lot of objects are selected
-									lines.renderStart(viewer, this);
+						if (buffer.has(id)) {
+							if (buffer.lineIndexBuffers) {
+								let lines = buffer.getLines(id, this.gl);
+								if (lines) {
+									if (!lastLineRenderer) {
+										// Kind of a dirty hack to only do the initialization once, we know the init result is the same for all buffers in this set, this improves the render speed when a lot of objects are selected
+										lines.renderStart(viewer, this);
+									}
+									// TODO move outlineColor to renderStart, saves us another uniform, same probably for width
+									// TODO selectionOutlineMatrix most of the is an identify matrix, no need to send that to the GPU?
+									lines.render(outlineColor, lines.matrixMap.get(id) || this.selectionOutlineMatrix, width || 0.01);
+									lastLineRenderer = lines;
 								}
-								lines.render(outlineColor, lines.matrixMap.get(id) || this.selectionOutlineMatrix, width || 0.005);
-								lastLineRenderer = lines;
 							}
 						}
 					}

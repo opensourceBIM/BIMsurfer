@@ -160,7 +160,7 @@ export class FatLineRenderer {
 		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, viewer.camera.projMatrix);
 		this.gl.uniformMatrix4fv(this.programInfo.uniformLocations.viewMatrix, false, viewer.camera.viewMatrix);
 		this.gl.uniform3fv(this.programInfo.uniformLocations.postProcessingTranslation, renderLayer.postProcessingTranslation);
-
+		
 		const aspect = viewer.width / viewer.height;
 		this.gl.uniform1f(this.programInfo.uniformLocations.aspect, aspect);
 

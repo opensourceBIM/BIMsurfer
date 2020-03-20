@@ -7,7 +7,7 @@ import {AvlTree} from "./collections/avltree.js";
 export class BufferSet extends AbstractBufferSet {
     
     constructor(viewer, settings, hasTransparency, color, sizes) {
-		super(viewer);
+		super(viewer, false);
 
         this.settings = settings;
         this.positions = settings.quantizeVertices ? new Int16Array(sizes.vertices) : new Float32Array(sizes.vertices);

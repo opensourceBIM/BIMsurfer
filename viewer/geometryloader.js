@@ -81,7 +81,8 @@ export class GeometryLoader {
 		this.preparedBuffer.pickColors = Utils.createEmptyBuffer(this.renderLayer.gl, this.preparedBuffer.nrColors, this.renderLayer.gl.ARRAY_BUFFER, 4, WebGL2RenderingContext.UNSIGNED_BYTE, "Uint8Array");
 
 		this.preparedBuffer.uniqueIdToIndex = new AvlTree(this.renderLayer.viewer.inverseUniqueIdCompareFunction);
-
+		this.preparedBuffer.uniqueIdSet = new Set();
+		
 		this.preparedBuffer.loaderId = this.loaderId;
 		this.preparedBuffer.hasTransparency = hasTransparancy;
 
@@ -156,6 +157,7 @@ export class GeometryLoader {
 				uniqueId = stream.readLong();
 			}
 			this.uniqueIdsLoaded.push(uniqueId);
+			this.preparedBuffer.uniqueIdSet.add(uniqueId);
 
 			var startIndex = stream.readInt();
 			var startLineIndex = stream.readInt();
@@ -433,10 +435,11 @@ export class GeometryLoader {
 		var normals;
 		var numColors;
 		var colors = null;
-
+		
 		if (geometryType == 1) {
 			// Geometry
 			var reused = stream.readInt();
+			
 			var type = stream.readUTF8();
 			stream.align8();
 			var roid = stream.readLong();
