@@ -47,7 +47,7 @@ export class Settings {
 			useSmallIndicesIfPossible: true,
 			defaultLayerEnabled: true,
 			triangleThresholdDefaultLayer: 100000,
-			tilingLayerEnabled: true,
+			tilingLayerEnabled: false,
 			maxOctreeDepth: 3,
 			resetToDefaultViewOnLoad: true,
 			loaderSettings: {
