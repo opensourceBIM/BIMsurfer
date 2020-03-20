@@ -61,7 +61,7 @@ export class DefaultSettings {
 			settings.defaultLayerEnabled = true;
 		}
 		if (settings.tilingLayerEnabled == null) {
-			settings.tilingLayerEnabled = true;
+			settings.tilingLayerEnabled = false;
 		}
 		if (settings.maxOctreeDepth == null) {
 			settings.maxOctreeDepth = 5;
