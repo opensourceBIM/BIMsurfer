@@ -65,12 +65,14 @@ in uvec4 vertexPickColor;
 #endif
 flat out uvec4 color;
 #else
+#ifndef WITH_LINEPRIMITIVES
 uniform LightData {
 	vec3 dir;
 	vec3 color;
 	vec3 ambientColor;
 	float intensity;
 } lightData;
+#endif
 
 out vec4 color;
 #endif
@@ -171,16 +173,16 @@ void main(void) {
     vec2 aspectVec = vec2(aspect, 1.0);
     mat4 viewModel = viewMatrix * matrix;
     mat4 projViewModel = projectionMatrix * viewModel;
-    vec4 currentProjected = projectionMatrix * (vec4(postProcessingTranslation, 0) + viewModel * floatVertex);
+    vec4 currentProjected = projectionMatrix * viewModel * floatVertex;
     vec2 currentScreen = currentProjected.xy / currentProjected.w * aspectVec;
 
 #ifdef WITH_QUANTIZEVERTICES
-    vec4 nextVertexPositionFloat = vec4(postProcessingTranslation, 0) + vertexQuantizationMatrix * vec4(float(nextVertexPosition.x), float(nextVertexPosition.y), float(nextVertexPosition.z), 1);
+    vec4 nextVertexPositionFloat = vertexQuantizationMatrix * vec4(float(nextVertexPosition.x), float(nextVertexPosition.y), float(nextVertexPosition.z), 1);
 #else
-    vec4 nextVertexPositionFloat = vec4(postProcessingTranslation, 0) + vec4(nextVertexPosition, 1);
+    vec4 nextVertexPositionFloat = vec4(nextVertexPosition, 1);
 #endif
 
-    vec4 nextProjected = projViewModel * nextVertexPositionFloat;
+    vec4 nextProjected = projViewModel * (vec4(postProcessingTranslation, 0) + nextVertexPositionFloat);
     vec2 nextScreen = nextProjected.xy / nextProjected.w * aspectVec;
 
     vec2 dir = normalize(nextScreen - currentScreen);
