@@ -298,6 +298,8 @@ export class CameraControl {
     	// Potential end-of-pan
         if (this.dragMode == DRAG_PAN) {
         	this.camera.updateLowVolumeListeners();
+        } else if (this.dragMode == DRAG_SECTION) {
+            this.viewer.disableSectionPlane();
         }
         this.dragMode = DRAG_ORBIT;
     }
