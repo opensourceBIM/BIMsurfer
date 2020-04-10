@@ -125,6 +125,9 @@ export class Utils {
 	 * Update a GPU buffer
 	 */	
 	static updateBuffer(gl, targetGlBuffer, data, pos, numElements) {
+		if (numElements == 0) {
+			return;
+		}
 		gl.bindBuffer(targetGlBuffer.gl_type, targetGlBuffer);
 		const byteCount = numElements * window[targetGlBuffer.js_type].BYTES_PER_ELEMENT;
 		
@@ -135,8 +138,12 @@ export class Utils {
 		}
 
 		// TODO add a general DEBUGGING flag somewhere to avoid doing unneeded checks
-		if (targetGlBuffer.writePosition + size > targetGlBuffer.byteSize) {
+		if (targetGlBuffer.writePosition + byteCount > targetGlBuffer.byteSize) {
 			console.error("Buffer overflow by", (targetGlBuffer.writePosition + size) - targetGlBuffer.byteSize);
+			debugger;
+		}
+		if (pos + byteCount > data.byteLength) {
+			console.error("Buffer underflow by", (pos + size) - data.byteLength);
 			debugger;
 		}
 		
