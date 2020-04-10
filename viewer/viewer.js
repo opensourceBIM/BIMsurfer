@@ -496,16 +496,25 @@ export class Viewer {
 
     internalRender(elems, t) {
         for (var transparency of (t || [false, true])) {
-            for (var renderLayer of this.renderLayers) {
-                renderLayer.render(transparency, false, elems);
+            for (var twoSidedTriangles of [false, true]) {
+            	if (twoSidedTriangles) {
+            		this.gl.disable(this.gl.CULL_FACE);
+            	} else {
+            		this.gl.enable(this.gl.CULL_FACE);
+            	}
+	            for (var renderLayer of this.renderLayers) {
+	                renderLayer.render(transparency, false, twoSidedTriangles, elems);
+	            }
             }
-    		if (this.settings.realtimeSettings.drawLineRenders) {
-		        this.gl.depthFunc(this.gl.LESS);
-                for (var renderLayer of this.renderLayers) {
-                    renderLayer.render(transparency, true, elems);
+            if (this.settings.realtimeSettings.drawLineRenders) {
+            	this.gl.depthFunc(this.gl.LESS);
+                for (var twoSidedTriangles of [false, true]) {
+	            	for (var renderLayer of this.renderLayers) {
+	            		renderLayer.render(transparency, true, twoSidedTriangles, elems);
+	            	}
                 }
-               this.gl.depthFunc(this.gl.LEQUAL);
-    		}
+            	this.gl.depthFunc(this.gl.LEQUAL);
+            }
         }
     }
     
@@ -578,7 +587,7 @@ export class Viewer {
                 this.quad2.draw();
                 gl.enable(gl.CULL_FACE);
 
-                gl.cullFace(gl.BACK);
+                gl.cullFace(gl.BACK); // This is the end state for further rendering
                 gl.disable(gl.STENCIL_TEST);
                 gl.stencilFunc(gl.ALWAYS, 1, 0xff);
             }
@@ -800,8 +809,11 @@ export class Viewer {
         this.gl.disable(this.gl.BLEND);
 
         for (var transparency of [false, true]) {
-        	for (var renderLayer of this.renderLayers) {
-                renderLayer.render(transparency, false, {without: this.invisibleElements, pass: 'pick'});
+        	for (var twoSidedTriangles of [false, true]) {
+        		// TODO change back face culling setting based on twoSidedTriangles?
+        		for (var renderLayer of this.renderLayers) {
+        			renderLayer.render(transparency, false, twoSidedTriangles, {without: this.invisibleElements, pass: 'pick'});
+        		}
         	}
         }
         

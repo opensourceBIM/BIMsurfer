@@ -7,7 +7,7 @@ import {DataInputStream} from "./datainputstream.js";
 
 import {AvlTree} from "./collections/avltree.js";
 
-const PROTOCOL_VERSION = 20;
+const PROTOCOL_VERSION = 21;
 
 /**
  * This class is supposed to be and stay BIMserver-free.
@@ -50,7 +50,7 @@ export class GeometryLoader {
 		this.uniqueIdsLoaded = [];
 	}
 	
-	processPreparedBufferInit(stream, hasTransparancy) {
+	processPreparedBufferInit(stream, hasTransparancy, hasTwoSidedTriangles) {
 		this.preparedBuffer = {};
 
 		this.preparedBuffer.nrObjects = stream.readInt();
@@ -85,6 +85,7 @@ export class GeometryLoader {
 		
 		this.preparedBuffer.loaderId = this.loaderId;
 		this.preparedBuffer.hasTransparency = hasTransparancy;
+		this.preparedBuffer.hasTwoSidedTriangles = hasTwoSidedTriangles;
 
 		if (this.loaderSettings.quantizeVertices) {
 			this.preparedBuffer.unquantizationMatrix = this.unquantizationMatrix;
@@ -95,7 +96,7 @@ export class GeometryLoader {
 		stream.align8();
 	}
 
-	processPreparedBuffer(stream, hasTransparancy) {
+	processPreparedBuffer(stream, hasTransparancy, hasTwoSidedTriangles) {
 		const loadedViewObjects = [];
 
 		const nrObjects = stream.readInt();
@@ -555,13 +556,21 @@ export class GeometryLoader {
 			
 			this.createObject(roid, uniqueId, [], null, hasTransparency, type, objectBounds, true);
 		} else if (geometryType == 7) {
-			this.processPreparedBuffer(stream, true);
+			this.processPreparedBuffer(stream, true, false);
 		} else if (geometryType == 8) {
-			this.processPreparedBuffer(stream, false);
+			this.processPreparedBuffer(stream, false, false);
 		} else if (geometryType == 10) {
-			this.processPreparedBufferInit(stream, true);
+			this.processPreparedBufferInit(stream, true, false);
 		} else if (geometryType == 11) {
-			this.processPreparedBufferInit(stream, false);
+			this.processPreparedBufferInit(stream, false, false);
+		} else if (geometryType == 12) {
+			this.processPreparedBuffer(stream, true, true);
+		} else if (geometryType == 13) {
+			this.processPreparedBuffer(stream, false, true);
+		} else if (geometryType == 14) {
+			this.processPreparedBufferInit(stream, true, true);
+		} else if (geometryType == 15) {
+			this.processPreparedBufferInit(stream, false, true);
 		} else {
 			console.error("Unsupported geometry type: " + geometryType);
 			return;

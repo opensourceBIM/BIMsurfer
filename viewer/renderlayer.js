@@ -446,7 +446,7 @@ export class RenderLayer {
 		});
 	}
 	
-	renderBuffers(transparency, reuse) {
+	renderBuffers(transparency, twoSidedTriangles, reuse, lineRender, visibleElements) {
 		console.log("Not implemented in this layer");
 	}
 	
@@ -458,10 +458,10 @@ export class RenderLayer {
 		this.lastCroidRendered = null;
 	}
 	
-	render(transparency, lineRender, visibleElements) {
-		this.renderBuffers(transparency, false, lineRender, visibleElements);
+	render(transparency, lineRender, twoSidedTriangles, visibleElements) {
+		this.renderBuffers(transparency, twoSidedTriangles, false, lineRender, visibleElements);
 		if (this.settings.gpuReuse) {
-			this.renderBuffers(transparency, true, lineRender, visibleElements);
+			this.renderBuffers(transparency, twoSidedTriangles, true, lineRender, visibleElements);
 		}
 	}
 	
@@ -641,6 +641,7 @@ export class RenderLayer {
 			
 			newBuffer.nrTrianglesToDraw = buffer.nrIndices / 3;
 			newBuffer.nrLinesToDraw = buffer.nrLineIndices / 2;
+			newBuffer.hasTwoSidedTriangles = buffer.hasTwoSidedTriangles;
 			
 			newBuffer.unquantizationMatrix = buffer.unquantizationMatrix;
 
@@ -799,30 +800,32 @@ export class RenderLayer {
 		for (let transparency of false_true) {
 			// TODO check for reuse setting
 			for (let reuse of false_true) {
-				var buffers = (node || this).gpuBufferManager.getBuffers(transparency, reuse);
-				var lastLineRenderer = null;
-				for (let buffer of buffers) {
-					// TODO iterate over union of buffer.uniqueIds and ids
-					for (var id of ids) {
-						if (buffer.has(id)) {
-							if (buffer.lineIndexBuffers) {
-								let lines = buffer.getLines(id, this.gl);
-								if (lines) {
-									if (!lastLineRenderer) {
-										// Kind of a dirty hack to only do the initialization once, we know the init result is the same for all buffers in this set, this improves the render speed when a lot of objects are selected
-										lines.renderStart(viewer, this);
+				for (let twoSidedTriangles of false_true) {
+					var buffers = (node || this).gpuBufferManager.getBuffers(transparency, twoSidedTriangles, false, reuse);
+					var lastLineRenderer = null;
+					for (let buffer of buffers) {
+						// TODO iterate over union of buffer.uniqueIds and ids
+						for (var id of ids) {
+							if (buffer.has(id)) {
+								if (buffer.lineIndexBuffers) {
+									let lines = buffer.getLines(id, this.gl);
+									if (lines) {
+										if (!lastLineRenderer) {
+											// Kind of a dirty hack to only do the initialization once, we know the init result is the same for all buffers in this set, this improves the render speed when a lot of objects are selected
+											lines.renderStart(viewer, this);
+										}
+										// TODO move outlineColor to renderStart, saves us another uniform, same probably for width
+										// TODO selectionOutlineMatrix most of the is an identify matrix, no need to send that to the GPU?
+										lines.render(outlineColor, lines.matrixMap.get(id) || this.selectionOutlineMatrix, width || 0.01);
+										lastLineRenderer = lines;
 									}
-									// TODO move outlineColor to renderStart, saves us another uniform, same probably for width
-									// TODO selectionOutlineMatrix most of the is an identify matrix, no need to send that to the GPU?
-									lines.render(outlineColor, lines.matrixMap.get(id) || this.selectionOutlineMatrix, width || 0.01);
-									lastLineRenderer = lines;
 								}
 							}
 						}
 					}
-				}
-				if (lastLineRenderer) {
-					lastLineRenderer.renderStop();
+					if (lastLineRenderer) {
+						lastLineRenderer.renderStop();
+					}
 				}
 			}
 		}
