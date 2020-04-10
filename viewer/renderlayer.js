@@ -703,8 +703,8 @@ export class RenderLayer {
 			if (buffer.lineIndices == null) {
 				debugger;
 			}
-			const lineIndexBuffer = buffer.lineIndices ? Utils.createLineIndexBuffer(this.gl, buffer.indices, buffer.indicesIndex) : null;
-
+			const lineIndexBuffer = buffer.lineIndices ? Utils.createLineIndexBuffer(this.gl, buffer.lineIndices, buffer.lineIndicesIndex) : null;
+			
 			let color, colorHash;
 
 			if (this.settings.useObjectColors) {
