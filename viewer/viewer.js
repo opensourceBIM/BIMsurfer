@@ -111,6 +111,10 @@ export class Viewer {
         this.animationListeners = [];
         this.colorRestore = [];
         
+        // For geometry loaded from non-bimserver sources we auto-increment
+        // an ID on the spot in the loader.
+        this.oidCounter = 1;
+
         // User can override this, default assumes strings to be used as unique object identifiers
         if (this.settings.loaderSettings.useUuidAndRid) {
         	const collator = new Intl.Collator();

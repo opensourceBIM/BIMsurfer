@@ -157,6 +157,10 @@ export class GeometryLoader {
 			} else {
 				uniqueId = stream.readLong();
 			}
+
+			if (uniqueId === 0) {
+				uniqueId = this.renderLayer.viewer.oidCounter ++;
+			}
 			this.uniqueIdsLoaded.push(uniqueId);
 			this.preparedBuffer.uniqueIdSet.add(uniqueId);
 
@@ -308,10 +312,17 @@ export class GeometryLoader {
 							}
 						}
 					}
-					var globalizedAabb = Utils.transformBounds(aabb, this.renderLayer.viewer.globalTranslationVector);			
+
+					var globalizedAabb;
+					if (this.renderLayer.viewer.globalTranslationVector) {
+						globalizedAabb = Utils.transformBounds(aabb, this.renderLayer.viewer.globalTranslationVector);
+					} else {
+						globalizedAabb = aabb;
+					}
 					const viewobj = this.renderLayer.viewer.getViewObject(oid);
 					viewobj.aabb = aabb;
 					viewobj.globalizedAabb = globalizedAabb;
+					this.renderLayer.viewer.setModelBounds(aabb);
 				}
 			}
 
