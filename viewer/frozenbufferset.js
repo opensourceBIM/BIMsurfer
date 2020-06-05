@@ -1,5 +1,6 @@
 import {AbstractBufferSet} from "./abstractbufferset.js";
 import {Utils} from "./utils.js";
+import {AvlTree} from "./collections/avltree.js";
 
 /**
  * @ignore
@@ -12,7 +13,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
         color, colorHash,
         nrIndices, nrLineIndices, nrNormals, nrPositions, nrColors,
         vao, vaoPick, lineRenderVao,
-        hasTransparency, reuse, owner, manager, 
+        hasTransparency, hasTwoSidedTriangles, reuse, owner, manager, 
 
         // only in case of reuse
         roid, croid)
@@ -51,6 +52,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
         this.lineRenderVao = lineRenderVao;
 
         this.hasTransparency = hasTransparency;
+        this.hasTwoSidedTriangles = hasTwoSidedTriangles;
         this.reuse = reuse;
         this.owner = owner;
         this.manager = manager;
@@ -138,6 +140,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
             null,
 
             this.hasTransparency,
+            this.hasTwoSidedTriangles,
             this.reuse,
             this.owner,
             this.manager,
@@ -145,6 +148,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
             this.roid,
             this.croid
         );
+        b.uniqueIdToIndex = new AvlTree(this.viewer.inverseUniqueIdCompareFunction);
         return b;
     }
 
