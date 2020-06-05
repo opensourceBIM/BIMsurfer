@@ -149,18 +149,7 @@ export class GeometryLoader {
 		const collectedMetaObjects = [];
 		
 		for (var i = 0; i < nrObjects; i++) {
-			var uniqueId = null;
-			if (this.loaderSettings.useUuidAndRid) {
-				let oid = stream.readInt();
-				let mid = stream.readLong();
-				uniqueId = oid + "-" + mid;
-			} else {
-				uniqueId = stream.readLong();
-			}
-
-			if (uniqueId === 0) {
-				uniqueId = this.renderLayer.viewer.oidCounter ++;
-			}
+			var uniqueId = this.readAndCreateUniqueId(stream);
 			this.uniqueIdsLoaded.push(uniqueId);
 			this.preparedBuffer.uniqueIdSet.add(uniqueId);
 
@@ -171,6 +160,7 @@ export class GeometryLoader {
 			var nrVertices = stream.readInt();
 			var minIndex = stream.readInt();
 			var maxIndex = stream.readInt();
+			
 			if (this.loaderSettings.generateLineRenders) {
 				var minLineIndex = stream.readInt();
 				var maxLineIndex = stream.readInt();
@@ -312,7 +302,7 @@ export class GeometryLoader {
 							}
 						}
 					}
-
+					
 					var globalizedAabb;
 					if (this.renderLayer.viewer.globalTranslationVector) {
 						globalizedAabb = Utils.transformBounds(aabb, this.renderLayer.viewer.globalTranslationVector);
@@ -325,7 +315,6 @@ export class GeometryLoader {
 					this.renderLayer.viewer.setModelBounds(aabb);
 				}
 			}
-
 		}
 		
 		if (this.settings.quantizeNormals) {
@@ -458,8 +447,9 @@ export class GeometryLoader {
 			var croid = stream.readLong();
 			let hasTransparencyValue = stream.readLong();
 			var hasTransparency = hasTransparencyValue == 1;
+			var hasTwoSidedTriangles = stream.readLong() == 1;
 			var geometryDataId = stream.readLong();
-			this.readGeometry(stream, roid, croid, geometryDataId, geometryDataId, hasTransparency, reused, type, true);
+			this.readGeometry(stream, roid, croid, geometryDataId, geometryDataId, hasTransparency, hasTwoSidedTriangles, reused, type, true);
 			if (this.dataToInfo.has(geometryDataId)) {
 				// There are objects that have already been loaded, that are waiting for this GeometryData
 				var oids = this.dataToInfo.get(geometryDataId);
@@ -477,14 +467,7 @@ export class GeometryLoader {
 		} else if (geometryType == 5) {
 			// Object
 			var inPreparedBuffer = stream.readByte() == 1;
-			var uniqueId = null;
-			if (this.loaderSettings.useUuidAndRid) {
-				let oid = stream.readInt();
-				let mid = stream.readLong();
-				uniqueId = oid + "-" + mid;
-			} else {
-				uniqueId = stream.readLong();
-			}
+			var uniqueId = this.readAndCreateUniqueId(stream);
 			var type = stream.readUTF8();
 			var nrColors = stream.readInt();
 			stream.align8();
@@ -534,14 +517,7 @@ export class GeometryLoader {
 			this.createObject(roid, uniqueId, geometryDataOidFound == null ? [] : [geometryDataOidFound], matrix, hasTransparency, type, objectBounds, inPreparedBuffer);
 		} else if (geometryType == 9) {
 			// Minimal object
-			var uniqueId = null;
-			if (this.loaderSettings.useUuidAndRid) {
-				let oid = stream.readInt();
-				let mid = stream.readLong();
-				uniqueId = oid + "-" + mid;
-			} else {
-				uniqueId = stream.readLong();
-			}
+			var uniqueId = this.readAndCreateUniqueId(stream);
 			var type = stream.readUTF8();
 			var nrColors = stream.readInt();
 			var roid = stream.readLong();
@@ -589,8 +565,22 @@ export class GeometryLoader {
 
 		this.state.nrObjectsRead++;
 	}
+	
+	readAndCreateUniqueId(stream) {
+		if (this.loaderSettings.useUuidAndRid) {
+			let oid = stream.readInt();
+			let mid = stream.readLong();
+			return oid + "-" + mid;
+		} else {
+			var uniqueId = stream.readLong();
+			if (uniqueId === 0) {
+				uniqueId = this.renderLayer.viewer.oidCounter ++;
+			}
+			return uniqueId;
+		}
+	}
 
-	readGeometry(stream, roid, croid, geometryId, geometryDataOid, hasTransparency, reused, type, useIntForIndices) {
+	readGeometry(stream, roid, croid, geometryId, geometryDataOid, hasTransparency, hasTwoSidedTriangles, reused, type, useIntForIndices) {
 		var numIndices = stream.readInt();
 		if (useIntForIndices) {
 			var indices = stream.readIntArray(numIndices);
@@ -663,7 +653,7 @@ export class GeometryLoader {
 		if (colors.length == 0) {
 			debugger;
 		}
-		this.renderLayer.createGeometry(this.loaderId, roid, croid, geometryDataOid, positions, normals, colors, color, indices, lineIndices, hasTransparency, reused);
+		this.renderLayer.createGeometry(this.loaderId, roid, croid, geometryDataOid, positions, normals, colors, color, indices, lineIndices, hasTransparency, hasTwoSidedTriangles, reused);
 	}
 
 	readColors(stream, type) {
