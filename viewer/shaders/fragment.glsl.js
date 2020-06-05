@@ -11,7 +11,7 @@ layout(location = 0) out uvec4 myOutputColor;
 layout(location = 1) out float myOutputDepth;
 layout(location = 2) out vec4 myOutputNormal;
 #else
-in vec4 color;
+flat in vec4 color;
 layout(location = 0) out vec4 myOutputColor;
 #endif
 
