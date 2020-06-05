@@ -6,6 +6,8 @@ import {Utils} from "./utils.js";
 import {GeometryCache} from "./geometrycache.js";
 import {FrozenBufferSet} from "./frozenbufferset.js";
 
+import {AvlTree} from "./collections/avltree.js";
+
 const outlineColor = new Float32Array([1.0, 0.5, 0.0, 1.0]);
 const false_true = [false, true];
 const UINT32_MAX = (new Uint32Array((new Int32Array([-1])).buffer))[0];
@@ -46,7 +48,7 @@ export class RenderLayer {
 		this.postProcessingTranslation = vec3.fromValues(0, 0, 0);
 	}
 
-	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, lineIndices, hasTransparency, reused) {
+	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, lineIndices, hasTransparency, hasTwoSidedTriangles, reused) {
 		if (lineIndices == null) {
 			debugger;
 		}
@@ -62,6 +64,7 @@ export class RenderLayer {
 				indices: indices,
 				lineIndices: lineIndices,
 				hasTransparency: hasTransparency,
+				hasTwoSidedTriangles: hasTwoSidedTriangles,
 				reused: reused, // How many times this geometry is reused, this does not necessarily mean the viewer is going to utilize this reuse
 				reuseMaterialized: 0, // How many times this geometry has been reused in the viewer, when this number reaches "reused" we can flush the buffer fo' sho'
 				bytes: bytesUsed,
@@ -384,6 +387,7 @@ export class RenderLayer {
 			null,
 
 			geometry.hasTransparency,
+			geometry.hasTwoSidedTriangles,
 			true,
 			this,
 			gpuBufferManager,
@@ -399,6 +403,8 @@ export class RenderLayer {
 		buffer.setObjects(this.gl, geometry.objects);
 		buffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo, lineProgramInfo);
 
+		buffer.uniqueIdToIndex = new AvlTree(this.viewer.inverseUniqueIdCompareFunction);
+		
 		geometry.objects.forEach((obj) => {
 			buffer.uniqueIdSet.add(obj.uniqueId);
 			this.viewer.uniqueIdToBufferSet.set(obj.uniqueId, [buffer]);
@@ -509,7 +515,7 @@ export class RenderLayer {
 					console.log("no croid");
 				}
 			}
-
+			
 			let subset = buffer.computeVisibleInstances(visibleElements, this.gl);
 			if (subset.somethingVisible) {
 				if (subset.instanceIds.length > this.instanceSelectionData.length) {
@@ -634,6 +640,7 @@ export class RenderLayer {
 				null,
 
 				buffer.hasTransparency,
+				buffer.hasTwoSidedTriangles,
 				false,
 				this,
 				gpuBufferManager
@@ -737,13 +744,14 @@ export class RenderLayer {
 				null,
 
 				buffer.hasTransparency,
+				buffer.hasTwoSidedTriangles,
 				false,
 				this,
 				gpuBufferManager
 			);
 			
 			newBuffer.nrTrianglesToDraw = buffer.nrIndices / 3;
-			newBuffer.nrLinesToDraw = buffer.nrLineIndices / 3;
+			newBuffer.nrLinesToDraw = buffer.nrLineIndices / 2;
 			
 			newBuffer.buildVao(this.gl, this.settings, programInfo, pickProgramInfo, lineProgramInfo);
 
