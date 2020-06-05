@@ -217,12 +217,30 @@ export class CameraControl {
                         canvasPos: this.mousePos,
                         shiftKey: e.shiftKey
                     });
-                    if (viewObject && viewObject.object) {
-                        console.log("Picked", viewObject.object);
-                    }
-                    this.viewer.drawScene();
+                    this.viewer.dirty = 2;
                 }
                 break;
+            case 3:
+            	if (dt < 500. && this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
+            		if (this.viewer.selectedElements.size == 0) {
+            			// No elements selected, select the picked object
+            			var viewObject = this.viewer.pick({
+            				canvasPos: this.mousePos,
+            				shiftKey: false,
+            				select: true
+            			});
+            		} else {
+            			// Already there are elements selected, add this object to selection by mimicking the shift key (viewer.pick should not be doing the selection!)
+            			var viewObject = this.viewer.pick({
+            				canvasPos: this.mousePos,
+            				shiftKey: true,
+            				select: true,
+            				onlyAdd: true
+            			});
+            		}
+            		this.viewer.dirty = 2;
+                }
+            	break;
         }
         e.preventDefault();
     }
