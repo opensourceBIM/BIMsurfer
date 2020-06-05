@@ -114,7 +114,7 @@ export class Viewer {
         // For geometry loaded from non-bimserver sources we auto-increment
         // an ID on the spot in the loader.
         this.oidCounter = 1;
-
+        
         // User can override this, default assumes strings to be used as unique object identifiers
         if (this.settings.loaderSettings.useUuidAndRid) {
         	const collator = new Intl.Collator();
@@ -169,7 +169,7 @@ export class Viewer {
         this.useOrderIndependentTransparency = this.settings.realtimeSettings.orderIndependentTransparency;
 
         // 0 -> Not dirty, 1 -> Kinda dirty, but rate-limit the repaints to 2/sec, 2 -> Really dirty, repaint ASAP
-        this.dirty = 0; 
+        this._dirty = 0; 
         this.lastRepaint = 0;
         
 //        window._debugViewer = this;  // HACK for console debugging
@@ -201,6 +201,14 @@ export class Viewer {
         	});
         }
     }
+    
+    set dirty(dirty) {
+    	this._dirty = dirty;
+    }
+    
+    get dirty() {
+    	return this._dirty;
+    }
 
     callByType(method, types, ...args) {
         let elems = types.map((i) => this.viewObjectsByType.get(i) || [])
@@ -210,7 +218,7 @@ export class Viewer {
         return method.call(this, elems, ...args);
     }
 
-    setVisibility(elems, visible, sort=true) {
+    setVisibility(elems, visible, sort=true, fireEvent=true) {
         elems = Array.from(elems);
         // @todo. until is properly asserted, documented somewhere, it's probably best to explicitly sort() for now.
         elems.sort(this.uniqueIdCompareFunction);
@@ -231,13 +239,15 @@ export class Viewer {
 
             this.dirty = 2;
             
-            this.eventHandler.fire("visbility_changed", elems, visible);
+            if (fireEvent) {
+            	this.eventHandler.fire("visbility_changed", elems, visible);
+            }
             
             return Promise.resolve();
         });
     }
 
-    setSelectionState(elems, selected, clear) {
+    setSelectionState(elems, selected, clear, fireEvent=true) {
         return this.selectedElements.batch(() => {
             if (clear) {
                 this.selectedElements.clear();
@@ -252,7 +262,9 @@ export class Viewer {
 
             return Promise.resolve();
         }).then(() => {
-        	this.eventHandler.fire("selection_state_changed", elems, selected);
+        	if (fireEvent) {
+        		this.eventHandler.fire("selection_state_changed", elems, selected);
+        	}
         });
     }
 
@@ -326,7 +338,7 @@ export class Viewer {
 		return bufferSetsToUpdate;
     }
     
-    setColor(elems, clr) {
+    setColor(elems, clr, fireEvent=true) {
         let aug = this.idAugmentationFunction;
 		let promise = this.invisibleElements.batch(() => {
 			var bufferSetsToUpdate = this.generateBufferSetToOidsMap(elems);
@@ -397,6 +409,8 @@ export class Viewer {
 								} else {
 									buffer = bufferSet.owner.flushBuffer(copiedBufferSet, false);
 									
+									buffer.lineIndexBuffers = copiedBufferSet.lineIndexBuffers;
+									
 									// Note that this is an attribute on the bufferSet, but is
 									// not applied to the actual webgl vertex data.
 									buffer.uniqueId = aug(uniqueId);
@@ -410,8 +424,10 @@ export class Viewer {
 						}
 					});
 				}
-				this.dirty = 2;
-				this.eventHandler.fire("color_changed", elems, clr);
+				this._dirty = 2;
+				if (fireEvent) {
+					this.eventHandler.fire("color_changed", elems, clr);
+				}
 			});
 		});
 		return promise;
@@ -419,7 +435,7 @@ export class Viewer {
 
     init() {
         var promise = new Promise((resolve, reject) => {
-            this.dirty = 2;
+            this._dirty = 2;
             this.then = 0;
             if (this.settings.autoRender) {
             	this.running = true;
@@ -468,10 +484,10 @@ export class Viewer {
 
         this.fps++;
 
-        var wasDirty = this.dirty;
-        if (this.dirty == 2 || (this.dirty == 1 && now - this.lastRepaint > 500)) {
-        	let reason = this.dirty;
-            this.dirty = 0;
+        var wasDirty = this._dirty;
+        if (this._dirty == 2 || (this._dirty == 1 && now - this.lastRepaint > 500)) {
+        	let reason = this._dirty;
+            this._dirty = 0;
             this.drawScene(reason, {without: this.invisibleElements});
             this.lastRepaint = now;
         }
@@ -500,7 +516,11 @@ export class Viewer {
 
     internalRender(elems, t) {
         for (var transparency of (t || [false, true])) {
-            for (var twoSidedTriangles of [false, true]) {
+
+//        	this.gl.enable(this.gl.POLYGON_OFFSET_FILL);
+//        	this.gl.polygonOffset(2, 3);
+            
+        	for (var twoSidedTriangles of [false, true]) {
             	if (twoSidedTriangles) {
             		this.gl.disable(this.gl.CULL_FACE);
             	} else {
@@ -510,7 +530,10 @@ export class Viewer {
 	                renderLayer.render(transparency, false, twoSidedTriangles, elems);
 	            }
             }
-            if (this.settings.realtimeSettings.drawLineRenders) {
+
+//        	this.gl.disable(this.gl.POLYGON_OFFSET_FILL);
+        	
+        	if (this.settings.realtimeSettings.drawLineRenders) {
             	this.gl.depthFunc(this.gl.LESS);
                 for (var twoSidedTriangles of [false, true]) {
 	            	for (var renderLayer of this.renderLayers) {
@@ -654,7 +677,7 @@ export class Viewer {
             gl.disable(gl.STENCIL_TEST);
 
             for (var renderLayer of this.renderLayers) {
-                renderLayer.renderSelectionOutlines(this.selectedElements, 0.001);
+                renderLayer.renderSelectionOutlines(this.selectedElements, 0.002);
             }
         }
 
@@ -846,18 +869,24 @@ export class Viewer {
         if (viewObject) {
         	var uniqueId = viewObject.uniqueId;
             if (params.select !== false) {
+            	var triggered = false;
                 if (!params.shiftKey) {
                 	if (this.selectedElements.size > 0) {
-                		this.eventHandler.fire("selection_state_changed", this.selectedElements, false);
+                		this.eventHandler.fire("selection_state_set", new Set([uniqueId]), true);
+                		triggered = true;
+//                		this.eventHandler.fire("selection_state_changed", this.selectedElements, false);
                 		this.selectedElements.clear();
+                		this.addToSelection(uniqueId);
                 	}
                 }
-                if (this.selectedElements.has(uniqueId)) {
-                    this.selectedElements.delete(uniqueId);
-                    this.eventHandler.fire("selection_state_changed", [uniqueId], false);
-                } else {
-                    this.addToSelection(uniqueId);
-                    this.eventHandler.fire("selection_state_changed", [uniqueId], true);
+                if (!triggered) {
+                	if (this.selectedElements.has(uniqueId) && params.onlyAdd == false) {
+                		this.selectedElements.delete(uniqueId);
+                		this.eventHandler.fire("selection_state_changed", [uniqueId], false);
+                	} else {
+                		this.addToSelection(uniqueId);
+                		this.eventHandler.fire("selection_state_changed", [uniqueId], true);
+                	}
                 }
             }
             return {object: viewObject, normal: normal, coordinates: this.tmp_unproject, depth: depth};
@@ -943,6 +972,9 @@ export class Viewer {
     }
 
     viewFit(ids) {
+    	if (ids.length == 0) {
+    		return Promise.resolve();
+    	}
     	return new Promise((resolve, reject) => {
     		let aabb = ids.map(this.viewObjects.get.bind(this.viewObjects))
     		.filter((o) => o != null && o.globalizedAabb != null)
