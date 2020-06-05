@@ -83,13 +83,12 @@ export class AbstractViewer {
 				loader.processPreparedBufferInit(stream, false);
 				return loader.processPreparedBuffer(stream, false);
 			}
-			
+
 			if (!this.viewer.quad2) {
 				return this.viewer.init().then(proceed);
 			} else {
 				return proceed();
-			}
-			
+			}			
 		})
 	}
 
