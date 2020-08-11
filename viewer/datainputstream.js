@@ -34,6 +34,24 @@ export class DataInputStream {
 		return result;
 	}
 
+	readAscii() {
+		var result = "";
+		var length = this.dataView.getInt32(this.pos, true);
+		this.pos += 4;
+		for (var i=0; i<length; i++) {
+			result += String.fromCharCode(this.dataView.getUint8(this.pos++));
+		}
+		return result;
+	}
+
+	readAsciiSize(length) {
+		var result = "";
+		for (var i=0; i<length; i++) {
+			result += String.fromCharCode(this.dataView.getUint8(this.pos++));
+		}
+		return result;
+	}
+
 	align4() {
 		// Skips to the next alignment of 4 (source should have done the same!)
 		var skip = 4 - (this.pos % 4);

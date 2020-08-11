@@ -48,7 +48,7 @@ export class RenderLayer {
 		this.postProcessingTranslation = vec3.fromValues(0, 0, 0);
 	}
 
-	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, lineIndices, hasTransparency, hasTwoSidedTriangles, reused) {
+	createGeometry(loaderId, roid, uniqueModelId, geometryId, positions, normals, colors, color, indices, lineIndices, hasTransparency, hasTwoSidedTriangles, reused) {
 		if (lineIndices == null) {
 			debugger;
 		}
@@ -56,7 +56,7 @@ export class RenderLayer {
 		var geometry = {
 				id: geometryId,
 				roid: roid,
-				croid: croid,
+				uniqueModelId: uniqueModelId,
 				positions: positions,
 				normals: normals,
 				colors: colors,
@@ -151,7 +151,7 @@ export class RenderLayer {
 				// In that case we won't have to unquantize + quantize again
 				
 				if (this.settings.loaderSettings.quantizeVertices) {
-					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(geometry.croid));
+					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForUniqueModelId(geometry.uniqueModelId));
 				}
 				vec3.transformMat4(vertex, vertex, object.matrix);
 				if (this.settings.quantizeVertices) {
@@ -347,7 +347,7 @@ export class RenderLayer {
 
 		const numInstances = geometry.objects.length;
 
-		const positionBuffer = Utils.createBuffer(this.gl, this.bufferTransformer.convertVertices(geometry.croid, geometry.positions));
+		const positionBuffer = Utils.createBuffer(this.gl, this.bufferTransformer.convertVertices(geometry.uniqueModelId, geometry.positions));
 		const normalBuffer = Utils.createBuffer(this.gl, this.bufferTransformer.convertNormals(geometry.normals), null, this.gl.ARRAY_BUFFER, this.settings.loaderSettings.octEncodeNormals ? 2 : 3);
 		const colorBuffer = geometry.colors != null
 			? Utils.createBuffer(this.gl, geometry.colors, null, this.gl.ARRAY_BUFFER, 4)
@@ -393,7 +393,7 @@ export class RenderLayer {
 			gpuBufferManager,
 
 			geometry.roid,
-			geometry.croid
+			geometry.uniqueModelId
 		);
 
 		buffer.numInstances = numInstances;
@@ -460,8 +460,8 @@ export class RenderLayer {
 	 * Prepare the rendering pass, this is called only once for each frame
 	 */	
 	prepareRender() {
-		// this.lastCroidRendered is used to keep track of which croid was rendered previously, so we can skip some GPU calls, need to reset it though for each new frame
-		this.lastCroidRendered = null;
+		// this.lastUniqueModelIdRendered is used to keep track of which uniqueModelId was rendered previously, so we can skip some GPU calls, need to reset it though for each new frame
+		this.lastUniqueModelIdRendered = null;
 	}
 	
 	render(transparency, lineRender, twoSidedTriangles, visibleElements) {
@@ -503,16 +503,16 @@ export class RenderLayer {
 		gl.bindVertexArray(picking ? buffer.vaoPick : (lines ? buffer.lineRenderVao : buffer.vao));
 		if (buffer.reuse) {
 			if (this.viewer.settings.quantizeVertices) {
-				if (buffer.croid) {
-					if (this.lastCroidRendered === buffer.croid && false) {
+				if (buffer.uniqueModelId) {
+					if (this.lastUniqueModelIdRendered === buffer.uniqueModelId && false) {
 						// Skip it, this needs clarification, disabling for now because that seems to fix picking for instanced rendering
 					} else {
-						let uqm = this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(buffer.croid);
+						let uqm = this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForUniqueModelId(buffer.uniqueModelId);
 						gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, uqm);
-						this.lastCroidRendered = buffer.croid;
+						this.lastUniqueModelIdRendered = buffer.uniqueModelId;
 					}
 				} else {
-					console.log("no croid");
+					console.log("No uniqueModelId");
 				}
 			}
 			

@@ -438,7 +438,7 @@ export class AbstractBufferSet {
         if (!exclude && ranges.instanceIds.length && this.lineIndexBuffers.size === 0) {
             let lineRenderer = this.createLineRendererFromInstance(gl, 0, this.indexBuffer.N);
             // This will result in a different dequantization matrix later on, not sure why
-            lineRenderer.croid = this.croid;
+            lineRenderer.uniqueModelId = this.uniqueModelId;
             this.objects.forEach((ob) => {
                 lineRenderer.matrixMap.set(ob.uniqueId, ob.matrix);
                 this.lineIndexBuffers.set(ob.uniqueId, lineRenderer);
@@ -632,7 +632,7 @@ export class AbstractBufferSet {
     	if (this.reuse) {
             let lineRenderer = this.createLineRendererFromInstance(gl, 0, this.indexBuffer.N);
             // This will result in a different dequantization matrix later on, not sure why
-            lineRenderer.croid = this.croid;
+            lineRenderer.uniqueModelId = this.uniqueModelId;
             this.objects.forEach((ob) => {
                 lineRenderer.matrixMap.set(ob.uniqueId, ob.matrix);
                 this.lineIndexBuffers.set(ob.uniqueId, lineRenderer);

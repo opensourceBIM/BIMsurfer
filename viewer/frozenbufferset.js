@@ -16,7 +16,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
         hasTransparency, hasTwoSidedTriangles, reuse, owner, manager, 
 
         // only in case of reuse
-        roid, croid)
+        roid, uniqueModelId)
     {
         super(viewer, true);
 
@@ -58,7 +58,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
         this.manager = manager;
         
         this.roid = roid;
-        this.croid = croid;
+        this.uniqueModelId = uniqueModelId;
         this.indexType = indexBuffer.attrib_type;
 
         this.instanceMatricesBuffer = null;
@@ -146,7 +146,7 @@ export class FrozenBufferSet extends AbstractBufferSet {
             this.manager,
 
             this.roid,
-            this.croid
+            this.uniqueModelId
         );
         b.uniqueIdToIndex = new AvlTree(this.viewer.inverseUniqueIdCompareFunction);
         return b;

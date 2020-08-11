@@ -444,12 +444,12 @@ export class GeometryLoader {
 			var type = stream.readUTF8();
 			stream.align8();
 			var roid = stream.readLong();
-			var croid = stream.readLong();
+			var uniqueModelId = this.readAndCreateUniqueModelId(stream);
 			let hasTransparencyValue = stream.readLong();
 			var hasTransparency = hasTransparencyValue == 1;
 			var hasTwoSidedTriangles = stream.readLong() == 1;
 			var geometryDataId = stream.readLong();
-			this.readGeometry(stream, roid, croid, geometryDataId, geometryDataId, hasTransparency, hasTwoSidedTriangles, reused, type, true);
+			this.readGeometry(stream, roid, uniqueModelId, geometryDataId, geometryDataId, hasTransparency, hasTwoSidedTriangles, reused, type, true);
 			if (this.dataToInfo.has(geometryDataId)) {
 				// There are objects that have already been loaded, that are waiting for this GeometryData
 				var oids = this.dataToInfo.get(geometryDataId);
@@ -579,8 +579,12 @@ export class GeometryLoader {
 			return uniqueId;
 		}
 	}
+	
+	readAndCreateUniqueModelId(stream) {
+		return stream.readLong(); // On BIMserver, this is croid
+	}
 
-	readGeometry(stream, roid, croid, geometryId, geometryDataOid, hasTransparency, hasTwoSidedTriangles, reused, type, useIntForIndices) {
+	readGeometry(stream, roid, uniqueModelId, geometryId, geometryDataOid, hasTransparency, hasTwoSidedTriangles, reused, type, useIntForIndices) {
 		var numIndices = stream.readInt();
 		if (useIntForIndices) {
 			var indices = stream.readIntArray(numIndices);
@@ -653,7 +657,7 @@ export class GeometryLoader {
 		if (colors.length == 0) {
 			debugger;
 		}
-		this.renderLayer.createGeometry(this.loaderId, roid, croid, geometryDataOid, positions, normals, colors, color, indices, lineIndices, hasTransparency, hasTwoSidedTriangles, reused);
+		this.renderLayer.createGeometry(this.loaderId, roid, uniqueModelId, geometryDataOid, positions, normals, colors, color, indices, lineIndices, hasTransparency, hasTwoSidedTriangles, reused);
 	}
 
 	readColors(stream, type) {

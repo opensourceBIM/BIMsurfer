@@ -8,7 +8,7 @@ export class BufferTransformer {
 		this.vertexQuantization = vertexQuantization;
 	}
 
-	convertVertices(croid, vertices) {
+	convertVertices(uniqueModelId, vertices) {
 		if (this.settings.quantizeVertices == this.settings.loaderSettings.quantizeVertices) {
 			return vertices;
 		}
@@ -30,7 +30,7 @@ export class BufferTransformer {
 			vertex[2] = vertices[i + 2];
 			
 //			if (this.settings.loaderSettings.quantizeVertices) {
-//				vec3.transformMat4(vertex, vertex, this.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForCroid(croid));
+//				vec3.transformMat4(vertex, vertex, this.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForUniqueModelId(uniqueModelId));
 //			}
 			// TODO something is wrong here
 //			if (this.settings.quantizeVertices) {

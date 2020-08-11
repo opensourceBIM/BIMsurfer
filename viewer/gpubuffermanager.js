@@ -46,8 +46,8 @@ export class GpuBufferManager {
 		// TODO this can potentially become slow when there are a lot of buffers
 		let buffers = this.getBuffers(buffer.hasTransparency, buffer.hasTwoSidedTriangles, buffer.reuse);
 		buffers.push(buffer);
-		if (buffer.croid) {
-			this.sortBuffersByCroid(buffers);
+		if (buffer.uniqueModelId) {
+			this.sortBuffersByUniqueModelId(buffers);
 		}
 	}
 
@@ -80,9 +80,9 @@ export class GpuBufferManager {
 		});
 	}
 	
-	sortBuffersByCroid(buffers) {
+	sortBuffersByUniqueModelId(buffers) {
 		buffers.sort((a, b) => {
-			return a.croid - b.croid;
+			return a.uniqueModelId - b.uniqueModelId;
 		});
 	}
 	
