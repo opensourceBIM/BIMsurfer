@@ -156,7 +156,11 @@ export class CameraControl {
                     }
                     this.viewer.removeSectionPlaneWidget();
                 } else {
-                    this.dragMode = DRAG_ORBIT;
+					if (e.shiftKey) {
+	                    this.dragMode = DRAG_PAN;
+					} else {
+	                    this.dragMode = DRAG_ORBIT;
+					}
                     let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
                     if (picked && picked.coordinates && picked.object) {
                         this.viewer.camera.center = picked.coordinates;
