@@ -87,7 +87,7 @@ export class Camera {
         this.perspective.setModelBounds(vec3.clone(bounds));
         this.orthographic.setModelBounds(vec3.clone(bounds));
         
-        // Store aabb calculated} from points
+        // Store aabb calculated from points
         let a = vec3.fromValues(+Infinity, +Infinity, +Infinity);
         let b = vec3.fromValues(-Infinity, -Infinity, -Infinity);
 
