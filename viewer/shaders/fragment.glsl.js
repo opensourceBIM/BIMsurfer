@@ -1,7 +1,7 @@
 export const FRAGMENT_SHADER_SOURCE = `
 
-precision mediump int;
-precision mediump float;
+precision highp int;
+precision highp float;
 
 in vec3 worldCoords;
 
@@ -11,7 +11,7 @@ layout(location = 0) out uvec4 myOutputColor;
 layout(location = 1) out float myOutputDepth;
 layout(location = 2) out vec4 myOutputNormal;
 #else
-flat in vec4 color;
+in vec4 color;
 layout(location = 0) out vec4 myOutputColor;
 #endif
 
@@ -37,6 +37,7 @@ void main(void) {
    // use the shader derivatives. @todo reevaluate
    myOutputNormal.xyz = normalize(cross(dFdx(worldCoords), dFdy(worldCoords)));
 #else
+  // TODO if we move the lighting to the fragment shader, we can enable back-face-culling (for those objects that can handle it) and use gl_FrontFacing to decide to invert the normal)
    myOutputColor = color;// vec4(color.rgb * color.a, color.a);
    myOutputAlpha = 1.;
 #endif

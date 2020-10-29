@@ -520,13 +520,15 @@ export class Viewer {
 
 //        	this.gl.enable(this.gl.POLYGON_OFFSET_FILL);
 //        	this.gl.polygonOffset(2, 3);
+
+       		this.gl.disable(this.gl.CULL_FACE);
             
         	for (var twoSidedTriangles of [false, true]) {
-            	if (twoSidedTriangles) {
-            		this.gl.disable(this.gl.CULL_FACE);
-            	} else {
-            		this.gl.enable(this.gl.CULL_FACE);
-            	}
+//            	if (twoSidedTriangles) {
+//            		this.gl.disable(this.gl.CULL_FACE);
+//            	} else {
+//            		this.gl.enable(this.gl.CULL_FACE);
+//            	}
 	            for (var renderLayer of this.renderLayers) {
 	                renderLayer.render(transparency, false, twoSidedTriangles, elems);
 	            }
@@ -814,6 +816,8 @@ export class Viewer {
             throw "param expected: canvasPos";
         }
 
+		// TODO when the navigation has not changed since the last picking action, we should probably be able to reuse the previously generated render target?
+
         this.sectionPlaneValues.set(this.sectionPlaneValues2);
         if (!this.sectionPlaneIsDisabled) {
             // tfk: I forgot what this is.
@@ -881,7 +885,7 @@ export class Viewer {
                 	}
                 }
                 if (!triggered) {
-                	if (this.selectedElements.has(uniqueId) && params.onlyAdd == false) {
+                	if (this.selectedElements.has(uniqueId) && !params.onlyAdd) {
                 		this.selectedElements.delete(uniqueId);
                 		this.eventHandler.fire("selection_state_changed", [uniqueId], false);
                 	} else {
@@ -923,8 +927,8 @@ export class Viewer {
     	return this.getPickColorForPickId(pickId);
     }
 
-    setModelBounds(modelBounds) {
-    	if (this.modelBounds != null) {
+    setModelBounds(modelBounds, force=false) {
+    	if (!force && this.modelBounds != null) {
     		// "Merge"
     		this.modelBounds[0] = Math.min(this.modelBounds[0], modelBounds[0]);
     		this.modelBounds[1] = Math.min(this.modelBounds[1], modelBounds[1]);

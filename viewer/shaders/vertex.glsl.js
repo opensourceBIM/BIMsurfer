@@ -1,7 +1,7 @@
 export const VERTEX_SHADER_SOURCE = `
 
-precision mediump int;
-precision mediump float;
+precision highp int;
+precision highp float;
 
 #ifdef WITH_QUANTIZEVERTICES
 uniform mat4 vertexQuantizationMatrix;
@@ -74,7 +74,7 @@ uniform LightData {
 } lightData;
 #endif
 
-flat out vec4 color;
+out vec4 color;
 #endif
 
 #ifdef WITH_USEOBJECTCOLORS
@@ -224,12 +224,15 @@ void main(void) {
 #else
 #ifdef WITH_LINES
 	// Line rendering color
-	color = vec4(0., 0., 0., 1.0);
+	color = vec4(0.3, 0.3, 0.3, 1);
 #else
-	// Doing abs() here so twoSidedTriangles will shade both sides, need to check whether it's shading correctly...
-    vec3 viewNormal = abs(normalize(viewNormalMatrix * floatNormal));
-    float lambert = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
-    color = vec4((lambert * 0.7 + 0.3) * floatColor.rgb, floatColor.a);
+    vec3 viewNormal = normalize(viewNormalMatrix * floatNormal);
+    // This does not seem to work, I think the "abs" results in the model being dark on 2 sides, and being light on the other 2 sides
+//    float lambert1 = abs(dot(floatNormal, normalize(lightData.dir)));
+    float lambert2 = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
+//    color = vec4((lambert1 * 0.85 + lambert2 * 0.2 + 0.3) * floatColor.rgb, floatColor.a);
+    color = vec4((lambert2 * 0.7 + 0.3) * floatColor.rgb, floatColor.a);
+//    color = floatColor;
 #endif
 #endif
 
