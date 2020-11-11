@@ -53,7 +53,7 @@ export class DefaultRenderLayer extends RenderLayer {
 			vertices: geometry.positions.length,
 			normals: geometry.normals.length,
 			indices: geometry.indices.length,
-			lineIndices: geometry.lineIndices.length,
+			lineIndices: geometry.lineIndices ? geometry.lineIndices.length : 0,
 			colors: (geometry.colors != null ? geometry.colors.length : 0),
 			pickColors: geometry.positions.length
 		};

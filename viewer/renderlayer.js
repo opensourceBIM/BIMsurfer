@@ -47,9 +47,6 @@ export class RenderLayer {
 	}
 
 	createGeometry(loaderId, roid, croid, geometryId, positions, normals, colors, color, indices, lineIndices, hasTransparency, reused) {
-		if (lineIndices == null) {
-			debugger;
-		}
 		var bytesUsed = Utils.calculateBytesUsed(this.settings, positions.length, colors.length, indices.length, lineIndices ? lineIndices.length : 0, normals.length);
 		var geometry = {
 				id: geometryId,
@@ -233,7 +230,7 @@ export class RenderLayer {
 				start: buffer.indicesIndex, 
 				length: geometry.indices.length,
 				lineIndexStart: buffer.lineIndicesIndex,
-				lineIndexLength: geometry.lineIndices.length,
+				lineIndexLength: geometry.lineIndices ? geometry.lineIndices.length : 0,
 				color: originalColorIndex,
 				colorLength: geometry.colors.length
 			};
@@ -259,7 +256,7 @@ export class RenderLayer {
 				buffer.indices.set(index, buffer.indicesIndex);
 				buffer.indicesIndex += 3;
 			}
-			for (var i=0; i<geometry.lineIndices.length; i+=3) {
+			for (var i=0; i<(geometry.lineIndices ? geometry.lineIndices.length : 0); i+=3) {
 				index[0] = geometry.lineIndices[i + 0] + startIndex;
 				index[1] = geometry.lineIndices[i + 1] + startIndex;
 				index[2] = geometry.lineIndices[i + 2] + startIndex;
@@ -335,9 +332,6 @@ export class RenderLayer {
 	}
 	
 	addGeometryReusable(geometry, loader, gpuBufferManager) {
-		if (geometry.lineIndices == null) {
-			debugger;
-		}
 		var programInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(true, false));
 		var lineProgramInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(true, false, true));
         var pickProgramInfo = this.viewer.programManager.getProgram(this.viewer.programManager.createKey(true, true));
@@ -537,7 +531,9 @@ export class RenderLayer {
 						this.previousInstanceVisibilityState = instanceVisibilityState;
 //					}
 					if (lines) {
-						gl.drawElementsInstanced(this.gl.LINES, buffer.lineIndexBuffer.N, buffer.indexType, 0, buffer.nrProcessedMatrices);
+						if (buffer.lineIndexBuffer) {
+							gl.drawElementsInstanced(this.gl.LINES, buffer.lineIndexBuffer.N, buffer.indexType, 0, buffer.nrProcessedMatrices);
+						}
 					} else {
 						gl.drawElementsInstanced(this.gl.TRIANGLES, buffer.indexBuffer.N, buffer.indexType, 0, buffer.nrProcessedMatrices);
 					}
