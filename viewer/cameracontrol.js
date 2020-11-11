@@ -35,14 +35,6 @@ export class CameraControl {
             e.preventDefault();
         };
 
-        this.canvas.addEventListener("keydown", this.keyDownHandler = (e) => {
-        	this.keyEvent(e, "down");
-        });
-
-        this.canvas.addEventListener("keyup", this.keyUpHandler = (e) => {
-        	this.keyEvent(e, "up");
-        });
-
         this.canvas.addEventListener("mousedown", this.canvasMouseDownHandler = (e) => {
         	this.canvasMouseDown(e);
         });
@@ -55,6 +47,16 @@ export class CameraControl {
         	this.documentMouseUp(e);
         };
         document.addEventListener("mouseup", this.documentMouseUpHandler);
+
+        this.documentKeyUpHandler = (e) => {
+        	this.documentKeyProcess(e, false);
+        };
+        document.addEventListener("keyup", this.documentKeyUpHandler);
+
+        this.documentKeyDownHandler = (e) => {
+        	this.documentKeyProcess(e, true);
+        };
+        document.addEventListener("keydown", this.documentKeyDownHandler);
 
         this.canvas.addEventListener("mouseenter", this.canvasMouseEnterHandler = (e) => {
             this.over = true;
@@ -73,6 +75,8 @@ export class CameraControl {
         this.canvas.addEventListener("wheel", this.canvasMouseWheelHandler = (e) => {
         	this.canvasWheel(e);
         });
+
+        window.setInterval(this.keyTick.bind(this), 20);
     }
 
     /**
@@ -116,18 +120,6 @@ export class CameraControl {
             return max / 20;
         } else {
             return 1;
-        }
-    }
-
-    keyEvent(e, state) {
-        if (e.key == "Control") {
-            if (state === "down") {
-                if (this.viewer.sectionPlaneIsDisabled) {
-                    this.viewer.positionSectionPlaneWidget({canvasPos: [this.lastX, this.lastY]});
-                }
-            } else {
-                this.viewer.removeSectionPlaneWidget();
-            }            
         }
     }
 
@@ -242,6 +234,59 @@ export class CameraControl {
         e.preventDefault();
     }
 
+    keysDown = new Map();
+    keyMapping = {
+        "ArrowRight": "x_neg",
+        "ArrowLeft": "x_pos",
+        "ArrowUp": "z_neg",
+        "ArrowDown": "z_pos",
+        "PageUp": "y_pos",
+        "PageDown": "y_neg",
+        "w": "z_neg",
+        "a": "x_pos",
+        "s": "z_pos",
+        "d": "x_neg",
+        "q": "y_pos",
+        "z": "y_neg"
+    };
+
+    keyTick() {
+        let f;
+        if (this.keysDown.size) {
+            f = this.getEyeLookDist() / 200;
+        }
+        let vec = [0., 0., 0.];
+        this.keysDown.forEach((v, action) => {
+            if (v) {
+                let axis = action.charCodeAt(0) - 120;
+                let direction = action.charAt(2) == 'p';
+                vec[axis] += direction ? +f : -f;
+            }
+        });
+        if (this.keysDown.size) {
+            this.camera.pan(vec);
+        }
+    }
+
+    documentKeyProcess(e, state) {
+        let action = this.keyMapping[e.key];
+        if (action) {
+            if (state) {
+                this.keysDown.set(action, state);
+            } else {
+                this.keysDown.delete(action);
+            }
+        } else if (e.key == "Control") {
+            if (state) {
+                if (this.viewer.sectionPlaneIsDisabled) {
+                    this.viewer.positionSectionPlaneWidget({canvasPos: [this.lastX, this.lastY]});
+                }
+            } else {
+                this.viewer.removeSectionPlaneWidget();
+            }            
+        }
+    }
+
     /**
      * @private
      */
@@ -316,6 +361,8 @@ export class CameraControl {
         canvas.removeEventListener("mousedown", this.canvasMouseDownHandler);
         canvas.removeEventListener("mouseup", this.canvasMouseUpHandler);
         document.removeEventListener("mouseup", this.documentMouseUpHandler);
+        document.removeEventListener("keyup", this.documentKeyUpHandler);
+        document.removeEventListener("keydown", this.documentKeyUpHandler);
         canvas.removeEventListener("mouseenter", this.canvasMouseEnterHandler);
         canvas.removeEventListener("mouseleave", this.canvasMouseLeaveHandler);
         canvas.removeEventListener("mousemove", this.canvasMouseMoveHandler);
