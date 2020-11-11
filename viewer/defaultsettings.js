@@ -99,7 +99,7 @@ export class DefaultSettings {
 			settings.excludedTypes = ["IfcSpace", "IfcOpeningElement", "IfcAnnotation"];
 		}
 		if (settings.loaderSettings.tilingLayerReuse == null) {
-			settings.loaderSettings.tilingLayerReuse = true;
+			settings.loaderSettings.tilingLayerReuse = false;
 		}
 		if (settings.loaderSettings.reuseThreshold == null) {
 			settings.loaderSettings.reuseThreshold = 25000;
