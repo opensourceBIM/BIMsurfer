@@ -1,7 +1,4 @@
-import * as mat4 from "./glmatrix/mat4.js";
-import * as vec2 from "./glmatrix/vec2.js";
 import * as vec3 from "./glmatrix/vec3.js";
-import * as vec4 from "./glmatrix/vec4.js";
 
 import {ProgramManager} from "./programmanager.js";
 import {Lighting} from "./lighting.js";
@@ -16,6 +13,7 @@ import {SSQuad} from "./ssquad.js";
 import {FreezableSet} from "./freezableset.js";
 import {DefaultColors} from "./defaultcolors.js";
 import {AvlTree} from "./collections/avltree.js";
+import {SectionPlane} from "./sectionplane.js"
 
 import {COLOR_FLOAT_DEPTH_NORMAL, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 import { WSQuad } from './wsquad.js';
@@ -42,10 +40,6 @@ const OVERRIDE_FLAG = (1 << 30);
  * @export
  * @class Viewer
  */
-
-const X = vec3.fromValues(1., 0., 0.);
-const Y = vec3.fromValues(0., 1., 0.);
-const Z = vec3.fromValues(0., 0., 1.);
 
 export class Viewer {
 
@@ -75,33 +69,8 @@ export class Viewer {
         }
 
         this.tmp_unproject = vec3.create();
-
-        this.tmp_sectionU = vec3.create();
-        this.tmp_sectionV = vec3.create();
-
-        this.tmp_sectionA = vec3.create();
-        this.tmp_sectionB = vec3.create();
-        this.tmp_sectionC = vec3.create();
-        this.tmp_sectionD = vec3.create();
-
-        this.tmp_section_dir_2d = vec4.create();
         
         this.pickIdCounter = 1;
-
-        this.sectionPlaneIsDisabled = true;
-
-        this.sectionPlaneValuesDisabled = new Float32Array(4);
-        this.sectionPlaneValuesDisabled.set([0,0,0,1]);
-
-        this.sectionPlaneValues = new Float32Array(4);
-        this.sectionPlaneValues2 = new Float32Array(4);
-        
-        this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
-        // this.sectionPlaneValues.set([0,1,1,-5000]);
-        this.sectionPlaneValues2.set(this.sectionPlaneValues);
-
-        // A SVG canvas overlay polygon to indicate section plane positioning
-        this.sectionplanePoly = null;
 
         // Picking ID (unsigned int) -> ViewObject
         // This is an array now since the picking ids form a continues array
@@ -110,6 +79,8 @@ export class Viewer {
         this.renderLayers = new Set();
         this.animationListeners = [];
         this.colorRestore = [];
+
+        this.sectionPlane = new SectionPlane({viewer: this});
         
         // User can override this, default assumes strings to be used as unique object identifiers
         if (this.settings.loaderSettings.useUuidAndRid) {
@@ -530,7 +501,7 @@ export class Viewer {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         gl.disable(gl.CULL_FACE);
 
-        this.sectionPlaneValues.set(this.sectionPlaneValues2);
+        this.sectionPlane.values.set(this.sectionPlane.values2);
 
         for (var renderLayer of this.renderLayers) {
             renderLayer.prepareRender(reason);
@@ -544,9 +515,9 @@ export class Viewer {
             	this.resetToDefaultView();
             }
 
-            if (!this.sectionPlaneIsDisabled) {
+            if (!this.sectionPlane.isDisabled) {
                 gl.stencilMask(0xff);
-                this.quad2.position(this.modelBounds, this.sectionPlaneValues);
+                this.quad2.position(this.modelBounds, this.sectionPlane.values);
                 gl.colorMask(false, false, false, false);
                 gl.disable(gl.CULL_FACE);
                 this.quad2.draw();
@@ -556,7 +527,7 @@ export class Viewer {
                 gl.enable(gl.STENCIL_TEST);
                 gl.stencilFunc(gl.ALWAYS, 1, 0xff);
 
-                this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
+                this.sectionPlane.values.set([0, 0, 0, 1]);
 
                 gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR); // increment on pass
                 gl.cullFace(gl.BACK);
@@ -566,9 +537,9 @@ export class Viewer {
                 gl.cullFace(gl.FRONT);
                 this.internalRender(what, [false]);
 
-                this.sectionPlaneValues.set(this.sectionPlaneValues2);
-                const eyePlaneDist = this.lastSectionPlaneAdjustment = Math.abs(vec3.dot(this.camera.eye, this.sectionPlaneValues2) - this.sectionPlaneValues2[3]);
-                this.sectionPlaneValues[3] -= 1.e-3 * eyePlaneDist;
+                this.sectionPlane.values.set(this.sectionPlane.values2);
+                const eyePlaneDist = this.lastSectionPlaneAdjustment = Math.abs(vec3.dot(this.camera.eye, this.sectionPlane.values2) - this.sectionPlane.values2[3]);
+                this.sectionPlane.values[3] -= 1.e-3 * eyePlaneDist;
 
                 gl.stencilFunc(gl.EQUAL, 1, 0xff);
                 gl.colorMask(true, true, true, true);
@@ -614,7 +585,7 @@ export class Viewer {
         }
 
         // From now on section plane is disabled.
-        this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
+        this.sectionPlane.tempDisable();
 
         // Selection outlines require face culling to be disabled.
         gl.disable(gl.CULL_FACE);
@@ -678,67 +649,20 @@ export class Viewer {
     }
 
     removeSectionPlaneWidget() {
-        if (this.sectionplanePoly) {
-            this.sectionplanePoly.destroy();
-            this.sectionplanePoly = null;
-        }
+        this.sectionPlane.destroy();
     }
 
     positionSectionPlaneWidget(params) {
         let p = this.pick({canvasPos: params.canvasPos, select: false});
         if (p.normal && p.coordinates) {
-            let ref = null;
-            if (Math.abs(vec3.dot(p.normal, Z)) < 0.9) {
-                ref = Z;
-            } else {
-                ref = X;
-            }
-            vec3.cross(this.tmp_sectionU, p.normal, ref);
-            vec3.cross(this.tmp_sectionV, p.normal, this.tmp_sectionU);
-            vec3.scale(this.tmp_sectionU, this.tmp_sectionU, 500.);
-            vec3.scale(this.tmp_sectionV, this.tmp_sectionV, 500.);
-
-            // ---
-            
-            vec3.add(this.tmp_sectionA, this.tmp_sectionU, p.coordinates);
-            vec3.add(this.tmp_sectionB, this.tmp_sectionU, p.coordinates);
-
-            vec3.negate(this.tmp_sectionU, this.tmp_sectionU);
-
-            vec3.add(this.tmp_sectionC, this.tmp_sectionU, p.coordinates);
-            vec3.add(this.tmp_sectionD, this.tmp_sectionU, p.coordinates);
-
-            // ---
-
-            vec3.add(this.tmp_sectionA, this.tmp_sectionV, this.tmp_sectionA);
-            vec3.add(this.tmp_sectionC, this.tmp_sectionV, this.tmp_sectionC);
-
-            vec3.negate(this.tmp_sectionV, this.tmp_sectionV);
-
-            vec3.add(this.tmp_sectionB, this.tmp_sectionV, this.tmp_sectionB);
-            vec3.add(this.tmp_sectionD, this.tmp_sectionV, this.tmp_sectionD);
-
-            // ---
-
-            let ps = [this.tmp_sectionA, this.tmp_sectionB, this.tmp_sectionD, this.tmp_sectionC, this.tmp_sectionA];
-            if (this.sectionplanePoly) {
-                this.sectionplanePoly.points = ps;
-            } else {
-                this.sectionplanePoly = this.overlay.createWorldSpacePolyline(ps);
-            }
+            this.sectionPlane.position(p.coordinates, p.normal);
         }
     }
     
     enableSectionPlane(params) {
         let p = this.pick({canvasPos: params.canvasPos, select: false});
         if (p.normal && p.coordinates && p.depth) {
-            this.sectionPlaneValues.set(p.normal.subarray(0,3));
-            this.initialSectionPlaneD = this.sectionPlaneValues[3] = vec3.dot(p.coordinates, p.normal);
-            this.sectionPlaneValues2.set(this.sectionPlaneValues);
-            this.sectionPlaneIsDisabled = false;
-            this.sectionPlaneDepth = p.depth;
-            let cp = [params.canvasPos[0] / this.width, - params.canvasPos[1] / this.height];
-            this.sectionPlaneDownAt = cp;
+            this.sectionPlane.enable(params.canvasPos, p.coordinates, p.normal, p.depth);
             this.dirty = 2;
             return true;
         }
@@ -746,21 +670,14 @@ export class Viewer {
     }
 
     disableSectionPlane() {
-        this.sectionPlaneValues.set(this.sectionPlaneValuesDisabled);
-        this.sectionPlaneValues2.set(this.sectionPlaneValuesDisabled);
-        this.sectionPlaneIsDisabled = true;
+        this.sectionPlane.disable();
+
         this.dirty = 2;
     }
 
     moveSectionPlane(params) {
-        this.tmp_section_dir_2d.set(this.sectionPlaneValues2);
-        this.tmp_section_dir_2d[3] = 0.;
-        vec4.transformMat4(this.tmp_section_dir_2d, this.tmp_section_dir_2d, this.camera.viewProjMatrix);
-        let cp = [params.canvasPos[0] / this.width, - params.canvasPos[1] / this.height];        
-        vec2.subtract(this.tmp_section_dir_2d.subarray(2), cp, this.sectionPlaneDownAt);
-        this.tmp_section_dir_2d[1] /= this.width / this.height;
-        let d = vec2.dot(this.tmp_section_dir_2d, this.tmp_section_dir_2d.subarray(2)) * this.sectionPlaneDepth;
-        this.sectionPlaneValues2[3] = this.initialSectionPlaneD + d;
+        this.sectionPlane.move(params.canvasPos);
+
         this.dirty = 2;
     }
 
@@ -774,13 +691,13 @@ export class Viewer {
     pick(params) { // Returns info on the object at the given canvas coordinates
         var canvasPos = params.canvasPos;
         if (!canvasPos) {
-            throw "param expected: canvasPos";
+            throw "param epected: canvasPos";
         }
 
-        this.sectionPlaneValues.set(this.sectionPlaneValues2);
-        if (!this.sectionPlaneIsDisabled) {
+        this.sectionPlane.values.set(this.sectionPlane.values2);
+        if (!this.sectionPlane.isDisabled) {
             // tfk: I forgot what this is.
-            this.sectionPlaneValues[3] -= 1.e-3 * this.lastSectionPlaneAdjustment;        
+            this.sectionPlane.values[3] -= 1.e-3 * this.lastSectionPlaneAdjustment;        
         }
 
         this.pickBuffer.bind();
