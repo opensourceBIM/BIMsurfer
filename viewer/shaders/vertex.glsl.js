@@ -229,7 +229,7 @@ void main(void) {
     vec3 viewNormal = normalize(viewNormalMatrix * floatNormal);
     // This does not seem to work, I think the "abs" results in the model being dark on 2 sides, and being light on the other 2 sides
 //    float lambert1 = abs(dot(floatNormal, normalize(lightData.dir)));
-    float lambert2 = max(dot(-viewNormal, normalize(lightData.dir)), 0.0);
+    float lambert2 = abs(max(dot(-viewNormal, normalize(lightData.dir)), 0.0));
 //    color = vec4((lambert1 * 0.85 + lambert2 * 0.2 + 0.3) * floatColor.rgb, floatColor.a);
     color = vec4((lambert2 * 0.7 + 0.3) * floatColor.rgb, floatColor.a);
 //    color = floatColor;
