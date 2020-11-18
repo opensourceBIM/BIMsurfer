@@ -18,10 +18,12 @@ const _sectionPlaneValuesDisabled = new Float32Array([0,0,0,1]);
 
 export class SectionPlane {
 
+    isDisabled = true;
+
     constructor(params) {
         this.viewer = params.viewer;
 
-        this.values = vec4.create();
+        this.values = params.buffer ? params.buffer : vec4.create();
         this.values2 = vec4.create();
         
         this.disable();
@@ -82,13 +84,21 @@ export class SectionPlane {
         this.DownAt = cp;
     }
 
+    isTempDisabled = false;
+
     tempDisable() {
-        this.values2.set(this.values);
-        this.values.set(_sectionPlaneValuesDisabled);
+        if (!this.isTempDisabled) {
+            this.values2.set(this.values);
+            this.values.set(_sectionPlaneValuesDisabled);
+            this.isTempDisabled = true;
+        }
     }
 
     tempRestore() {
-        this.values.set(this.values2);
+        if (this.isTempDisabled) {
+            this.values.set(this.values2);
+            this.isTempDisabled = false;
+        }
     }
 
     disable() {

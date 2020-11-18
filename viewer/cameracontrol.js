@@ -232,8 +232,6 @@ export class CameraControl {
         this.mouseDown = false;
 
         const handleClick = () => {
-            console.log('mouseDownPos', this.mouseDownPos);
-            console.log('mousePos', this.mousePos);
             if (dt < 500. && this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
                 var viewObject = this.viewer.pick({
                     canvasPos: this.mousePos,

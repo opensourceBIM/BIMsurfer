@@ -13,7 +13,7 @@ import {SSQuad} from "./ssquad.js";
 import {FreezableSet} from "./freezableset.js";
 import {DefaultColors} from "./defaultcolors.js";
 import {AvlTree} from "./collections/avltree.js";
-import {SectionPlane} from "./sectionplane.js"
+import {SectionPlaneSet} from "./sectionplaneset.js";
 
 import {COLOR_FLOAT_DEPTH_NORMAL, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 import { WSQuad } from './wsquad.js';
@@ -80,7 +80,7 @@ export class Viewer {
         this.animationListeners = [];
         this.colorRestore = [];
 
-        this.sectionPlane = new SectionPlane({viewer: this});
+        this.sectionPlanes = new SectionPlaneSet({viewer: this, n: 6});
         
         // User can override this, default assumes strings to be used as unique object identifiers
         if (this.settings.loaderSettings.useUuidAndRid) {
@@ -501,7 +501,7 @@ export class Viewer {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
         gl.disable(gl.CULL_FACE);
 
-        this.sectionPlane.values.set(this.sectionPlane.values2);
+        this.sectionPlanes.tempRestore();
 
         for (var renderLayer of this.renderLayers) {
             renderLayer.prepareRender(reason);
@@ -515,19 +515,40 @@ export class Viewer {
             	this.resetToDefaultView();
             }
 
-            if (!this.sectionPlane.isDisabled) {
+            if (this.sectionPlanes.planes.some(p => !p.isDisabled)) {
+
+                // Fill depth buffer with quads
+                // ----------------------------
+
                 gl.stencilMask(0xff);
-                this.quad2.position(this.modelBounds, this.sectionPlane.values);
                 gl.colorMask(false, false, false, false);
+
+                // @todo simply draw quad twice with opposing windings so that we
+                // can remove the cull_face toggle here?
                 gl.disable(gl.CULL_FACE);
-                this.quad2.draw();
+
+                for (let sp of this.sectionPlanes.planes) {
+                    if (!sp.isDisabled) {
+                        // @todo is this actually necessary it seems to function without?
+                        this.sectionPlanes.tempRestore();
+                        // @todo move quad to section plane.
+                        this.quad2.position(this.modelBounds, sp.values);
+
+                        sp.tempDisable();
+                        this.quad2.draw();
+                        sp.tempRestore();
+                    }
+                }
+
+                // Draw scene twice without planes and without depth test
+                // ------------------------------------------------------
+
                 gl.enable(gl.CULL_FACE);
                 gl.depthMask(false);
-
                 gl.enable(gl.STENCIL_TEST);
                 gl.stencilFunc(gl.ALWAYS, 1, 0xff);
 
-                this.sectionPlane.values.set([0, 0, 0, 1]);
+                this.sectionPlanes.tempDisable();
 
                 gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR); // increment on pass
                 gl.cullFace(gl.BACK);
@@ -537,23 +558,41 @@ export class Viewer {
                 gl.cullFace(gl.FRONT);
                 this.internalRender(what, [false]);
 
-                this.sectionPlane.values.set(this.sectionPlane.values2);
-                const eyePlaneDist = this.lastSectionPlaneAdjustment = Math.abs(vec3.dot(this.camera.eye, this.sectionPlane.values2) - this.sectionPlane.values2[3]);
-                this.sectionPlane.values[3] -= 1.e-3 * eyePlaneDist;
+                this.sectionPlanes.tempRestore();
+
+                // const eyePlaneDist = this.lastSectionPlaneAdjustment = Math.abs(vec3.dot(this.camera.eye, sp.values2) - sp.values2[3]);
+                // sp.values[3] -= 1.e-3 * eyePlaneDist;
+
+                // Renable color mask and draw planes with stencil
+                // -----------------------------------------------
 
                 gl.stencilFunc(gl.EQUAL, 1, 0xff);
                 gl.colorMask(true, true, true, true);
                 gl.depthMask(true);
                 gl.clear(gl.DEPTH_BUFFER_BIT);
                 gl.disable(gl.CULL_FACE);
-                this.quad2.draw();
-                gl.enable(gl.CULL_FACE);
 
+                for (var i = 0; i < this.sectionPlanes.planes.length; ++i) {
+                    // @todo planes pointing away from camera do not need to be rendered
+                    let sp = this.sectionPlanes.planes[i];
+                    if (!sp.isDisabled) {
+                        this.quad2.position(this.modelBounds, sp.values);
+                        this.sectionPlanes.tempRestore();
+                        sp.tempDisable();
+                        this.quad2.draw();
+                        sp.tempRestore();
+                    }
+                }
+
+                // Restore main render settings
+                // ----------------------------
+
+                gl.enable(gl.CULL_FACE);
                 gl.cullFace(gl.BACK);
                 gl.disable(gl.STENCIL_TEST);
                 gl.stencilFunc(gl.ALWAYS, 1, 0xff);
             }
-        }        
+        }
 
         if (this.useOrderIndependentTransparency) {
         	  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -585,7 +624,9 @@ export class Viewer {
         }
 
         // From now on section plane is disabled.
-        this.sectionPlane.tempDisable();
+        for (let sp of this.sectionPlanes.planes) {
+            sp.tempDisable();
+        }
 
         // Selection outlines require face culling to be disabled.
         gl.disable(gl.CULL_FACE);
@@ -649,34 +690,43 @@ export class Viewer {
     }
 
     removeSectionPlaneWidget() {
-        this.sectionPlane.destroy();
+        for (let sp of this.sectionPlanes.planes) {
+            sp.destroy();
+        }
     }
 
+    sectionPlaneIndex = 0;
+
     positionSectionPlaneWidget(params) {
-        let p = this.pick({canvasPos: params.canvasPos, select: false});
-        if (p.normal && p.coordinates) {
-            this.sectionPlane.position(p.coordinates, p.normal);
+        if (this.sectionPlaneIndex < this.sectionPlanes.planes.length) {
+            let p = this.pick({canvasPos: params.canvasPos, select: false});
+            if (p.normal && p.coordinates) {
+                this.sectionPlanes.planes[this.sectionPlaneIndex].position(p.coordinates, p.normal);
+            }
         }
     }
     
     enableSectionPlane(params) {
-        let p = this.pick({canvasPos: params.canvasPos, select: false});
-        if (p.normal && p.coordinates && p.depth) {
-            this.sectionPlane.enable(params.canvasPos, p.coordinates, p.normal, p.depth);
-            this.dirty = 2;
-            return true;
+        if (this.sectionPlaneIndex < this.sectionPlanes.planes.length) {
+            let p = this.pick({canvasPos: params.canvasPos, select: false});
+            if (p.normal && p.coordinates && p.depth) {
+                this.sectionPlanes.planes[this.sectionPlaneIndex].enable(params.canvasPos, p.coordinates, p.normal, p.depth);
+                this.sectionPlaneIndex ++;
+                this.dirty = 2;
+                return true;
+            }
+            return false;
         }
-        return false;
     }
 
     disableSectionPlane() {
-        this.sectionPlane.disable();
+        this.sectionPlanes.planes[0].disable();
 
         this.dirty = 2;
     }
 
     moveSectionPlane(params) {
-        this.sectionPlane.move(params.canvasPos);
+        this.sectionPlanes.planes[this.sectionPlaneIndex - 1].move(params.canvasPos);
 
         this.dirty = 2;
     }
@@ -694,11 +744,14 @@ export class Viewer {
             throw "param epected: canvasPos";
         }
 
-        this.sectionPlane.values.set(this.sectionPlane.values2);
-        if (!this.sectionPlane.isDisabled) {
+        this.sectionPlanes.tempRestore();
+
+        /*
+        if (!this.sectionPlanes.planes[0].isDisabled) {
             // tfk: I forgot what this is.
-            this.sectionPlane.values[3] -= 1.e-3 * this.lastSectionPlaneAdjustment;        
+            this.sectionPlanes.planes[0].values[3] -= 1.e-3 * this.lastSectionPlaneAdjustment;        
         }
+        */
 
         this.pickBuffer.bind();
 
