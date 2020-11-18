@@ -809,7 +809,7 @@ export class RenderLayer {
 			// TODO check for reuse setting
 			for (let reuse of false_true) {
 				for (let twoSidedTriangles of false_true) {
-					var buffers = (node || this).gpuBufferManager.getBuffers(transparency, twoSidedTriangles, false, reuse);
+					var buffers = (node || this).gpuBufferManager.getBuffers(transparency, twoSidedTriangles, reuse);
 					var lastLineRenderer = null;
 					for (let buffer of buffers) {
 						// TODO iterate over union of buffer.uniqueIds and ids
