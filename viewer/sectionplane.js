@@ -1,6 +1,7 @@
 import * as vec2 from "./glmatrix/vec2.js";
 import * as vec3 from "./glmatrix/vec3.js";
 import * as vec4 from "./glmatrix/vec4.js";
+import { WSQuad } from "./wsquad.js";
 
 const X = vec3.fromValues(1., 0., 0.);
 const Y = vec3.fromValues(0., 1., 0.);
@@ -25,6 +26,7 @@ export class SectionPlane {
 
         this.values = params.buffer ? params.buffer : vec4.create();
         this.values2 = vec4.create();
+        this.quad = new WSQuad(this.viewer, this.viewer.gl);
         
         this.disable();
 
@@ -72,6 +74,12 @@ export class SectionPlane {
         } else {
             this.Poly = this.viewer.overlay.createWorldSpacePolyline(ps);
         }
+
+        // temporarily set values to render quad
+        this.values.set(normal.subarray(0,3));
+        this.values[3] = vec3.dot(coordinates, normal);
+        this.quad.position(this.viewer.modelBounds, this.values);
+        this.values.set(_sectionPlaneValuesDisabled);
     }
 
     enable(canvasPos, coordinates, normal, depth) {
@@ -101,6 +109,13 @@ export class SectionPlane {
         }
     }
 
+    drawQuad() {
+        // @todo is it actually necessary to disable? it seems to function without
+        this.tempDisable();
+        this.quad.draw();
+        this.tempRestore();
+    }
+
     disable() {
         this.values.set(_sectionPlaneValuesDisabled);
         this.values2.set(_sectionPlaneValuesDisabled);
@@ -116,6 +131,8 @@ export class SectionPlane {
         _tmp_section_dir_2d[1] /= this.viewer.width / this.viewer.height;
         let d = vec2.dot(_tmp_section_dir_2d, _tmp_section_dir_2d.subarray(2)) * this.depth;
         this.values2[3] = this.initialSectionPlaneD + d;
+
+        this.quad.position(this.viewer.modelBounds, this.values2);
     }
 
     destroy() {

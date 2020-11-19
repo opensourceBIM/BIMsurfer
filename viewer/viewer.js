@@ -416,7 +416,6 @@ export class Viewer {
             this.pickBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_FLOAT_DEPTH_NORMAL);
             this.oitBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_ALPHA_DEPTH);
             this.quad = new SSQuad(this.gl);
-            this.quad2 = new WSQuad(this, this.gl);
         });
         return promise;
     }
@@ -527,18 +526,8 @@ export class Viewer {
                 // can remove the cull_face toggle here?
                 gl.disable(gl.CULL_FACE);
 
-                for (let sp of this.sectionPlanes.planes) {
-                    if (!sp.isDisabled) {
-                        // @todo is this actually necessary it seems to function without?
-                        this.sectionPlanes.tempRestore();
-                        // @todo move quad to section plane.
-                        this.quad2.position(this.modelBounds, sp.values);
-
-                        sp.tempDisable();
-                        this.quad2.draw();
-                        sp.tempRestore();
-                    }
-                }
+                this.sectionPlanes.tempRestore();
+                this.sectionPlanes.planes.filter(sp => !sp.isDisabled).forEach(sp => sp.drawQuad());
 
                 // Draw scene twice without planes and without depth test
                 // ------------------------------------------------------
@@ -572,15 +561,12 @@ export class Viewer {
                 gl.clear(gl.DEPTH_BUFFER_BIT);
                 gl.disable(gl.CULL_FACE);
 
+                this.sectionPlanes.tempRestore();
                 for (var i = 0; i < this.sectionPlanes.planes.length; ++i) {
                     // @todo planes pointing away from camera do not need to be rendered
                     let sp = this.sectionPlanes.planes[i];
                     if (!sp.isDisabled) {
-                        this.quad2.position(this.modelBounds, sp.values);
-                        this.sectionPlanes.tempRestore();
-                        sp.tempDisable();
-                        this.quad2.draw();
-                        sp.tempRestore();
+                        sp.drawQuad();
                     }
                 }
 
