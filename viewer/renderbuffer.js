@@ -154,10 +154,8 @@ export class RenderBuffer {
         gl.readPixels(x, y, 1, 1, gl.RGBA_INTEGER, gl.UNSIGNED_BYTE, pix);
 
 		const maxInt = 1 << 24;
-		console.log(pix);
 		var intDepth = pix[0] * (1 << 24) + pix[1] * (1 << 16) + pix[2] * (1 << 8);
 		var floatDepth = intDepth / maxInt;
-		console.log(floatDepth);
 		return floatDepth;
     }
 
