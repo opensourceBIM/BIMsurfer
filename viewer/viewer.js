@@ -18,6 +18,7 @@ import {SectionPlaneSet} from "./sectionplaneset.js";
 import {COLOR_FLOAT_DEPTH_NORMAL, COLOR_ALPHA_DEPTH} from './renderbuffer.js';
 import { WSQuad } from './wsquad.js';
 import {EventHandler} from "./eventhandler.js";
+import { AnimatedVec3 } from "./animatedvec3.js";
 
 
 // When a change in color results in a different
@@ -408,7 +409,7 @@ export class Viewer {
                 resolve();
                 if (this.running) {
                 	requestAnimationFrame((now) => {
-                		this.render(now);
+                        this.render(now);
                 	});
                 }
             });
@@ -454,8 +455,11 @@ export class Viewer {
             this.stats.update();
         }
 
-        if (this.running) {
+        if (this.running || AnimatedVec3.active) {
             requestAnimationFrame((now) => {
+                if (AnimatedVec3.active) {
+                    this.camera.forceBuild();
+                }
                 this.render(now);
             });
         }

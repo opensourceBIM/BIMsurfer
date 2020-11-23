@@ -11,6 +11,10 @@ import * as vec3 from "./glmatrix/vec3.js";
 export class WSQuad {
 
     constructor(viewer, gl) {
+
+        // @todo reuse the same program for all WS Quads
+
+
         this.gl = gl;
         this.viewer = viewer;
 
@@ -142,7 +146,12 @@ export class WSQuad {
         gl.bufferData(gl.UNIFORM_BUFFER, this.placementData, gl.DYNAMIC_DRAW);        
     }
 
-    draw(vm, pm) {
+    draw() {
+        if (!this._buffer) {
+            console.error("quad not initialized yet");
+            return;
+        }
+
         let gl = this.gl;
 
         gl.useProgram(this.program);

@@ -1,4 +1,5 @@
 import * as mat4 from "./glmatrix/mat4.js";
+import * as vec4 from "./glmatrix/vec4.js";
 import * as vec3 from "./glmatrix/vec3.js";
 import * as vec2 from "./glmatrix/vec2.js";
 
@@ -88,7 +89,7 @@ export class CameraControl {
         	this.canvasMouseMove(e);
         });
 
-        window.setInterval(this.keyTick.bind(this), 20);
+        window.setInterval(this.keyTick.bind(this), 10);
     }
 
     /**
@@ -282,10 +283,19 @@ export class CameraControl {
         "z": "y_neg"
     };
 
+    axoKeyMapping = {
+        "1": "z_pos",
+        "2": "z_neg",
+        "3": "x_pos",
+        "4": "x_neg",
+        "5": "y_pos",
+        "6": "y_neg",
+    }
+
     keyTick() {
         let f;
         if (this.keysDown.size) {
-            f = this.getEyeLookDist() / 200;
+            f = this.getEyeLookDist() / 600;
         }
         let vec = [0., 0., 0.];
         this.keysDown.forEach((v, action) => {
@@ -300,7 +310,92 @@ export class CameraControl {
         }
     }
 
+    _tmp_topleftfront_0 = vec3.create();
+    _tmp_topleftfront_1 = vec3.create();
+    _tmp_topleftfront_current_dir = vec3.create();
+    _tmp_topleftfront_new_dir = vec3.create();
+    _tmp_topleftfront_a = vec3.create();
+    _tmp_topleftfront_b = vec3.create();
+    _tmp_topleftfront_c = vec3.create();
+    _tmp_topleftfront_d = vec4.create();
+    _tmp_topleftfront_e = mat4.create();
+    _tmp_topleftfront_f = vec3.create();
+    
     documentKeyProcess(e, state) {
+        let axo = this.axoKeyMapping[e.key];
+        if (axo && state == false) {
+            this._tmp_topleftfront_0[0] = this._tmp_topleftfront_1[0] = (this.viewer.modelBounds[0] + this.viewer.modelBounds[3]) / 2;
+            this._tmp_topleftfront_0[1] = this._tmp_topleftfront_1[1] = (this.viewer.modelBounds[1] + this.viewer.modelBounds[4]) / 2;
+            this._tmp_topleftfront_0[2] = this._tmp_topleftfront_1[2] = (this.viewer.modelBounds[2] + this.viewer.modelBounds[5]) / 2;
+
+            let axis = axo.charCodeAt(0) - 120;
+            let direction = axo.charAt(2) == 'p';
+            this._tmp_topleftfront_0[axis] = this.viewer.modelBounds[axis + (direction ? 3 : 0)];
+
+            this.camera.calcViewFit(null, null, this._tmp_topleftfront_0, this._tmp_topleftfront_1);
+
+            this.camera._eye.deanimate();
+            this.camera._target.deanimate();
+
+            vec3.sub(this._tmp_topleftfront_current_dir, this.camera._target.get(), this.camera._eye.get());
+            vec3.normalize(this._tmp_topleftfront_current_dir, this._tmp_topleftfront_current_dir);
+
+            vec3.sub(this._tmp_topleftfront_new_dir, this._tmp_topleftfront_1, this._tmp_topleftfront_0);
+            vec3.normalize(this._tmp_topleftfront_new_dir, this._tmp_topleftfront_new_dir);
+
+            let d = vec3.dot(this._tmp_topleftfront_current_dir, this._tmp_topleftfront_new_dir);
+
+            if (d > 0.5) {          
+                // More or less pointing in the same direction
+
+                this.camera._eye.b.set(this._tmp_topleftfront_0);
+                this.camera._target.b.set(this._tmp_topleftfront_1);
+                this.camera._eye.animate(1000);
+                this.camera._target.animate(1000);
+            } else {
+                // Add an additional intermediate interpolation point
+                // Add a point on the bisectrice of d1 d2
+
+                let an = Math.acos(d);
+                let d1 = vec3.subtract(this._tmp_topleftfront_a, this._tmp_topleftfront_0, this._tmp_topleftfront_1);
+                let d2 = vec3.subtract(this._tmp_topleftfront_b, this.camera.eye, this._tmp_topleftfront_1);
+                let l1 = vec3.len(d1);
+                let l2 = vec3.len(d2);
+                vec3.normalize(d1, d1);
+                vec3.normalize(d2, d2);
+
+                let d3;
+                if (d < -0.99) {
+                    // parallel view vecs, choose arbitrary axis
+                    let temp;
+                    if (Math.abs(d1[1]) > 0.99) {
+                        temp = vec3.fromValues(1,0,0);
+                    } else {
+                        temp = vec3.fromValues(0,1,0);
+                    }
+                    d3 = vec3.cross(this._tmp_topleftfront_c, d1, temp);
+                } else {
+                    d3 = vec3.cross(this._tmp_topleftfront_c, d1, d2);
+                }
+                vec3.normalize(d3, d3);
+                let rot = mat4.fromRotation(this._tmp_topleftfront_e, an / 2., d3);
+                let intermediate = this._tmp_topleftfront_d;
+                vec3.copy(intermediate, d1);
+                vec4.transformMat4(intermediate, intermediate, rot);
+                vec3.normalize(intermediate, intermediate);
+                vec3.scale(intermediate, intermediate, (l1 + l2) / 2.);
+                vec3.add(intermediate, intermediate, this._tmp_topleftfront_1);
+                let intermediate3 = intermediate.subarray(0,3);
+                
+                this.camera._eye.b.set(intermediate3);
+                this.camera._target.b.set(vec3.lerp(this._tmp_topleftfront_f, this.camera.target, this._tmp_topleftfront_1, 0.5));
+                this.camera._eye.c.set(this._tmp_topleftfront_0);
+                this.camera._target.c.set(this._tmp_topleftfront_1);
+                this.camera._eye.animate(500, 500);
+                this.camera._target.animate(500, 500);
+            }
+            return;
+        }
         let action = this.keyMapping[e.key];
         if (action) {
             if (state) {
