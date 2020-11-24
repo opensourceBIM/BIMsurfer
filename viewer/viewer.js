@@ -180,25 +180,27 @@ export class Viewer {
         } else {
         	// Tabindex required to be able add a keypress listener to canvas
         	canvas.setAttribute("tabindex", "0");
-        	canvas.addEventListener("keypress", (evt) => {
-        		if (evt.key === 'H') {
-        			this.resetVisibility();
-        		} else if (evt.key === 'h') {
-        			this.setVisibility(this.selectedElements, false, false);
-        			this.selectedElements.clear();
-        		} else if (evt.key === 'C') {
-        			this.resetColors();
-        		} else if (evt.key === 'c' || evt.key === 'd') {
-        			let R = Math.random;
-        			let clr = [R(), R(), R(), evt.key === 'd' ? R() : 1.0];
-        			this.setColor(new Set(this.selectedElements), clr);
-//        			this.selectedElements.clear();
-        		} else {
-        			// Don't do a drawScene for every key pressed
-        			return;
-        		}
-//            this.drawScene();
-        	});
+			if (!this.settings.disableDefaultKeyBindings) {
+	        	canvas.addEventListener("keypress", (evt) => {
+	        		if (evt.key === 'H') {
+	        			this.resetVisibility();
+	        		} else if (evt.key === 'h') {
+	        			this.setVisibility(this.selectedElements, false, false);
+	        			this.selectedElements.clear();
+	        		} else if (evt.key === 'C') {
+	        			this.resetColors();
+	        		} else if (evt.key === 'c' || evt.key === 'd') {
+	        			let R = Math.random;
+	        			let clr = [R(), R(), R(), evt.key === 'd' ? R() : 1.0];
+	        			this.setColor(new Set(this.selectedElements), clr);
+	//        			this.selectedElements.clear();
+	        		} else {
+	        			// Don't do a drawScene for every key pressed
+	        			return;
+	        		}
+	//            this.drawScene();
+	        	});
+			}
         }
     }
     
