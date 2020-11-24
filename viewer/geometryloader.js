@@ -7,7 +7,7 @@ import {DataInputStream} from "./datainputstream.js";
 
 import {AvlTree} from "./collections/avltree.js";
 
-const PROTOCOL_VERSION = 21;
+const PROTOCOL_VERSIONS = new Set([20, 21]);
 
 /**
  * This class is supposed to be and stay BIMserver-free.
@@ -447,7 +447,11 @@ export class GeometryLoader {
 			var uniqueModelId = this.readAndCreateUniqueModelId(stream);
 			let hasTransparencyValue = stream.readLong();
 			var hasTransparency = hasTransparencyValue == 1;
-			var hasTwoSidedTriangles = stream.readLong() == 1;
+			if (this.protocolVersion == 21) {
+				var hasTwoSidedTriangles = stream.readLong() == 1;
+			} else {
+				var hasTwoSidedTriangles = true;
+			}
 			var geometryDataId = stream.readLong();
 			this.readGeometry(stream, roid, uniqueModelId, geometryDataId, geometryDataId, hasTransparency, hasTwoSidedTriangles, reused, type, true);
 			if (this.dataToInfo.has(geometryDataId)) {
@@ -729,8 +733,8 @@ export class GeometryLoader {
 
 		this.protocolVersion = data.readByte();
 
-		if (this.protocolVersion != PROTOCOL_VERSION) {
-			console.error("Unimplemented version (protocol: " + this.protocolVersion + ", implemented: " + PROTOCOL_VERSION + ").\nUsually this means you need to either:\n\t- Update the BinarySerializers plugin bundle in BIMserver\n\t- Update your version of BIMsurfer 3");
+		if (!PROTOCOL_VERSIONS.has(this.protocolVersion)) {
+			console.error("Unimplemented version (protocol: " + this.protocolVersion + ", implemented: " + PROTOCOL_VERSIONS + ").\nUsually this means you need to either:\n\t- Update the BinarySerializers plugin bundle in BIMserver\n\t- Update your version of BIMsurfer 3");
 			return false;
 		}
 
