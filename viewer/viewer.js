@@ -518,7 +518,10 @@ export class Viewer {
             	this.resetToDefaultView();
             }
 
-            if (this.sectionPlanes.planes.some(p => !p.isDisabled)) {
+            // On what side of the plane is the camera eye?
+            let planeIsVisbible = (p) => vec3.dot(p.values, this.camera.eye) > p.values[3];
+
+            if (this.sectionPlanes.planes.some(p => !p.isDisabled && planeIsVisbible(p))) {
 
                 // Fill depth buffer with quads
                 // ----------------------------
@@ -569,7 +572,7 @@ export class Viewer {
                 for (var i = 0; i < this.sectionPlanes.planes.length; ++i) {
                     // @todo planes pointing away from camera do not need to be rendered
                     let sp = this.sectionPlanes.planes[i];
-                    if (!sp.isDisabled) {
+                    if (!sp.isDisabled && planeIsVisbible(sp)) {
                         sp.drawQuad();
                     }
                 }
