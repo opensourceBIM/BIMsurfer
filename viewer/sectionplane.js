@@ -41,10 +41,15 @@ export class SectionPlane {
         } else {
             ref = X;
         }
+
+        let cameraEye = this.viewer.camera.eye;
+        vec3.subtract(_tmp_sectionA, cameraEye, coordinates);
+        let cameraDistance = vec3.len(_tmp_sectionA);
+
         vec3.cross(_tmp_sectionU, normal, ref);
         vec3.cross(_tmp_sectionV, normal, _tmp_sectionU);
-        vec3.scale(_tmp_sectionU, _tmp_sectionU, 500.);
-        vec3.scale(_tmp_sectionV, _tmp_sectionV, 500.);
+        vec3.scale(_tmp_sectionU, _tmp_sectionU, cameraDistance / 50.);
+        vec3.scale(_tmp_sectionV, _tmp_sectionV, cameraDistance / 50.);
 
         // ---
         
