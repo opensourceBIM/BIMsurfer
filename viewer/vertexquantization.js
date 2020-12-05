@@ -6,31 +6,31 @@ import {Utils} from "./utils.js";
 /**
  * This class is responsible for keeping track of the various matrices used for quantization/unquantization
  * 
- * croid stands for: ConcreteRevision Object Identifier, it's a BIMserver object, you can see it as a unique identifier that identifies a revision.
+ * uniqueModelId when loading from BIMserver stands for: ConcreteRevision Object Identifier, it's a BIMserver object, you can see it as a unique identifier that identifies a revision.
  */
 export class VertexQuantization {
 	constructor(settings) {
 		this.settings = settings;
 		
-		// croid -> untransformed quantization matrices (1 per model)
+		// uniqueModelId -> untransformed quantization matrices (1 per model)
 		this.untransformedQuantizationMatrices = new Map();
 
-		// croid -> untransformed inverse quantization matrices (1 per model)
+		// uniqueModelId -> untransformed inverse quantization matrices (1 per model)
 		this.untransformedInverseQuantizationMatrices = new Map();
 	}
 
-	getUntransformedInverseVertexQuantizationMatrixForCroid(croid) {
-		var matrix = this.untransformedInverseQuantizationMatrices.get(croid);
+	getUntransformedInverseVertexQuantizationMatrixForUniqueModelId(uniqueModelId) {
+		var matrix = this.untransformedInverseQuantizationMatrices.get(uniqueModelId);
 		if (matrix == null) {
-			throw "Not found for croid " + croid;
+			throw "Not found for uniqueModelId " + uniqueModelId;
 		}
 		return matrix;
 	}
 	
-	getUntransformedVertexQuantizationMatrixForCroid(croid) {
-		var matrix = this.untransformedQuantizationMatrices.get(croid);
+	getUntransformedVertexQuantizationMatrixForUniqueModelId(uniqueModelId) {
+		var matrix = this.untransformedQuantizationMatrices.get(uniqueModelId);
 		if (matrix == null) {
-			throw "Not found: " + croid;
+			throw "Not found: " + uniqueModelId;
 		}
 		return matrix;
 	}
@@ -56,7 +56,7 @@ export class VertexQuantization {
 		return this.inverseVertexQuantizationMatrix;
 	}
 	
-	generateUntransformedMatrices(croid, boundsUntransformed) {
+	generateUntransformedMatrices(uniqueModelId, boundsUntransformed) {
 		var matrix = mat4.create();
 		var scale = 32768;
 		
@@ -75,13 +75,13 @@ export class VertexQuantization {
 		));
 		
 		// Store the untransformed quantization matrix
-		this.untransformedQuantizationMatrices.set(croid, Utils.toArray(matrix));
+		this.untransformedQuantizationMatrices.set(uniqueModelId, Utils.toArray(matrix));
 		
 		var inverse = mat4.create();
 		mat4.invert(inverse, matrix);
 		
 		// Store the untransformed inverse quantization matrix
-		this.untransformedInverseQuantizationMatrices.set(croid, Utils.toArray(inverse));
+		this.untransformedInverseQuantizationMatrices.set(uniqueModelId, Utils.toArray(inverse));
 	}
 	
 	getTransformedQuantizationMatrix(boundsUntransformed) {

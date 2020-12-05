@@ -244,14 +244,19 @@ export class AbstractBufferSet {
 			
 			let gpu_data = this.batchGpuBuffers["positionBuffer"];
 
-			let index = this.uniqueIdToIndex.get(uniqueId);
-			let idx = index[0];
-			let [offset, length] = [idx.lineIndicesStart, idx.lineIndicesLength];
-			let [minLineIndex, maxLineIndex] = [idx.minLineIndex, idx.maxLineIndex];
+			var offset, length;
+			
+			if (this.uniqueIdToIndex == null) {
+				offset = 0;
+				length = this.nrLineIndices;
+			} else {
+				let index = this.uniqueIdToIndex.get(uniqueId);
+				let idx = index[0];
+				offset = idx.lineIndicesStart;
+				length = idx.lineIndicesLength;
+			}
 			
 			var indexOffset = offset - bounds.startLineIndex;
-
-			let numVertices = maxLineIndex - minLineIndex + 1;
 
 			lineRenderer.init(length);
 
@@ -366,7 +371,7 @@ export class AbstractBufferSet {
     			}
     			if (bounds.maxLineIndex == null || idx.maxLineIndex + 1 > bounds.maxLineIndex) {
     				// This one seems to be wrong
-    				bounds.maxLineIndex = idx.maxLineIndex + 1;
+    				bounds.maxLineIndex = idx.maxLineIndex;
     			}
     		} else {
     			// TODO
@@ -433,7 +438,7 @@ export class AbstractBufferSet {
         if (!exclude && ranges.instanceIds.length && this.lineIndexBuffers.size === 0) {
             let lineRenderer = this.createLineRendererFromInstance(gl, 0, this.indexBuffer.N);
             // This will result in a different dequantization matrix later on, not sure why
-            lineRenderer.croid = this.croid;
+            lineRenderer.uniqueModelId = this.uniqueModelId;
             this.objects.forEach((ob) => {
                 lineRenderer.matrixMap.set(ob.uniqueId, ob.matrix);
                 this.lineIndexBuffers.set(ob.uniqueId, lineRenderer);
@@ -503,7 +508,7 @@ export class AbstractBufferSet {
     			return [[uniqueId, [mapping.start, mapping.start + mapping.length, mapping.lineIndicesStart, mapping.lineIndicesStart + mapping.lineIndicesLength]]];
     		}
     	} else {
-    		return [[uniqueId & 0x8FFFFFFF, [0, this.nrIndices, 0, this.nrLineIndices]]];
+    		return [[uniqueId, [0, this.nrIndices, 0, this.nrLineIndices]]];
     	}
     }
     
@@ -627,7 +632,7 @@ export class AbstractBufferSet {
     	if (this.reuse) {
             let lineRenderer = this.createLineRendererFromInstance(gl, 0, this.indexBuffer.N);
             // This will result in a different dequantization matrix later on, not sure why
-            lineRenderer.croid = this.croid;
+            lineRenderer.uniqueModelId = this.uniqueModelId;
             this.objects.forEach((ob) => {
                 lineRenderer.matrixMap.set(ob.uniqueId, ob.matrix);
                 this.lineIndexBuffers.set(ob.uniqueId, lineRenderer);
@@ -650,9 +655,9 @@ export class AbstractBufferSet {
 						this.lineIndexBuffers.set(id, lineRenderer);
 					}
 				});
+				this.viewer.dirty = 2;
 			});
 		}
-		this.viewer.dirty = 2;
     }
     
     storeInCacheAndReturn(key, result, nonce) {
@@ -696,10 +701,11 @@ export class AbstractBufferSet {
         } else {
     		let idx = this.uniqueIdToIndex.get(uniqueId)[0];
 
+    		let bounds = this.batchGpuBuffers.bounds;
+
     		let [offset, length] = [idx.start, idx.length];
 			const indices = new Uint32Array(length);
 			let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
-			let bounds = this.batchGpuBuffers.bounds;
 			for (let i=0; i<length; i++) {
 				indices[i] = this.batchGpuBuffers.indices[-bounds.startIndex + offset + i] - minIndex;
 			}
@@ -707,10 +713,11 @@ export class AbstractBufferSet {
 			let [lineIndexOffset, lineIndexLength] = [idx.lineIndicesStart, idx.lineIndicesLength];
 			const lineIndices = new Uint32Array(lineIndexLength);
 			let [minLineIndex, maxLineIndex] = [idx.minLineIndex, idx.maxLineIndex];
+			
 			for (let i=0; i<lineIndexLength; i++) {
-				lineIndices[i] = this.batchGpuBuffers.lineIndices[-bounds.startLineIndex + lineIndexOffset + i] - minLineIndex;
+				lineIndices[i] = (this.batchGpuBuffers.lineIndices[-bounds.startLineIndex + lineIndexOffset + i] - minLineIndex) + 1;
 			}
-    		
+
     		let numVertices = maxIndex - minIndex + 1;
     		
     		let toCopy = ["positionBuffer", "normalBuffer", "colorBuffer", "pickColorBuffer"];
@@ -737,6 +744,7 @@ export class AbstractBufferSet {
     		returnDictionary["nrIndices"] = indices.length;
     		returnDictionary["lineIndices"] = lineIndices;
     		returnDictionary["nrLineIndices"] = lineIndices.length;
+    		returnDictionary["lineIndexBuffers"] = this.lineIndexBuffers;
         }
 
 		return returnDictionary;

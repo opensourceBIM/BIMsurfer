@@ -1,6 +1,8 @@
 export const COLOR_FLOAT_DEPTH_NORMAL = 0xff01;
 export const COLOR_ALPHA_DEPTH = 0xff02;
 
+const USE_FLOAT_RENDER_TARGET = true;
+
 /**
  *
  * @ignore
@@ -45,11 +47,10 @@ export class RenderBuffer {
             }
         }
 
-        // var ext = gl.getExtension('WEBGL_draw_buffers');
-        var ext = gl.getExtension('EXT_color_buffer_float');
-        if (!ext) {
-            throw "EXT_color_buffer_float is required";
-        }
+		// TODO The EXT_color_buffer_float is an extension to WebGL2 and so far Safari on IOS does not seem to support it (on MacOS it works though)
+		// Do we really need these? Can we not quantize the depth buffer?
+		// Answer: No, the code has now been converted to only use integer color buffers. Moved the extension requirement to COLOR_ALPHA_DEPTH (which can probably also be converted)
+		
 
         var framebuf = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuf);
@@ -75,10 +76,25 @@ export class RenderBuffer {
             this.attachments.push(gl.COLOR_ATTACHMENT2);
 
             this.colorBuffer = createTexture(gl.RGBA8UI);
-            this.depthFloat = createTexture(gl.R32F);
-            // @todo, just have depth in normalBuffer.w?
-            this.normalBuffer = createTexture(gl.RGBA32F);            
+			if (USE_FLOAT_RENDER_TARGET) {
+		        // var ext = gl.getExtension('WEBGL_draw_buffers');
+		        var ext = gl.getExtension('EXT_color_buffer_float');
+		        if (!ext) {
+		            throw "EXT_color_buffer_float is required";
+		        }
+				this.depthFloat = createTexture(gl.R32F);
+            	// @todo, just have depth in normalBuffer.w?
+            	this.normalBuffer = createTexture(gl.RGBA32F);     
+			} else {
+	            this.depthFloat = createTexture(gl.RGBA8UI);
+	            this.normalBuffer = createTexture(gl.RGBA8UI);
+			}
         } else if (this.purpose === COLOR_ALPHA_DEPTH) {
+	        // var ext = gl.getExtension('WEBGL_draw_buffers');
+	        var ext = gl.getExtension('EXT_color_buffer_float');
+	        if (!ext) {
+	            throw "EXT_color_buffer_float is required";
+	        }
             this.colorBuffer = createTexture(gl.RGBA16F);
             this.alphaBuffer = createTexture(gl.R16F);
         } else {
@@ -140,25 +156,45 @@ export class RenderBuffer {
     depth(pickX, pickY) {
         var x = pickX;
         var y = this.canvas.height - pickY;
-        var pix = new Float32Array(4);//To review
         var gl = this.gl;
         gl.readBuffer(gl.COLOR_ATTACHMENT1);
 
-        // Reading only gl.R should be sufficient, but at least on Google Chrome and Firefox on OSX, the gl.R could not be read. So that's why we are reading RGBA here
-        // Don't think this can hurt performance. Seems to be caused by a vague spec: https://github.com/KhronosGroup/WebGL/issues/2747
-        gl.readPixels(x, y, 1, 1, gl.RGBA, gl.FLOAT, pix);//To review
-        
-        return pix.slice(0, 1);
+		if (USE_FLOAT_RENDER_TARGET) {
+	        // Reading only gl.R should be sufficient, but at least on Google Chrome and Firefox on OSX, the gl.R could not be read. So that's why we are reading RGBA here
+	        // Don't think this can hurt performance. Seems to be caused by a vague spec: https://github.com/KhronosGroup/WebGL/issues/2747
+			var pix = new Float32Array(4);
+			gl.readPixels(x, y, 1, 1, gl.RGBA, gl.FLOAT, pix);//To review
+			return pix.slice(0, 1);
+		} else {
+	        var pix = new Uint8Array(4);
+	        gl.readPixels(x, y, 1, 1, gl.RGBA_INTEGER, gl.UNSIGNED_BYTE, pix);
+	
+			const maxInt = 1 << 24;
+			var intDepth = pix[0] * (1 << 24) + pix[1] * (1 << 16) + pix[2] * (1 << 8);
+			var floatDepth = intDepth / maxInt;
+			return floatDepth;
+		}
     }
 
     normal(pickX, pickY) {
         var x = pickX;
         var y = this.canvas.height - pickY;
-        var pix = new Float32Array(4);
         var gl = this.gl;
         gl.readBuffer(gl.COLOR_ATTACHMENT2);
-        gl.readPixels(x, y, 1, 1, gl.RGBA, gl.FLOAT, pix);
-        return pix;
+
+		if (USE_FLOAT_RENDER_TARGET) {
+			var pix = new Float32Array(4);
+			gl.readPixels(x, y, 1, 1, gl.RGBA, gl.FLOAT, pix);
+			return pix;
+		} else {
+	        var pix = new Uint8Array(4);
+	        gl.readPixels(x, y, 1, 1, gl.RGBA_INTEGER, gl.UNSIGNED_BYTE, pix);
+			var normal = new Float32Array(4);
+			for (var i=0; i<4; i++) {
+				normal[i] = pix[i] / 127;
+			}
+	        return normal;
+		}
     }
 
     unbind() {

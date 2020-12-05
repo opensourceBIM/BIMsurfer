@@ -163,7 +163,7 @@ export class CameraControl {
         }
 
         let handleOrbit = () => {
-            this.dragMode = DRAG_ORBIT;
+            this.dragMode = e.shiftKey ? DRAG_PAN : DRAG_ORBIT;
             let picked = this.viewer.pick({canvasPos:[this.lastX, this.lastY], select:false});
             if (picked && picked.coordinates && picked.object) {
                 this.viewer.camera.center = picked.coordinates;
@@ -237,7 +237,9 @@ export class CameraControl {
             if (dt < 500. && this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
                 var viewObject = this.viewer.pick({
                     canvasPos: this.mousePos,
-                    shiftKey: e.shiftKey
+                    select: true, // e.which == 3,
+                    shiftKey: e.which == 1 ? e.shiftKey : this.viewer.selectedElements.size > 0,
+                    onlyAdd: e.which == 3 && this.viewer.selectedElements.size > 0
                 });
                 if (viewObject && viewObject.object) {
                     console.log("Picked", viewObject.object);

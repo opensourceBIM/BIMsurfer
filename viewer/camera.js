@@ -48,7 +48,7 @@ export class Camera {
         this._modelBounds = null;
 
         this.tempMat4 = mat4.create();
-        this.tempMat4b = mat4.create();
+        this.tempMat3b = mat3.create();
         this.tempVec3 = vec3.create();
         this.tempVec3b = vec3.create();
         this.tempVec3c = vec3.create();
@@ -89,7 +89,7 @@ export class Camera {
         this.perspective.setModelBounds(vec3.clone(bounds));
         this.orthographic.setModelBounds(vec3.clone(bounds));
         
-        // Store aabb calculated} from points
+        // Store aabb calculated from points
         let a = vec3.fromValues(+Infinity, +Infinity, +Infinity);
         let b = vec3.fromValues(-Infinity, -Infinity, -Infinity);
 
@@ -136,11 +136,9 @@ export class Camera {
         }
 
         mat4.lookAt(this._viewMatrix, eye, target, this._up);
-        mat4.identity(this.tempMat4);
-        mat4.multiply(this._viewMatrix, this.tempMat4, this._viewMatrix); // Why?
-        mat3.fromMat4(this.tempMat4b, this._viewMatrix);
-        mat3.invert(this.tempMat4b, this.tempMat4b);
-        mat3.transpose(this._viewNormalMatrix, this.tempMat4b);
+        mat3.fromMat4(this.tempMat3b, this._viewMatrix);
+        mat3.invert(this.tempMat3b, this.tempMat3b);
+        mat3.transpose(this._viewNormalMatrix, this.tempMat3b);
         
         let [near, far] = [+Infinity, -Infinity];
 

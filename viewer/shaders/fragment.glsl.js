@@ -1,7 +1,7 @@
 export const FRAGMENT_SHADER_SOURCE = `
 
-precision mediump int;
-precision mediump float;
+precision highp int;
+precision highp float;
 
 in vec3 worldCoords;
 
@@ -35,10 +35,22 @@ void main(void) {
 #ifdef WITH_PICKING
    myOutputColor = color;
    myOutputDepth = gl_FragCoord.z;
-   // The picking program does not have normal attributes, so we *have* to
+  // The picking program does not have normal attributes, so we *have* to
    // use the shader derivatives. @todo reevaluate
    myOutputNormal.xyz = normalize(cross(dFdx(worldCoords), dFdy(worldCoords)));
+
+  // The next bit is disabled for now because precision was not ok
+   // TODO probably should check whether 24 bits of precision are available
+//   uint intDepth = uint(gl_FragCoord.z * float(uint(1) << uint(24)));
+//   myOutputDepth = uvec4(intDepth >> 24, intDepth >> 16, intDepth >> 8, 0);
+   // The picking program does not have normal attributes, so we *have* to
+   // use the shader derivatives. @todo reevaluate
+//   vec3 normalizedNormal = normalize(cross(dFdx(worldCoords), dFdy(worldCoords))); 
+//   myOutputNormal = uvec4(int(normalizedNormal.x * 127.0), int(normalizedNormal.y * 127.0), int(normalizedNormal.z * 127.0), 0);
+
+
 #else
+  // TODO if we move the lighting to the fragment shader, we can enable back-face-culling (for those objects that can handle it) and use gl_FrontFacing to decide to invert the normal)
    myOutputColor = color;// vec4(color.rgb * color.a, color.a);
    myOutputAlpha = 1.;
 #endif

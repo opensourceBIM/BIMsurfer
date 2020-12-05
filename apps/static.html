@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>BIMsurfer Minimial Demo</title>
+<style>
+html, body, canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+}
+</style>
+</head>
+
+<body>
+	<canvas id="glcanvas"></canvas>
+</body>
+
+<script type="module">
+import { displayStaticBuffer } from './static.js';
+
+displayStaticBuffer("glcanvas", "duplex.bin");
+</script>
+
+</html>

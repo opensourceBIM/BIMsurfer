@@ -11,7 +11,7 @@ export const RANDOM = Math.random;
 /**
  * Sets the type of array used when creating new vectors and matrices
  *
- * @param {Type} type Array type, such as Float32Array or Array
+ * @param {Float32ArrayConstructor | ArrayConstructor} type Array type, such as Float32Array or Array
  */
 export function setMatrixArrayType(type) {
   ARRAY_TYPE = type;
@@ -40,3 +40,9 @@ export function toRadian(a) {
 export function equals(a, b) {
   return Math.abs(a - b) <= EPSILON*Math.max(1.0, Math.abs(a), Math.abs(b));
 }
+
+if (!Math.hypot) Math.hypot = function() {
+  var y = 0, i = arguments.length;
+  while (i--) y += arguments[i] * arguments[i];
+  return Math.sqrt(y);
+};

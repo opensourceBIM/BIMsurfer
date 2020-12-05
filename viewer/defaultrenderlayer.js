@@ -120,9 +120,9 @@ export class DefaultRenderLayer extends RenderLayer {
 
 		return gpuBuffer;
 	}
-
-	renderBuffers(transparency, reuse, lines, visibleElements) {
-		var buffers = this.gpuBufferManager.getBuffers(transparency, reuse);
+	
+	renderBuffers(transparency, twoSidedTriangles, reuse, lines, visibleElements) {
+		var buffers = this.gpuBufferManager.getBuffers(transparency, twoSidedTriangles, reuse);
 		if (buffers.length > 0) {
 			let picking = visibleElements.pass === 'pick';
 			
