@@ -16,14 +16,14 @@ export class SectionPlaneSet {
     }
 
     tempRestore() {
-        for (let s of this.planes) {
-            s.tempRestore();
-        }
+        this.planes.forEach(s => s.tempRestore());
     }
 
     tempDisable() {
-        for (let s of this.planes) {
-            s.tempDisable();
-        }
+        this.planes.forEach(s => s.tempDisable());
+    }
+
+    disable() {
+        this.planes.forEach(s => s.disable());
     }
 }

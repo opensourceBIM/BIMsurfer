@@ -151,7 +151,8 @@ export class CameraControl {
         this.mouseDownTime = e.timeStamp;
         this.mouseDownPos.set(this.mousePos);
 
-        let handleSection = () => {this.mouseDownTime = 0;
+        let handleSection = () => {
+            this.mouseDownTime = 0;
             if (this.viewer.enableSectionPlane({canvasPos:[this.lastX, this.lastY]})) {
                 this.dragMode = DRAG_SECTION;
             } else if (!this.viewer.sectionPlaneIsDisabled){

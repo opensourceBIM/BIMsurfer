@@ -27,6 +27,9 @@ export class SectionPlane {
         this.values = params.buffer ? params.buffer : vec4.create();
         this.values2 = vec4.create();
         this.quad = new WSQuad(this.viewer, this.viewer.gl);
+
+        this.coordinates = null;
+        this.normal = null;
         
         this.disable();
 
@@ -35,6 +38,14 @@ export class SectionPlane {
     }
 
     position(coordinates, normal) {
+        if (coordinates) {
+            this.coordinates = coordinates;
+            this.normal = normal;
+        } else {
+            coordinates = this.coordinates;
+            normal = this.normal;
+        }
+
         let ref = null;
         if (Math.abs(vec3.dot(normal, Z)) < 0.9) {
             ref = Z;
@@ -78,6 +89,9 @@ export class SectionPlane {
             this.Poly.points = ps;
         } else {
             this.Poly = this.viewer.overlay.createWorldSpacePolyline(ps);
+            this.Poly.beforeUpdate = () => {
+                this.position();
+            }
         }
 
         // temporarily set values to render quad

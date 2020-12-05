@@ -699,15 +699,18 @@ export class Viewer {
         }
     }
     
-    enableSectionPlane(params) {
-        if (this.sectionPlaneIndex < this.sectionPlanes.planes.length) {
-            let p = this.pick({canvasPos: params.canvasPos, select: false});
-            if (p.normal && p.coordinates && p.depth) {
+    enableSectionPlane(params) {        
+        let p = this.pick({canvasPos: params.canvasPos, select: false});
+        if (p.normal && p.coordinates && p.depth) {
+            if (this.sectionPlaneIndex < this.sectionPlanes.planes.length) {
                 this.sectionPlanes.planes[this.sectionPlaneIndex].enable(params.canvasPos, p.coordinates, p.normal, p.depth);
                 this.sectionPlaneIndex ++;
                 this.dirty = 2;
-                return true;
             }
+            return true;
+        } else {
+            this.sectionPlanes.disable();
+            this.sectionPlaneIndex = 0;
             return false;
         }
     }
