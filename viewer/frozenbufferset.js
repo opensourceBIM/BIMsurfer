@@ -20,9 +20,6 @@ export class FrozenBufferSet extends AbstractBufferSet {
     {
         super(viewer, true);
 
-        if (lineIndexBuffer == null) {
-        	debugger;
-        }
         if (originalBuffer) {
         	this.uniqueIdToIndex = originalBuffer.uniqueIdToIndex;
         	this.uniqueIdSet = originalBuffer.uniqueIdSet;

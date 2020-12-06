@@ -49,9 +49,14 @@ export class Dev {
 
 		var treeView = new TreeView(document.getElementById("projects"));
 		this.projectTreeModel = new ProjectTreeModel(this.api, treeView);
+		let onload = (function() {
+			if (this.projectTreeModel.children.length == 1) {
+				this.loadModel(this.projectTreeModel.children[0].project);
+			}
+		}).bind(this);
 		this.projectTreeModel.load((node) => {
 			this.loadModel(node.project);
-		});
+		}).done(onload);
 	}
 	
 	keyPressListener(event) {

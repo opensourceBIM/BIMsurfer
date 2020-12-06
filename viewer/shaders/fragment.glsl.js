@@ -19,14 +19,16 @@ layout(location = 0) out vec4 myOutputColor;
 layout(location=1) out float myOutputAlpha;
 #endif
 
-uniform vec4 sectionPlane;
+uniform vec4 sectionPlane[6];
 
 void main(void) {
 #ifndef WITH_LINEPRIMITIVES
    // Lines are never rendered with the section plane enabled. So this is an
    // optimization measure rather than anything else.
-   if (dot(worldCoords, sectionPlane.xyz) >= sectionPlane.w) {
-      discard;
+   for (int i = 0; i < 6; ++i) {
+      if (dot(worldCoords, sectionPlane[i].xyz) >= sectionPlane[i].w) {
+         discard;
+      }
    }
 #endif
 

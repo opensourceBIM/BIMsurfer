@@ -1,5 +1,6 @@
 import * as mat4 from "./glmatrix/mat4.js";
 import * as vec3 from "./glmatrix/vec3.js";
+import * as vec2 from "./glmatrix/vec2.js"
 
 class SvgOverlayNode {
     constructor(overlay, svgElem) {
@@ -13,9 +14,12 @@ class SvgOverlayNode {
         if (v !== this._lastVisibilityState) {
             this.svgElem.setAttribute("visibility", v ? "visible" : "hidden");
         }
+        if (this.beforeUpdate) {
+            this.beforeUpdate();
+        }
         if (this._lastVisibilityState = v) {
             this.doUpdate();
-        }            
+        }
     }
 
     destroy() {
@@ -35,9 +39,9 @@ class OrbitCenterOverlayNode extends SvgOverlayNode {
     }
 
     doUpdate() {
-        let [x, y] = this.overlay.transformPoint(this.camera.center);
-        this.svgElem.setAttribute("cx", x);
-        this.svgElem.setAttribute("cy", y);
+        let xy = this.overlay.transformPoint(this.camera.center);
+        this.svgElem.setAttribute("cx", xy[0]);
+        this.svgElem.setAttribute("cy", xy[1]);
     }
 }
 
@@ -54,7 +58,7 @@ class PathOverlayNode extends SvgOverlayNode {
     }
 
     createPathAttribute() {
-        return "M" + this._points.map((p) => this.overlay.transformPoint(p)).join(" L");
+        return "M" + this._points.map((p) => this.overlay.toString(this.overlay.transformPoint(p))).join(" L");
     }
 
     isVisible() {
@@ -118,8 +122,16 @@ export class SvgOverlay {
     }
 
     transformPoint(p) {
-        vec3.transformMat4(this.tmp, p, this.camera.viewProjMatrix);
-        return [+this.tmp[0] * this.w + this.w, -this.tmp[1] * this.h + this.h]
+        let t = this.tmp;
+        vec3.transformMat4(t, p, this.camera.viewProjMatrix);
+        t[1] *= -1;
+        vec2.multiply(t, t, this.wh);
+        vec2.add(t, t, this.wh);
+        return t;
+    }
+
+    toString(t) {
+        return t[0] + "," + t[1];
     }
 
     update() {
@@ -176,6 +188,7 @@ export class SvgOverlay {
         this.svg.setAttribute("viewBox", "0 0 " + this.w + " " + this.h);
         this.w /= 2.;
         this.h /= 2.;
+        this.wh = vec2.fromValues(this.w, this.h);
         
         this.aspect = this.w / this.h;
     }
