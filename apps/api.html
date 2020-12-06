@@ -42,7 +42,7 @@
         var content = bufferFourBits.slice(5, offset + 5);
         var contentString = decoder.decode(content);
         //console.log(contentString)
-        debugger;
+        // debugger;
         var firstChunkObject = JSON.parse(contentString);
 
 
@@ -52,10 +52,32 @@
         var secondOffset = secondChunkLength / 4;
         var secondChunkContent = bufferFourBits.slice(offset + 7, offset + 7 + secondOffset);
 
-        
-        
+        var secondChunkBits =  buffer.slice((offset + 7)*4,(offset + 7 + secondOffset)*4);
 
 
+        
+        /////////// PARSING THE MESHES
+        var meshes = firstChunkObject['meshes'];
+        var indices = new Set();
+        //meshes.forEach(mesh => indices.add(mesh.primitives.length))
+
+        for (var i = 0; i < meshes.length; i++){
+            if (meshes[i].primitives.length > 1){
+                for(var j=0;j<meshes[i].primitives.length;j++){
+                    console.log(meshes[i].primitives[j].mode)
+
+                }
+            console.log(" ")
+            console.log(" ")
+            }
+            
+        } 
+
+        ///////////// Test with one mesh
+
+
+
+        debugger;
 
 
 
