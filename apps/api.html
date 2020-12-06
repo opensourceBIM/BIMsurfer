@@ -9,14 +9,79 @@
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 </head>
 
+<script>
+    fetch("/../../test.glb").then(function(response) {
+        return response.arrayBuffer();
+    }).then(function(buffer) {
+        
+        console.log(buffer)
+        var decoder = new TextDecoder("utf-8");
+
+        // Parse header
+        var bufferFourBits = new Int32Array(buffer);
+        console.log(decoder.decode(bufferFourBits.slice(0,1)))
+
+        var firstBits = bufferFourBits.slice(0,2);
+        var hexa = new Int16Array(firstBits);
+       
+        //Todo: Add an assertion to check if the file is glTF
+        var magic = hexa[0];
+        var magicValue = magic.toString(16);
+        var fileFormat = decoder.decode(buffer.slice(0,4))
+
+        var version = hexa[1].toString(8);
+
+        var length = bufferFourBits.slice(2,3)[0];
+        console.log(length == buffer.byteLength);
+
+    
+        var result = decoder.decode(buffer);
+
+        /////////// CHUNK 0
+        var chunkLength = bufferFourBits.slice(3,4)[0];
+        var chunkType = decoder.decode(bufferFourBits.slice(4,5))
+        var offset = chunkLength / 4;
+        var content = bufferFourBits.slice(5, offset + 5);
+        var contentString = decoder.decode(content);
+        console.log(contentString)
+        var firstChunkObject = JSON.parse(contentString);
+
+        
+    
+    })
+
+    function readFile(file) {
+        return new Response(file).arrayBuffer();
+}
+</script>
 <body>
 
     <canvas></canvas>
-
+    <input type="file" onchange="readFile(this.files[0])"/>
+    <!-- <input type="file" id="fileInput" onchange='openFile(event)' /> -->
     <div id='apirefContainerContainer'>
         <div id='apirefContainer'>
         </div>
     </div>
+
+    <!-- <script type="module">
+    
+    
+import {BimSurfer} from "../viewer/bimsurfer.js";
+import {BimServerClient} from "../../bimserverjavascriptapi/bimserverclient.js"
+import {Address} from "./address.js";
+import {Credentials} from "./credentials.js"
+import {RenderLayer} from "../viewer/renderlayer.js";
+import {BimServerViewer} from "../viewer/bimserverviewer.js";
+
+
+var surfer = window.bimSurfer = new BimSurfer();
+var api = new BimServerClient(Address.getApiAddress());
+var domNode= document.querySelector("canvas")
+var server_viewer = new BimServerViewer(null, domNode, null, null, null);
+
+
+</script> -->
 
     <script type="module">
         import {BimSurfer} from "../viewer/bimsurfer.js";
@@ -25,17 +90,67 @@
 		import {Credentials} from "./credentials.js"
         
         var surfer = window.bimSurfer = new BimSurfer();
+        var api = new BimServerClient(Address.getApiAddress());
 
-		var api = new BimServerClient(Address.getApiAddress());
-		api.init().then(() => {
-			new Credentials(api).getCredentials().then(() => {
-                surfer.load({
-                    api: api, 
-                    roid:65539,
-                    domNode:document.querySelector("canvas")
-                }).then(generateApiReference).catch(errorHandler);
-			});
-		});
+
+  
+
+
+////////////////////////////////////////////////////////////////////////////////////
+        // function onfilechange(then, evt) {
+        //     const reader = new FileReader();
+        //     reader.onload = function (e) {
+        //         console.log(e);
+
+        //         // then(e.target.result);
+        //     };
+        //     reader.onerror = function (e) {
+        //         console.error(e);
+        //     };
+        //     return reader.readAsArrayBuffer(evt.target.files[0]);
+        // }
+        
+
+        // document.getElementById('fileInput').addEventListener('change', onfilechange.bind(null, console.log("EVENT",event)), false);
+
+        // document.getElementById("fileInput").onchange = function(e) { 
+        //     var l = onfilechange.bind(null, console.log("EVENT",event));
+        //     console.log(l);
+        // }
+////////////////////////////////////////////////////////////////////////////////////
+
+        // document.getElementById("fileInput").onchange = function(e) { 
+        //     api.init().then(() => {
+		// 	new Credentials(api).getCredentials().then(() => {
+        //         // debugger;
+        //         surfer.load({
+        //             api: api, 
+        //             roid:65539,
+        //             domNode:document.querySelector("canvas"),
+        //             loadertype:'gltf',
+        //             src:e
+        //         }).then(generateApiReference).catch(errorHandler);
+        //     });
+            
+		// });
+
+        // };
+
+
+
+
+		// api.init().then(() => {
+		// 	new Credentials(api).getCredentials().then(() => {
+        //         // debugger;
+        //         surfer.load({
+        //             api: api, 
+        //             roid:65539,
+        //             domNode:document.querySelector("canvas"),
+        //             loadertype:'fromserver'
+        //         }).then(generateApiReference).catch(errorHandler);
+        //     });
+            
+		// });
 
         function generateApiReference() {
 
@@ -128,6 +243,25 @@
             canvas.parentElement.removeChild(canvas);
         }
     </script>
+
+<script>
+    var openFile = function(event) {
+      var input = event.target;
+  
+      var reader = new FileReader();
+      reader.onload = function(){
+          
+        var dataURL = reader.result;
+        var output = document.getElementById('output');
+        //output.src = dataURL;
+      };
+      
+      reader.readAsArrayBuffer(input.files[0]);
+
+
+    };
+  </script>
+  
 
 </body>
 </html>
