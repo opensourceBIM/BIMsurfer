@@ -16,7 +16,7 @@ export class CameraControl {
 
         this.viewer = viewer;
 
-        this.mousePanSensitivity = 0.5;
+        this.mousePanSensitivity = 1; // 0.5;
         this.mouseOrbitSensitivity = 0.5;
         this.canvasPickTolerance = 4;
 
@@ -106,8 +106,17 @@ export class CameraControl {
                 if (event.touches.length == 0) {
                     return;
                 }
-                pageX = event.touches[0].pageX;
-                pageY = event.touches[0].pageY;
+                if (event.touches.length == 2) {
+                    let coords = Array.from(event.touches).map(t => vec2.fromValues(t.pageX, t.pageY));
+                    this.pinchDistance = vec2.length(vec2.sub(vec2.create(), ...coords));
+                    let avg = vec2.add(vec2.create(), ...coords);
+                    vec2.scale(avg, avg, 0.5);
+                    pageX = avg[0];
+                    pageY = avg[1];
+                } else {
+                    pageX = event.touches[0].pageX;
+                    pageY = event.touches[0].pageY;
+                }
             } else {
                 pageX = event.pageX;
                 pageY = event.pageY;
@@ -142,6 +151,8 @@ export class CameraControl {
      * @private
      */
     canvasMouseDown(e) {
+        this.lastPan = +new Date();
+
         this.getCanvasPosFromEvent(e, this.mousePos);
 
         this.lastX = this.mousePos[0];
@@ -202,6 +213,7 @@ export class CameraControl {
             if (e.touches.length == 1) {
                 handleOrbit();
             } else if (e.touches.length == 2) {
+                this.lastPinchDistance = this.pinchDistance;
                 handlePan();
             } else if (e.touches.length == 3) {
                 handleSection();
@@ -265,7 +277,7 @@ export class CameraControl {
             return;
         }
         var d = delta / Math.abs(delta);
-        var zoom = -d * this.getZoomRate() * this.mousePanSensitivity;
+        var zoom = -d * this.getEyeLookDist() / 20.;
         this.camera.zoom(zoom, this.mousePos);
         e.preventDefault();
     }
@@ -457,8 +469,22 @@ export class CameraControl {
                     }
                     this.camera.orbitting = true;
                 } else if (this.dragMode == DRAG_PAN) {
-                    var f = this.getEyeLookDist() / 600;
-                    this.camera.pan([xDelta * f, yDelta * this.mousePanSensitivity * f, 0.0]);
+                    // tfk: using the elapsed time didn't seem to make navigation smoother.
+
+                    // let now = +new Date();
+                    // let elapsed = now - this.lastPan;
+                    // elapsed /= 20.;
+
+                    let dist = this.getEyeLookDist();
+                    if (e instanceof TouchEvent && e.touches.length == 2) {
+                        let factor = Math.pow(this.pinchDistance / this.lastPinchDistance, 0.5);
+                        this.camera.zoom(dist - dist * factor, this.mousePos);
+                        this.lastPinchDistance = this.pinchDistance;
+                    }
+                    var f = dist / 600;
+                    // f *= elapsed;
+                    this.camera.pan([xDelta * f, yDelta * f, 0.0]);
+                    // this.lastPan = now;
                 }
             }
         }
@@ -478,8 +504,17 @@ export class CameraControl {
     }
 
     getEyeLookDist() {
-        var vec = vec3.create();
-        return vec3.length(vec3.subtract(vec, this.viewer.camera.target, this.viewer.camera.eye));
+        let d = this.viewer.lastRecordedDepth;
+        if (!this.mouseDown && ((+new Date()) - this.viewer.recordedDepthAt) > 500) {
+            // Reread depth at mouse coordinates for sensitivity measures
+            this.viewer.pick({canvasPos: this.mousePos, select: false});
+        }
+        if (d === null) {
+            return this.getZoomRate() * 20.;
+        } else {
+            // Always add a bit so that we can zoom past a window
+            return d + this.getZoomRate();
+        }
     }
 
     /**

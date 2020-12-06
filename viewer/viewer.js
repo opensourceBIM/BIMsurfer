@@ -174,6 +174,10 @@ export class Viewer {
 	        	});
 			}
         }
+
+        // These parameters are used for camera control sensitivity
+        this.lastRecordedDepth = null;
+        this.recordedDepthAt = 0;
     }
     
     set dirty(dirty) {
@@ -862,6 +866,9 @@ export class Viewer {
                 	}
                 }
             }
+            this.lastRecordedDepth = depth;
+            this.recordedDepthAt = +new Date();
+            console.log("recording depth at", depth);
             return {object: viewObject, normal: normal, coordinates: this.tmp_unproject, depth: depth};
         } else if (params.select !== false) {
         	if (this.selectedElements.size > 0) {
@@ -869,6 +876,9 @@ export class Viewer {
         		this.selectedElements.clear();
         	}
         }
+
+        this.lastRecordedDepth = null;
+        this.recordedDepthAt = +new Date();
 
         return {object: null, coordinates: this.tmp_unproject, depth: depth};
     }
