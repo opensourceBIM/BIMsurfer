@@ -20,10 +20,9 @@
         // Parse header
         var bufferFourBits = new Int32Array(buffer);
         console.log(decoder.decode(bufferFourBits.slice(0,1)))
-
         var firstBits = bufferFourBits.slice(0,2);
         var hexa = new Int16Array(firstBits);
-       
+
         //Todo: Add an assertion to check if the file is glTF
         var magic = hexa[0];
         var magicValue = magic.toString(16);
@@ -34,17 +33,33 @@
         var length = bufferFourBits.slice(2,3)[0];
         console.log(length == buffer.byteLength);
 
-    
         var result = decoder.decode(buffer);
 
         /////////// CHUNK 0
-        var chunkLength = bufferFourBits.slice(3,4)[0];
-        var chunkType = decoder.decode(bufferFourBits.slice(4,5))
-        var offset = chunkLength / 4;
+        var firstChunkLength = bufferFourBits.slice(3,4)[0];
+        var firstChunkType = decoder.decode(bufferFourBits.slice(4,5))
+        var offset = firstChunkLength / 4;
         var content = bufferFourBits.slice(5, offset + 5);
         var contentString = decoder.decode(content);
-        console.log(contentString)
+        //console.log(contentString)
+        debugger;
         var firstChunkObject = JSON.parse(contentString);
+
+
+        /////////// CHUNK 1
+        var secondChunkLength = bufferFourBits.slice(offset + 5, offset + 6)[0];
+        var secondChunkType = decoder.decode(bufferFourBits.slice(offset + 6,offset+7));
+        var secondOffset = secondChunkLength / 4;
+        var secondChunkContent = bufferFourBits.slice(offset + 7, offset + 7 + secondOffset);
+
+        
+        
+
+
+
+
+
+
 
         
     
