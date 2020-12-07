@@ -64,7 +64,7 @@
         for (var i = 0; i < meshes.length; i++){
             if (meshes[i].primitives.length > 1){
                 for(var j=0;j<meshes[i].primitives.length;j++){
-                    console.log(meshes[i].primitives[j].mode)
+                    console.log(meshes[i])
 
                 }
             console.log(" ")
@@ -73,7 +73,33 @@
             
         } 
 
-        ///////////// Test with one mesh
+        ///////////// Test with one or several meshes
+        
+        var mesh = meshes[128];
+        var primitive = mesh['primitives'][0];
+
+        var normalAccessorIndex = primitive['attributes']["NORMAL"];
+        var normalAccessor = firstChunkObject['accessors'][normalAccessorIndex];
+        var normalAccessorOffset = normalAccessor['offset'];
+
+        // Accessor count property defines the number of elements in the bufferView
+        var normalAccessorCount = normalAccessor['count'];
+
+
+        var concernedBufferViewIndex= normalAccessor['bufferView'];
+        var concernedBufferView = firstChunkObject['bufferViews'][concernedBufferViewIndex];
+
+        var byteOffset = concernedBufferView['byteOffset'];
+        var byteStride = concernedBufferView['byteStride'];
+        var byteLength = concernedBufferView['byteLength'];
+
+        var concernedBufferIndex = concernedBufferView['buffer'];
+        var concernedBuffer = firstChunkObject['buffers'][concernedBufferIndex];
+
+
+
+
+
 
 
 
