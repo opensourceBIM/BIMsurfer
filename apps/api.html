@@ -35,7 +35,7 @@
 
         var result = decoder.decode(buffer);
 
-        /////////// CHUNK 0
+        /////////// JSON CHUNK
         var firstChunkLength = bufferFourBits.slice(3,4)[0];
         var firstChunkType = decoder.decode(bufferFourBits.slice(4,5))
         var offset = firstChunkLength / 4;
@@ -46,15 +46,13 @@
         var firstChunkObject = JSON.parse(contentString);
 
 
-        /////////// CHUNK 1
+        /////////// BIN CHUNK 
         var secondChunkLength = bufferFourBits.slice(offset + 5, offset + 6)[0];
         var secondChunkType = decoder.decode(bufferFourBits.slice(offset + 6,offset+7));
         var secondOffset = secondChunkLength / 4;
         var secondChunkContent = bufferFourBits.slice(offset + 7, offset + 7 + secondOffset);
 
         var secondChunkBits =  buffer.slice((offset + 7)*4,(offset + 7 + secondOffset)*4);
-
-
         
         /////////// PARSING THE MESHES
         var meshes = firstChunkObject['meshes'];
@@ -80,21 +78,31 @@
 
         var normalAccessorIndex = primitive['attributes']["NORMAL"];
         var normalAccessor = firstChunkObject['accessors'][normalAccessorIndex];
-        var normalAccessorOffset = normalAccessor['offset'];
+        var normalAccessorOffset = normalAccessor['byteOffset'];
+        var normalAccesorType = normalAccessor['type'];
 
         // Accessor count property defines the number of elements in the bufferView
         var normalAccessorCount = normalAccessor['count'];
 
-
+        // BufferView
         var concernedBufferViewIndex= normalAccessor['bufferView'];
         var concernedBufferView = firstChunkObject['bufferViews'][concernedBufferViewIndex];
-
         var byteOffset = concernedBufferView['byteOffset'];
         var byteStride = concernedBufferView['byteStride'];
         var byteLength = concernedBufferView['byteLength'];
 
+        // Buffer
         var concernedBufferIndex = concernedBufferView['buffer'];
         var concernedBuffer = firstChunkObject['buffers'][concernedBufferIndex];
+        var concernedBufferLength = concernedBuffer['byteLength'];
+
+        // Segment Buffer according to 1.BufferView offset, 2. Accessor offset, 3.BufferView stride
+        var segmentedBuffer = secondChunkBits.slice(byteOffset, byteOffset + byteLength);
+        var segmentedBufferFromAccessor = segmentedBuffer.slice(normalAccessorOffset);
+
+
+        
+
 
 
 
