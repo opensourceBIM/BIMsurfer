@@ -7,8 +7,6 @@ var ACTIVE_ANIMATIONS = 0;
 export class AnimatedVec3 {
 
     constructor(x, y, z) {
-        this.a.set([x, y, z]);
-
 	    this.a = vec3.create();
 	    this.b = vec3.create();
 	    this.c = vec3.create();
@@ -16,6 +14,8 @@ export class AnimatedVec3 {
 	    this.t0 = 0;
 	    this.t1 = 1; 
 	    this.t2 = 2;
+
+        this.a.set([x, y, z]);
     }
 
     get() {
