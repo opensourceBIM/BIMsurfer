@@ -85,15 +85,15 @@ export class CameraControl {
         };
         document.addEventListener("mouseup", this.documentMouseUpHandler);
 
-        this.documentKeyUpHandler = (e) => {
-        	this.documentKeyProcess(e, false);
+        this.canvasKeyUpHandler = (e) => {
+        	this.canvasKeyProcess(e, false);
         };
-        //document.addEventListener("keyup", this.documentKeyUpHandler);
+ 		this.canvas.addEventListener("keyup", this.canvasKeyUpHandler);
 
-        this.documentKeyDownHandler = (e) => {
-        	this.documentKeyProcess(e, true);
+        this.canvasKeyDownHandler = (e) => {
+        	this.canvasKeyProcess(e, true);
         };
-        //document.addEventListener("keydown", this.documentKeyDownHandler);
+        this.canvas.addEventListener("keydown", this.canvasKeyDownHandler);
 
         this.canvas.addEventListener("mouseenter", this.canvasMouseEnterHandler = (e) => {
             this.over = true;
@@ -336,7 +336,7 @@ export class CameraControl {
         }
     }
 
-    documentKeyProcess(e, state) {
+    canvasKeyProcess(e, state) {
         let axo = this.axoKeyMapping[e.key];
         if (axo && state == false) {
             this._tmp_topleftfront_0[0] = this._tmp_topleftfront_1[0] = (this.viewer.modelBounds[0] + this.viewer.modelBounds[3]) / 2;
@@ -526,8 +526,8 @@ export class CameraControl {
         canvas.removeEventListener("mousedown", this.canvasMouseDownHandler);
         canvas.removeEventListener("mouseup", this.canvasMouseUpHandler);
         document.removeEventListener("mouseup", this.documentMouseUpHandler);
-        document.removeEventListener("keyup", this.documentKeyUpHandler);
-        document.removeEventListener("keydown", this.documentKeyUpHandler);
+        canvas.removeEventListener("keyup", this.canvasKeyUpHandler);
+        canvas.removeEventListener("keydown", this.canvastKeyDownHandler);
         canvas.removeEventListener("mouseenter", this.canvasMouseEnterHandler);
         canvas.removeEventListener("mouseleave", this.canvasMouseLeaveHandler);
         canvas.removeEventListener("mousemove", this.canvasMouseMoveHandler);
