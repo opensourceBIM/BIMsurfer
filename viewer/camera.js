@@ -142,7 +142,7 @@ export class Camera {
         
         let [near, far] = [+Infinity, -Infinity];
 
-        if (this.autonear) {
+        if (this.autonear && this._modelBounds) {
         	for (var v of this._modelBounds) {
                 vec3.transformMat4(this.tmp_modelBounds, v, this._viewMatrix);
                 let z = -this.tmp_modelBounds[2];
