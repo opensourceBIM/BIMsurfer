@@ -5,16 +5,17 @@ import * as vec3 from "./glmatrix/vec3.js";
 var ACTIVE_ANIMATIONS = 0;
 
 export class AnimatedVec3 {
-    a = vec3.create();
-    b = vec3.create();
-    c = vec3.create();
-    tmp = vec3.create();
-    t0 = 0;
-    t1 = 1; 
-    t2 = 2;
 
     constructor(x, y, z) {
         this.a.set([x, y, z]);
+
+	    this.a = vec3.create();
+	    this.b = vec3.create();
+	    this.c = vec3.create();
+	    this.tmp = vec3.create();
+	    this.t0 = 0;
+	    this.t1 = 1; 
+	    this.t2 = 2;
     }
 
     get() {

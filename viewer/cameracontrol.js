@@ -57,6 +57,17 @@ export class CameraControl {
         this.mouseDown = false;
         this.dragMode = DRAG_ORBIT;
 
+	    this._tmp_topleftfront_0 = vec3.create();
+	    this._tmp_topleftfront_1 = vec3.create();
+	    this._tmp_topleftfront_current_dir = vec3.create();
+	    this._tmp_topleftfront_new_dir = vec3.create();
+	    this._tmp_topleftfront_a = vec3.create();
+	    this._tmp_topleftfront_b = vec3.create();
+	    this._tmp_topleftfront_c = vec3.create();
+	    this._tmp_topleftfront_d = vec4.create();
+	    this._tmp_topleftfront_e = mat4.create();
+	    this._tmp_topleftfront_f = vec3.create();
+
         this.canvas.oncontextmenu = (e) => {
             e.preventDefault();
         };
@@ -325,17 +336,6 @@ export class CameraControl {
         }
     }
 
-    _tmp_topleftfront_0 = vec3.create();
-    _tmp_topleftfront_1 = vec3.create();
-    _tmp_topleftfront_current_dir = vec3.create();
-    _tmp_topleftfront_new_dir = vec3.create();
-    _tmp_topleftfront_a = vec3.create();
-    _tmp_topleftfront_b = vec3.create();
-    _tmp_topleftfront_c = vec3.create();
-    _tmp_topleftfront_d = vec4.create();
-    _tmp_topleftfront_e = mat4.create();
-    _tmp_topleftfront_f = vec3.create();
-    
     documentKeyProcess(e, state) {
         let axo = this.axoKeyMapping[e.key];
         if (axo && state == false) {

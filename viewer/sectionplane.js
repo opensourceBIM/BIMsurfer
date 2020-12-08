@@ -33,6 +33,7 @@ export class SectionPlane {
 
         // A SVG canvas overlay polygon to indicate section plane positioning
         this.Poly = null;
+		this.isTempDisabled = false;
     }
 
     position(coordinates, normal) {
@@ -108,8 +109,6 @@ export class SectionPlane {
         let cp = [canvasPos[0] / this.viewer.width, - canvasPos[1] / this.viewer.height];
         this.DownAt = cp;
     }
-
-    isTempDisabled = false;
 
     tempDisable() {
         if (!this.isTempDisabled) {
