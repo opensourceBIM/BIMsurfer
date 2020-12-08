@@ -29,6 +29,31 @@ export class CameraControl {
         this.lastX = 0; // Last canvas pos while dragging
         this.lastY = 0;
 
+		this.keysDown = new Map();
+		this.keyMapping = {
+		    "ArrowRight": "x_neg",
+		    "ArrowLeft": "x_pos",
+		    "ArrowUp": "z_neg",
+		    "ArrowDown": "z_pos",
+		    "PageUp": "y_pos",
+		    "PageDown": "y_neg",
+		    "w": "z_neg",
+		    "a": "x_pos",
+		    "s": "z_pos",
+		    "d": "x_neg",
+		    "q": "y_pos",
+		    "z": "y_neg"
+		};
+		
+		this.axoKeyMapping = {
+		    "1": "z_pos",
+		    "2": "z_neg",
+		    "3": "x_pos",
+		    "4": "x_neg",
+		    "5": "y_pos",
+		    "6": "y_neg",
+		}
+
         this.mouseDown = false;
         this.dragMode = DRAG_ORBIT;
 
@@ -52,12 +77,12 @@ export class CameraControl {
         this.documentKeyUpHandler = (e) => {
         	this.documentKeyProcess(e, false);
         };
-        document.addEventListener("keyup", this.documentKeyUpHandler);
+        //document.addEventListener("keyup", this.documentKeyUpHandler);
 
         this.documentKeyDownHandler = (e) => {
         	this.documentKeyProcess(e, true);
         };
-        document.addEventListener("keydown", this.documentKeyDownHandler);
+        //document.addEventListener("keydown", this.documentKeyDownHandler);
 
         this.canvas.addEventListener("mouseenter", this.canvasMouseEnterHandler = (e) => {
             this.over = true;
@@ -280,31 +305,6 @@ export class CameraControl {
         var zoom = -d * this.getEyeLookDist() / 20.;
         this.camera.zoom(zoom, this.mousePos);
         e.preventDefault();
-    }
-
-    keysDown = new Map();
-    keyMapping = {
-        "ArrowRight": "x_neg",
-        "ArrowLeft": "x_pos",
-        "ArrowUp": "z_neg",
-        "ArrowDown": "z_pos",
-        "PageUp": "y_pos",
-        "PageDown": "y_neg",
-        "w": "z_neg",
-        "a": "x_pos",
-        "s": "z_pos",
-        "d": "x_neg",
-        "q": "y_pos",
-        "z": "y_neg"
-    };
-
-    axoKeyMapping = {
-        "1": "z_pos",
-        "2": "z_neg",
-        "3": "x_pos",
-        "4": "x_neg",
-        "5": "y_pos",
-        "6": "y_neg",
     }
 
     keyTick() {

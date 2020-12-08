@@ -148,6 +148,8 @@ export class Viewer {
 
         this.eventHandler = new EventHandler();
         
+		this.sectionPlaneIndex = 0;
+
         if ("OffscreenCanvas" in window && canvas instanceof OffscreenCanvas) {
         } else {
         	// Tabindex required to be able add a keypress listener to canvas
@@ -715,7 +717,7 @@ export class Viewer {
     
     resetToDefaultView(modelBounds=this.modelBounds) {
         this.camera.target = [0, 0, 0];
-        this.camera.eye = [0, 1, 0];
+        this.camera.eye = [0, -1, 0];
         this.camera.up = [0, 0, 1];
         this.camera.worldAxis = [ // Set the +Z axis as World "up"
             1, 0, 0, // Right
@@ -732,8 +734,6 @@ export class Viewer {
             sp.destroy();
         }
     }
-
-    sectionPlaneIndex = 0;
 
     positionSectionPlaneWidget(params) {
         if (this.sectionPlaneIndex < this.sectionPlanes.planes.length) {
@@ -954,15 +954,19 @@ export class Viewer {
         this.viewObjectsByType.set(viewObject.type, byType);
     }
 
+	getAabbFor(ids) {
+		return ids.map(this.viewObjects.get.bind(this.viewObjects))
+			.filter((o) => o != null && o.globalizedAabb != null)
+			.map((o) => o.globalizedAabb)
+	        .reduce(Utils.unionAabb, Utils.emptyAabb());
+	}
+
     viewFit(ids) {
     	if (ids.length == 0) {
     		return Promise.resolve();
     	}
     	return new Promise((resolve, reject) => {
-    		let aabb = ids.map(this.viewObjects.get.bind(this.viewObjects))
-    		.filter((o) => o != null && o.globalizedAabb != null)
-    		.map((o) => o.globalizedAabb)
-            .reduce(Utils.unionAabb, Utils.emptyAabb());
+			const aabb = this.getAabbFor(ids);
             if (Utils.isEmptyAabb(aabb)) {
                 console.error("No AABB for objects", ids);
                 reject();

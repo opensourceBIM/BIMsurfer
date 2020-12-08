@@ -19,8 +19,6 @@ const _sectionPlaneValuesDisabled = new Float32Array([0,0,0,1]);
 
 export class SectionPlane {
 
-    isDisabled = true;
-
     constructor(params) {
         this.viewer = params.viewer;
 
@@ -30,7 +28,7 @@ export class SectionPlane {
 
         this.coordinates = null;
         this.normal = null;
-        
+
         this.disable();
 
         // A SVG canvas overlay polygon to indicate section plane positioning
