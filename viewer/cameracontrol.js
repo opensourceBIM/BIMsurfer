@@ -296,7 +296,7 @@ export class CameraControl {
             }
         }
 
-        if ((window.TouchEvent && e instanceof TouchEvent && this.dragMode == DRAG_ORBIT) || (window.TouchEvent && e instanceof MouseEvent && e.which == 1)) {
+        if ((window.TouchEvent && e instanceof TouchEvent && this.dragMode == DRAG_ORBIT) || (e instanceof MouseEvent && e.which == 1)) {
             handleClick();
         }
 
@@ -476,7 +476,7 @@ export class CameraControl {
                     // elapsed /= 20.;
 
                     let dist = this.getEyeLookDist();
-                    if (e instanceof TouchEvent && e.touches.length == 2) {
+                    if (window.TouchEvent && e instanceof TouchEvent && e.touches.length == 2) {
                         let factor = Math.pow(this.pinchDistance / this.lastPinchDistance, 0.5);
                         this.camera.zoom(dist - dist * factor, this.mousePos);
                         this.lastPinchDistance = this.pinchDistance;
