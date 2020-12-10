@@ -138,7 +138,7 @@ export class CameraControl {
             canvasPos[1] = event.y;
         } else {
             let pageX = null, pageY = null;
-            if (event instanceof TouchEvent) {
+            if (window.TouchEvent && event instanceof TouchEvent) {
                 if (event.touches.length == 0) {
                     return;
                 }
@@ -245,7 +245,7 @@ export class CameraControl {
             this.dragMode = DRAG_PAN;
         }
 
-        if (e instanceof TouchEvent) {
+        if (window.TouchEvent && e instanceof TouchEvent) {
             if (e.touches.length == 1) {
                 handleOrbit();
             } else if (e.touches.length == 2) {
@@ -296,7 +296,7 @@ export class CameraControl {
             }
         }
 
-        if ((e instanceof TouchEvent && this.dragMode == DRAG_ORBIT) || (e instanceof MouseEvent && e.which == 1)) {
+        if ((window.TouchEvent && e instanceof TouchEvent && this.dragMode == DRAG_ORBIT) || (window.TouchEvent && e instanceof MouseEvent && e.which == 1)) {
             handleClick();
         }
 
