@@ -868,7 +868,7 @@ export class Viewer {
             }
             this.lastRecordedDepth = depth;
             this.recordedDepthAt = +new Date();
-            console.log("recording depth at", depth);
+//            console.log("recording depth at", depth);
             return {object: viewObject, normal: normal, coordinates: this.tmp_unproject, depth: depth};
         } else if (params.select !== false) {
         	if (this.selectedElements.size > 0) {
