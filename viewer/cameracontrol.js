@@ -283,10 +283,10 @@ export class CameraControl {
 
         const handleClick = () => {
             if (dt < 500. && this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
-                var viewObject = this.viewer.pick({
+				                var viewObject = this.viewer.pick({
                     canvasPos: this.mousePos,
                     select: true, // e.which == 3,
-                    shiftKey: e.which == 1 ? e.shiftKey : this.viewer.selectedElements.size > 0,
+                    shiftKey: (e.which == 1 || e.which == 0) ? e.shiftKey : this.viewer.selectedElements.size > 0, // e.which == 0 on touch events
                     onlyAdd: e.which == 3 && this.viewer.selectedElements.size > 0
                 });
                 if (viewObject && viewObject.object) {
