@@ -20,6 +20,7 @@ import { WSQuad } from './wsquad.js';
 import {EventHandler} from "./eventhandler.js";
 import { AnimatedVec3 } from "./animatedvec3.js";
 
+export const ALLOW_FLOAT_RENDER_TARGET = true;
 
 // When a change in color results in a different
 // transparency state, the objects needs to be hidden
@@ -64,6 +65,8 @@ export class Viewer {
             alert('Unable to initialize WebGL. Your browser or machine may not support it.');
             return;
         }
+
+		this.useFloatColorBuffer = ALLOW_FLOAT_RENDER_TARGET && this.gl.getExtension("EXT_color_buffer_float");
 
         if (!this.settings.loaderSettings.prepareBuffers || (this.settings.tilingLayerEnabled && this.settings.loaderSettings.tilingLayerReuse)) {
         	this.bufferSetPool = new BufferSetPool(1000, this.stats);
@@ -431,7 +434,7 @@ export class Viewer {
 
             this.cameraControl = new CameraControl(this);
             this.lighting = new Lighting(this);
-            this.programManager = new ProgramManager(this.gl, this.settings);
+            this.programManager = new ProgramManager(this, this.gl, this.settings);
 
             this.programManager.load().then(() => {
                 resolve();
@@ -442,8 +445,8 @@ export class Viewer {
                 }
             });
 
-            this.pickBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_FLOAT_DEPTH_NORMAL);
-            this.oitBuffer = new RenderBuffer(this.canvas, this.gl, COLOR_ALPHA_DEPTH);
+            this.pickBuffer = new RenderBuffer(this, this.canvas, this.gl, COLOR_FLOAT_DEPTH_NORMAL);
+            this.oitBuffer = new RenderBuffer(this, this.canvas, this.gl, COLOR_ALPHA_DEPTH);
             this.quad = new SSQuad(this.gl);
         });
         return promise;

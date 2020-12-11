@@ -1,8 +1,6 @@
 export const COLOR_FLOAT_DEPTH_NORMAL = 0xff01;
 export const COLOR_ALPHA_DEPTH = 0xff02;
 
-const USE_FLOAT_RENDER_TARGET = true;
-
 /**
  *
  * @ignore
@@ -11,7 +9,8 @@ const USE_FLOAT_RENDER_TARGET = true;
  */
 export class RenderBuffer {
 
-    constructor(canvas, gl, purpose, supersample) {
+    constructor(viewer, canvas, gl, purpose, supersample) {
+		this.viewer = viewer;
         this.gl = gl;
         this.allocated = false;
         this.canvas = canvas;
@@ -76,12 +75,7 @@ export class RenderBuffer {
             this.attachments.push(gl.COLOR_ATTACHMENT2);
 
             this.colorBuffer = createTexture(gl.RGBA8UI);
-			if (USE_FLOAT_RENDER_TARGET) {
-		        // var ext = gl.getExtension('WEBGL_draw_buffers');
-		        var ext = gl.getExtension('EXT_color_buffer_float');
-		        if (!ext) {
-		            throw "EXT_color_buffer_float is required";
-		        }
+			if (this.viewer.useFloatColorBuffer) {
 				this.depthFloat = createTexture(gl.R32F);
             	// @todo, just have depth in normalBuffer.w?
             	this.normalBuffer = createTexture(gl.RGBA32F);     
@@ -159,7 +153,7 @@ export class RenderBuffer {
         var gl = this.gl;
         gl.readBuffer(gl.COLOR_ATTACHMENT1);
 
-		if (USE_FLOAT_RENDER_TARGET) {
+		if (this.viewer.useFloatColorBuffer) {
 	        // Reading only gl.R should be sufficient, but at least on Google Chrome and Firefox on OSX, the gl.R could not be read. So that's why we are reading RGBA here
 	        // Don't think this can hurt performance. Seems to be caused by a vague spec: https://github.com/KhronosGroup/WebGL/issues/2747
 			var pix = new Float32Array(4);
@@ -182,7 +176,7 @@ export class RenderBuffer {
         var gl = this.gl;
         gl.readBuffer(gl.COLOR_ATTACHMENT2);
 
-		if (USE_FLOAT_RENDER_TARGET) {
+		if (this.viewer.useFloatColorBuffer) {
 			var pix = new Float32Array(4);
 			gl.readPixels(x, y, 1, 1, gl.RGBA, gl.FLOAT, pix);
 			return pix;
