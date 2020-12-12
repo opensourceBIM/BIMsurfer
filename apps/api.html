@@ -71,16 +71,27 @@
             
         } 
 
+
+        var WEBGL_TYPE_SIZES = {
+		'SCALAR': 1,
+		'VEC2': 2,
+		'VEC3': 3,
+		'VEC4': 4,
+		'MAT2': 4,
+		'MAT3': 9,
+		'MAT4': 16
+	};
+
+
         ///////////// Test with one or several meshes
         
-        var mesh = meshes[128];
+        var mesh = meshes[127];
         var primitive = mesh['primitives'][0];
 
-        var normalAccessorIndex = primitive['attributes']["NORMAL"];
+        var normalAccessorIndex = primitive['attributes']["POSITION"];
         var normalAccessor = firstChunkObject['accessors'][normalAccessorIndex];
         var normalAccessorOffset = normalAccessor['byteOffset'];
         var normalAccesorType = normalAccessor['type'];
-
         // Accessor count property defines the number of elements in the bufferView
         var normalAccessorCount = normalAccessor['count'];
 
@@ -98,17 +109,16 @@
 
         // Segment Buffer according to 1.BufferView offset, 2. Accessor offset, 3.BufferView stride
         var segmentedBuffer = secondChunkBits.slice(byteOffset, byteOffset + byteLength);
-        var segmentedBufferFromAccessor = segmentedBuffer.slice(normalAccessorOffset);
+       
+        var dataSize = WEBGL_TYPE_SIZES[normalAccesorType];
+        var upperBound = normalAccessorCount*dataSize
 
+        var segmentedBufferFromAccessor = segmentedBuffer.slice(normalAccessorOffset, normalAccessorOffset+ upperBound);
+        var view = new DataView(segmentedBufferFromAccessor);
+        var firstItem = view.getFloat32(0, false);
+        var floatValues = new Float32Array(segmentedBufferFromAccessor)
 
-        
-
-
-
-
-
-
-
+                
 
 
         debugger;
