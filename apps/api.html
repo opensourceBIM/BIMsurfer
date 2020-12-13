@@ -1,348 +1,62 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8">
-<title>BIMsurfer Developer Mode</title>
-<link rel="icon" type="image/png" href="../img/application_home.png" />
-<link href="../css/apps.css" type="text/css" rel="stylesheet" />
-<link href="../css/apiref.css" type="text/css" rel="stylesheet" />
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+    <meta charset="utf-8">
+    <title>BIMsurfer Developer Mode</title>
+    <link rel="icon" type="image/png" href="../img/application_home.png" />
+    <link href="../css/apps.css" type="text/css" rel="stylesheet" />
+    <link href="../css/apiref.css" type="text/css" rel="stylesheet" />
+    <script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
 </head>
 
-<script>
-    fetch("/../../test.glb").then(function(response) {
+<script type="module">
+
+
+    import { BimSurfer } from "../viewer/bimsurfer.js";
+    import { BimServerClient } from "../../bimserverjavascriptapi/bimserverclient.js"
+    import { Address } from "./address.js";
+    import { Credentials } from "./credentials.js"
+    import { RenderLayer } from "../viewer/renderlayer.js";
+    import { BimServerViewer } from "../viewer/bimserverviewer.js";
+
+
+    fetch("/../../test.glb").then(function (response) {
         return response.arrayBuffer();
-    }).then(function(buffer) {
-        
-        console.log(buffer)
-        var decoder = new TextDecoder("utf-8");
+    }).then(function (buffer) {
 
-        // Parse header
-        var bufferFourBits = new Int32Array(buffer);
-        console.log(decoder.decode(bufferFourBits.slice(0,1)))
-        var firstBits = bufferFourBits.slice(0,2);
-        var hexa = new Int16Array(firstBits);
+        var surfer = window.bimSurfer = new BimSurfer();
+        var api = new BimServerClient(Address.getApiAddress());
+        var domNode = document.querySelector("canvas")
+        surfer.load({
+            api: api,
+            roid: 65539,
+            domNode: document.querySelector("canvas"),
+            loadertype: 'gltf',
+            buffer: buffer
+        })
 
-        //Todo: Add an assertion to check if the file is glTF
-        var magic = hexa[0];
-        var magicValue = magic.toString(16);
-        var fileFormat = decoder.decode(buffer.slice(0,4))
-
-        var version = hexa[1].toString(8);
-
-        var length = bufferFourBits.slice(2,3)[0];
-        console.log(length == buffer.byteLength);
-
-        var result = decoder.decode(buffer);
-
-        /////////// JSON CHUNK
-        var firstChunkLength = bufferFourBits.slice(3,4)[0];
-        var firstChunkType = decoder.decode(bufferFourBits.slice(4,5))
-        var offset = firstChunkLength / 4;
-        var content = bufferFourBits.slice(5, offset + 5);
-        var contentString = decoder.decode(content);
-        //console.log(contentString)
-        // debugger;
-        var firstChunkObject = JSON.parse(contentString);
-
-
-        /////////// BIN CHUNK 
-        var secondChunkLength = bufferFourBits.slice(offset + 5, offset + 6)[0];
-        var secondChunkType = decoder.decode(bufferFourBits.slice(offset + 6,offset+7));
-        var secondOffset = secondChunkLength / 4;
-        var secondChunkContent = bufferFourBits.slice(offset + 7, offset + 7 + secondOffset);
-
-        var secondChunkBits =  buffer.slice((offset + 7)*4,(offset + 7 + secondOffset)*4);
-        
-        /////////// PARSING THE MESHES
-        var meshes = firstChunkObject['meshes'];
-        var indices = new Set();
-        //meshes.forEach(mesh => indices.add(mesh.primitives.length))
-
-        for (var i = 0; i < meshes.length; i++){
-            if (meshes[i].primitives.length > 1){
-                for(var j=0;j<meshes[i].primitives.length;j++){
-                    console.log(meshes[i])
-
-                }
-            console.log(" ")
-            console.log(" ")
-            }
-            
-        } 
-
-
-        var WEBGL_TYPE_SIZES = {
-		'SCALAR': 1,
-		'VEC2': 2,
-		'VEC3': 3,
-		'VEC4': 4,
-		'MAT2': 4,
-		'MAT3': 9,
-		'MAT4': 16
-	};
-
-
-        ///////////// Test with one or several meshes
-        
-        var mesh = meshes[127];
-        var primitive = mesh['primitives'][0];
-
-        var normalAccessorIndex = primitive['attributes']["POSITION"];
-        var normalAccessor = firstChunkObject['accessors'][normalAccessorIndex];
-        var normalAccessorOffset = normalAccessor['byteOffset'];
-        var normalAccesorType = normalAccessor['type'];
-        // Accessor count property defines the number of elements in the bufferView
-        var normalAccessorCount = normalAccessor['count'];
-
-        // BufferView
-        var concernedBufferViewIndex= normalAccessor['bufferView'];
-        var concernedBufferView = firstChunkObject['bufferViews'][concernedBufferViewIndex];
-        var byteOffset = concernedBufferView['byteOffset'];
-        var byteStride = concernedBufferView['byteStride'];
-        var byteLength = concernedBufferView['byteLength'];
-
-        // Buffer
-        var concernedBufferIndex = concernedBufferView['buffer'];
-        var concernedBuffer = firstChunkObject['buffers'][concernedBufferIndex];
-        var concernedBufferLength = concernedBuffer['byteLength'];
-
-        // Segment Buffer according to 1.BufferView offset, 2. Accessor offset, 3.BufferView stride
-        var segmentedBuffer = secondChunkBits.slice(byteOffset, byteOffset + byteLength);
-       
-        var dataSize = WEBGL_TYPE_SIZES[normalAccesorType];
-        var upperBound = normalAccessorCount*dataSize
-
-        var segmentedBufferFromAccessor = segmentedBuffer.slice(normalAccessorOffset, normalAccessorOffset+ upperBound);
-        var view = new DataView(segmentedBufferFromAccessor);
-        var firstItem = view.getFloat32(0, false);
-        var floatValues = new Float32Array(segmentedBufferFromAccessor)
-
-                
-
-
-        debugger;
-
-
-
-
-
-        
-    
     })
 
     function readFile(file) {
         return new Response(file).arrayBuffer();
-}
+    }
+
+
 </script>
+
 <body>
 
     <canvas></canvas>
-    <input type="file" onchange="readFile(this.files[0])"/>
+    <input type="file" onchange="readFile(this.files[0])" />
     <!-- <input type="file" id="fileInput" onchange='openFile(event)' /> -->
     <div id='apirefContainerContainer'>
         <div id='apirefContainer'>
         </div>
     </div>
 
-    <!-- <script type="module">
-    
-    
-import {BimSurfer} from "../viewer/bimsurfer.js";
-import {BimServerClient} from "../../bimserverjavascriptapi/bimserverclient.js"
-import {Address} from "./address.js";
-import {Credentials} from "./credentials.js"
-import {RenderLayer} from "../viewer/renderlayer.js";
-import {BimServerViewer} from "../viewer/bimserverviewer.js";
-
-
-var surfer = window.bimSurfer = new BimSurfer();
-var api = new BimServerClient(Address.getApiAddress());
-var domNode= document.querySelector("canvas")
-var server_viewer = new BimServerViewer(null, domNode, null, null, null);
-
-
-</script> -->
-
-    <script type="module">
-        import {BimSurfer} from "../viewer/bimsurfer.js";
-		import {BimServerClient} from "../../bimserverjavascriptapi/bimserverclient.js"
-		import {Address} from "./address.js";
-		import {Credentials} from "./credentials.js"
-        
-        var surfer = window.bimSurfer = new BimSurfer();
-        var api = new BimServerClient(Address.getApiAddress());
-
-
-  
-
-
-////////////////////////////////////////////////////////////////////////////////////
-        // function onfilechange(then, evt) {
-        //     const reader = new FileReader();
-        //     reader.onload = function (e) {
-        //         console.log(e);
-
-        //         // then(e.target.result);
-        //     };
-        //     reader.onerror = function (e) {
-        //         console.error(e);
-        //     };
-        //     return reader.readAsArrayBuffer(evt.target.files[0]);
-        // }
-        
-
-        // document.getElementById('fileInput').addEventListener('change', onfilechange.bind(null, console.log("EVENT",event)), false);
-
-        // document.getElementById("fileInput").onchange = function(e) { 
-        //     var l = onfilechange.bind(null, console.log("EVENT",event));
-        //     console.log(l);
-        // }
-////////////////////////////////////////////////////////////////////////////////////
-
-        // document.getElementById("fileInput").onchange = function(e) { 
-        //     api.init().then(() => {
-		// 	new Credentials(api).getCredentials().then(() => {
-        //         // debugger;
-        //         surfer.load({
-        //             api: api, 
-        //             roid:65539,
-        //             domNode:document.querySelector("canvas"),
-        //             loadertype:'gltf',
-        //             src:e
-        //         }).then(generateApiReference).catch(errorHandler);
-        //     });
-            
-		// });
-
-        // };
-
-
-
-
-		// api.init().then(() => {
-		// 	new Credentials(api).getCredentials().then(() => {
-        //         // debugger;
-        //         surfer.load({
-        //             api: api, 
-        //             roid:65539,
-        //             domNode:document.querySelector("canvas"),
-        //             loadertype:'fromserver'
-        //         }).then(generateApiReference).catch(errorHandler);
-        //     });
-            
-		// });
-
-        function generateApiReference() {
-
-            var oids = Array.from(bimSurfer._bimServerViewer.viewer.viewObjects.keys());
-            oids = _.shuffle(oids);
-            oids.splice(10);
-            oids = "["+oids.join(", ")+"]";
-            
-            var METHODS = [
-                {name:'setVisibility',     args:[{name: "ids", value: oids}, {name: "visible", value:false}]},
-                {name:'setVisibility',     args:[{name: "types", value: '["IfcWallStandardCase"]'}, {name: "visible", value:false}]},
-                {name:'setSelectionState', args:[{name: "ids", value: oids}, {name: "selected", value:true}]},
-                {name:'getSelected', args:[], hasResult: true},
-                {name:'setColor', args:[{name: "ids", value: oids}, {name: "color", value:"{r:1, g:0, b:0, a:1}"}]},
-                {name:'viewFit', args:[{name: "ids", value: oids}]},
-                {name:'setCamera', args:[{name: "fovy", value: "10"}]},
-                {name:'getCamera', args:[], hasResult: true},
-                {name:'reset', args:[{name: "cameraPosition", value: true}]},
-                {name:'reset', args:[{name: "colors", value: true}]},
-                {name:'reset', args:[{name: "visibility", value: true}]},
-            ];
-
-            var n = document.getElementById('apirefContainer');
-            n.innerHTML = "<h2>API reference</h2>";
-
-            METHODS.forEach(function(m, i) {
-                n.innerHTML += "<h3>"+m.name+"()</h3>";
-                
-                var hasNamedArgs = false;
-                var args = m.args.map(function(a) {
-                    if (a.name) {
-                        hasNamedArgs = true;
-                        return a.name + ": " + a.value;
-                    } else {
-                        return a;
-                    }
-                }).join(", ");
-                
-                if (hasNamedArgs) {
-                    args = "{"+args+"}";
-                }
-                
-                var cmd = "bimSurfer."+m.name+"("+args+");";
-                n.innerHTML += "<textarea rows=3 id='code"+i+"' spellcheck=false>"+cmd+"\n</textarea>";
-                var exec_statement = "eval(document.getElementById(\"code"+i+"\").value)"
-                if (m.hasResult) {
-                    n.innerHTML += "Result:<pre id='result"+i+"' />";
-                    exec_statement = "document.getElementById(\"result"+i+"\").innerHTML = stringify(" + exec_statement + ").replace(/,/g, \", \")";
-                }
-                n.innerHTML += "<button onclick='"+exec_statement+"'>run</button>";
-            });
-            
-            const eventHandlers = document.createElement("div");
-            const onClickTextArea = document.createElement("textarea");
-			onClickTextArea.setAttribute("rows", 10);
-			onClickTextArea.style.overflow = "scroll";
-            surfer.addSelectedHandler((object) => {
-                if (object !== null) {
-                    onClickTextArea.value = onClickTextArea.value + "\n" + object.oid + " (" + object.type + ") clicked";
-                }
-            });
-            eventHandlers.appendChild(onClickTextArea);
-            n.appendChild(eventHandlers);
-        }
-
-        function stringify(x) {
-            function pre(v) {
-                if (v.BYTES_PER_ELEMENT) {
-                    return Array.from(v);
-                } else if ((v instanceof Object) && !(v instanceof Array)) {
-                    let r = {};
-                    Object.keys(v).forEach((k) => {
-                        r[k] = pre(v[k]);
-                    });
-                    return r;
-                } else {
-                    return v;
-                }
-            }
-            return JSON.stringify(pre(x));
-        }
-
-        function errorHandler(message) {
-        	console.error(message);
-            let canvas = document.getElementsByTagName("canvas")[0];
-            let error = document.createElement("div");
-            error.className = "error";
-            error.innerHTML = `<span>${message}</span>`
-            canvas.parentElement.insertBefore(error, canvas);
-            canvas.parentElement.removeChild(canvas);
-        }
-    </script>
-
-<script>
-    var openFile = function(event) {
-      var input = event.target;
-  
-      var reader = new FileReader();
-      reader.onload = function(){
-          
-        var dataURL = reader.result;
-        var output = document.getElementById('output');
-        //output.src = dataURL;
-      };
-      
-      reader.readAsArrayBuffer(input.files[0]);
-
-
-    };
-  </script>
-  
 
 </body>
+
 </html>
