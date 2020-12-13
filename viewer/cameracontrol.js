@@ -343,6 +343,7 @@ export class CameraControl {
     }
 
     canvasKeyProcess(e, state) {
+        console.log("key" ,e.key);
         let axo = this.axoKeyMapping[e.key];
         if (axo && state == false) {
             this.moveToAxo(axo);
@@ -363,6 +364,9 @@ export class CameraControl {
             } else {
                 this.viewer.removeSectionPlaneWidget();
             }            
+        } else if (e.key == "Home") {
+            this.camera.viewFit({animate:true});
+            this.viewer.dirty = 2;
         }
     }
 

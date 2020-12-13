@@ -487,9 +487,9 @@ export class Viewer {
             this.stats.update();
         }
 
-        if (this.running || AnimatedVec3.active) {
+        if (this.running || AnimatedVec3.ACTIVE_ANIMATIONS) {
             requestAnimationFrame((now) => {
-                if (AnimatedVec3.active) {
+                if (AnimatedVec3.ACTIVE_ANIMATIONS) {
                     this.camera.forceBuild();
                 }
                 this.render(now);
@@ -727,7 +727,7 @@ export class Viewer {
             0, 0, 1, // Up
             0, -1, 0  // Forward
         ];
-        this.camera.viewFit(modelBounds); // Position camera so that entire model bounds are in view
+        this.camera.viewFit({aabb: modelBounds}); // Position camera so that entire model bounds are in view
         this.cameraSet = true;
         this.camera.forceBuild();
     }
@@ -974,7 +974,7 @@ export class Viewer {
                 console.error("No AABB for objects", ids);
                 reject();
             } else {
-                this.camera.viewFit(aabb);
+                this.camera.viewFit({aabb: aabb});
                 this.dirty = 2;
                 resolve();
             }

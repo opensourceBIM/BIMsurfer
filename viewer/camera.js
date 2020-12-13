@@ -76,7 +76,10 @@ export class Camera {
 	    this._tmp_interpolate_c = vec3.create();
 	    this._tmp_interpolate_d = vec4.create();
 	    this._tmp_interpolate_e = mat4.create();
-	    this._tmp_interpolate_f = vec3.create();
+        this._tmp_interpolate_f = vec3.create();
+        
+        this._tmp_eye = vec3.create();
+        this._tmp_target = vec3.create();
     }
 
     lock() {
@@ -738,12 +741,23 @@ export class Camera {
      @param {Float32Array} aabb The axis-aligned World-space bounding box (AABB).
      @param {Number} fitFOV Field-of-view occupied by the AABB when the camera has fitted it to view.
      */
-    viewFit(aabb, fitFOV) {
-        let eye = this._eye.get();
-        let target = this._target.get();
+    viewFit(params) {
 
-        aabb = aabb || this.viewer.modelBounds;
-        fitFOV = fitFOV || this.perspective.fov;
+        let eye, target, eye2, target2;
+        
+        if (params.animate) {
+            eye = this._eye.get();
+            target = this._target.get();
+
+            eye2 = this._tmp_eye;
+            target2 = this._tmp_target;
+        } else {
+            eye2 = eye = this._eye.get();
+            target2 = target = this._target.get();
+        }
+
+        const aabb = params.aabb || this.viewer.modelBounds;
+        const fitFOV = this.perspective.fov;
         var eyeToTarget = vec3.normalize(this.tempVec3b, vec3.subtract(this.tempVec3, eye, target));
         var diagonal = Math.sqrt(
             Math.pow(aabb[3] - aabb[0], 2) +
@@ -754,11 +768,15 @@ export class Camera {
             (aabb[4] + aabb[1]) / 2,
             (aabb[5] + aabb[2]) / 2
         ];
-        target.set(center);
+        target2.set(center);
         var sca = Math.abs(diagonal / Math.tan(fitFOV * 0.0174532925));
-        eye[0] = target[0] + (eyeToTarget[0] * sca);
-        eye[1] = target[1] + (eyeToTarget[1] * sca);
-        eye[2] = target[2] + (eyeToTarget[2] * sca);
+        eye2[0] = target2[0] + (eyeToTarget[0] * sca);
+        eye2[1] = target2[1] + (eyeToTarget[1] * sca);
+        eye2[2] = target2[2] + (eyeToTarget[2] * sca);
+
+        if (params.animate) {
+            this.interpolateView(this._tmp_eye, this._tmp_target);
+        }
 
         this._setDirty();
     }
