@@ -718,16 +718,16 @@ export class Viewer {
 //		);
     }
     
-    resetToDefaultView(modelBounds=this.modelBounds) {
-        this.camera.target = [0, 0, 0];
-        this.camera.eye = [0, -1, 0];
+    resetToDefaultView(modelBounds=this.modelBounds, animate=false) {
+//        this.camera.target = [0, 0, 0];
+//        this.camera.eye = [0, -1, 0];
         this.camera.up = [0, 0, 1];
         this.camera.worldAxis = [ // Set the +Z axis as World "up"
             1, 0, 0, // Right
             0, 0, 1, // Up
             0, -1, 0  // Forward
         ];
-        this.camera.viewFit({aabb: modelBounds}); // Position camera so that entire model bounds are in view
+        this.camera.viewFit({aabb: modelBounds, viewDirection: [0, -1, 0], animate: animate}); // Position camera so that entire model bounds are in view
         this.cameraSet = true;
         this.camera.forceBuild();
     }
@@ -964,7 +964,7 @@ export class Viewer {
 	        .reduce(Utils.unionAabb, Utils.emptyAabb());
 	}
 
-    viewFit(ids) {
+    viewFit(ids, settings) {
     	if (ids.length == 0) {
     		return Promise.resolve();
     	}
@@ -974,7 +974,11 @@ export class Viewer {
                 console.error("No AABB for objects", ids);
                 reject();
             } else {
-                this.camera.viewFit({aabb: aabb});
+				if (!settings) {
+					settings = {};
+				}
+				settings.aabb = aabb;
+                this.camera.viewFit(settings);
                 this.dirty = 2;
                 resolve();
             }

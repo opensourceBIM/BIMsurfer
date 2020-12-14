@@ -742,7 +742,6 @@ export class Camera {
      @param {Number} fitFOV Field-of-view occupied by the AABB when the camera has fitted it to view.
      */
     viewFit(params) {
-
         let eye, target, eye2, target2;
         
         if (params.animate) {
@@ -755,6 +754,10 @@ export class Camera {
             eye2 = eye = this._eye.get();
             target2 = target = this._target.get();
         }
+
+		if (params.viewDirection) {
+			eye = params.viewDirection;
+		}
 
         const aabb = params.aabb || this.viewer.modelBounds;
         const fitFOV = this.perspective.fov;

@@ -367,6 +367,11 @@ export class CameraControl {
         } else if (e.key == "Home") {
             this.camera.viewFit({animate:true});
             this.viewer.dirty = 2;
+        } else if (e.key == "Insert") {
+			// Should show the model from the side
+			this.camera.target = [0, 0, 0];
+			this.camera.eye = [1, 0, 0];
+			this.camera.viewFit({aabb: this.camera.modelBounds, animate: true});
         }
     }
 
