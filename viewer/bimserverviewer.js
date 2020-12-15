@@ -89,15 +89,11 @@ export class BimServerViewer extends AbstractViewer {
 	 */
 	loadModel(api, project, gltfBuffer) {
 
-	
 		var defaultRenderLayer = new DefaultRenderLayer(this.viewer, this.geometryDataIdsToReuse);
 		if (gltfBuffer) {
-			// var geometryLoader = new GeometryLoader(0, api, defaultRenderLayer, null, this.settings.loaderSettings, null, this.stats, this.settings, null, null, defaultRenderLayer.gpuBufferManager);
-			// var stream = new DataInputStream(gltf);
-			// var size = gltf.byteLength
-			// var v = stream.dataView;
 			var gltfLoader = new GLTFLoader(gltfBuffer, defaultRenderLayer)
-			gltfLoader.processGLTFBuffer();
+			var geometries = gltfLoader.processGLTFBuffer();
+			debugger; 
 		}
 
 

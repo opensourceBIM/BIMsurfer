@@ -39,12 +39,11 @@ export class GLTFLoader {
     constructor(gltfBuffer, defaultRenderLayer) {
         this.gltfBuffer = gltfBuffer;
         this.defaultRenderLayer = defaultRenderLayer;
+        this.primarilyProcess();
 
     }
 
-    processGLTFBuffer() {
-        debugger;
-
+    primarilyProcess() {
         var decoder = new TextDecoder("utf-8");
 
         // Parse header
@@ -55,84 +54,125 @@ export class GLTFLoader {
         //Todo: Add an assertion to check if the file is glTF
         var magic = hexa[0];
         var magicValue = magic.toString(16);
-        var fileFormat = decoder.decode(buffer.slice(0, 4))
-
+        var fileFormat = decoder.decode(this.gltfBuffer.slice(0, 4))
         var version = hexa[1].toString(8);
-
         var length = bufferFourBits.slice(2, 3)[0];
-
-        var result = decoder.decode(this.gltfBuffer);
-
-        /////////// JSON CHUNK
+        
+        // Get JSON Chunk
         var firstChunkLength = bufferFourBits.slice(3, 4)[0];
         var firstChunkType = decoder.decode(bufferFourBits.slice(4, 5))
         var offset = firstChunkLength / 4;
         var content = bufferFourBits.slice(5, offset + 5);
         var contentString = decoder.decode(content);
-        var firstChunkObject = JSON.parse(contentString);
+        this.firstChunkObject = JSON.parse(contentString);
 
-
-        /////////// BIN CHUNK 
+        // Get Binary Chunk 
         var secondChunkLength = bufferFourBits.slice(offset + 5, offset + 6)[0];
         var secondChunkType = decoder.decode(bufferFourBits.slice(offset + 6, offset + 7));
         var secondOffset = secondChunkLength / 4;
         var secondChunkContent = bufferFourBits.slice(offset + 7, offset + 7 + secondOffset);
+        this.secondChunkBits = this.gltfBuffer.slice((offset + 7) * 4, (offset + 7 + secondOffset) * 4);
 
-        var secondChunkBits = this.gltfBuffer.slice((offset + 7) * 4, (offset + 7 + secondOffset) * 4);
+    }
 
-        /////////// PARSING THE MESHES
-        var meshes = firstChunkObject['meshes'];
-        var indices = new Set();
-
+    processGLTFBuffer() {
+        var meshesData = []
+        var meshes = this.firstChunkObject['meshes'];
         for (var i = 0; i < meshes.length; i++) {
-            if (meshes[i].primitives.length > 1) {
-                for (var j = 0; j < meshes[i].primitives.length; j++) {
-                    console.log(meshes[i])
+            var primitives = []
+            for (var j = 0; j < meshes[i].primitives.length; j++) {
+                var primitive = meshes[i].primitives[j]
 
-                }
+                var primitiveData = {
+                    'positions' : this.getBufferData(primitive,'POSITION'),
+                    'normals':this.getBufferData(primitive, 'NORMAL'),
+                    'indices' : this.getBufferData(primitive, 'indices')
+                };
+
+                
+                var positions = this.getBufferData(primitive, 'POSITION');
+                var normals = this.getBufferData(primitive, 'NORMAL');
+                var indices = this.getBufferData(primitive, 'indices');
+
+                primitives.push(primitiveData)
+
             }
+
+
+            if(primitives.length > 0){
+                meshesData.push(primitives);
+            }
+
 
         }
 
+        
+        return meshesData;
 
-        ///////////// Test with one or several meshes
+    }
 
-        var mesh = meshes[127];
-        var primitive = mesh['primitives'][0];
 
-        var normalAccessorIndex = primitive['attributes']["POSITION"];
-        var normalAccessor = firstChunkObject['accessors'][normalAccessorIndex];
-        var normalAccessorOffset = normalAccessor['byteOffset'];
-        var normalAccesorType = normalAccessor['type'];
+    getBufferData(primitive, primitiveAttributeType) {
+
+        if (primitiveAttributeType == 'NORMAL' || primitiveAttributeType == 'POSITION') {
+            var accessorIndex = primitive['attributes'][primitiveAttributeType];
+        }
+        else if (primitiveAttributeType == 'indices') {
+            var accessorIndex = primitive[primitiveAttributeType]
+        }
+
+        var accessor = this.firstChunkObject['accessors'][accessorIndex];
+        var accessorOffset = accessor['byteOffset'];
+        var accesorType = accessor['type'];
+        var componentType = accessor['componentType'];
         // Accessor count property defines the number of elements in the bufferView
-        var normalAccessorCount = normalAccessor['count'];
+        var accessorCount = accessor['count'];
 
         // BufferView
-        var concernedBufferViewIndex = normalAccessor['bufferView'];
-        var concernedBufferView = firstChunkObject['bufferViews'][concernedBufferViewIndex];
+        var concernedBufferViewIndex = accessor['bufferView'];
+        var concernedBufferView = this.firstChunkObject['bufferViews'][concernedBufferViewIndex];
         var byteOffset = concernedBufferView['byteOffset'];
         var byteStride = concernedBufferView['byteStride'];
         var byteLength = concernedBufferView['byteLength'];
 
         // Buffer
         var concernedBufferIndex = concernedBufferView['buffer'];
-        var concernedBuffer = firstChunkObject['buffers'][concernedBufferIndex];
+        var concernedBuffer = this.firstChunkObject['buffers'][concernedBufferIndex];
         var concernedBufferLength = concernedBuffer['byteLength'];
 
         // Segment Buffer according to 1.BufferView offset, 2. Accessor offset, 3.BufferView stride
-        var segmentedBuffer = secondChunkBits.slice(byteOffset, byteOffset + byteLength);
+        var dataSize = WEBGL_TYPE_SIZES[accesorType];
+        var upperBound = accessorCount * dataSize
 
-        var dataSize = WEBGL_TYPE_SIZES[normalAccesorType];
-        var upperBound = normalAccessorCount * dataSize
+        if (byteOffset) {
+            var segmentedBuffer = this.secondChunkBits.slice(byteOffset, byteOffset + byteLength);
+        }
+        else {
+            var segmentedBuffer = this.secondChunkBits
+        }
 
-        var segmentedBufferFromAccessor = segmentedBuffer.slice(normalAccessorOffset, normalAccessorOffset + upperBound);
-        var view = new DataView(segmentedBufferFromAccessor);
-        var firstItem = view.getFloat32(0, false);
-        var floatValues = new Float32Array(segmentedBufferFromAccessor)
+        var segmentedBufferFromAccessor = segmentedBuffer.slice(accessorOffset, accessorOffset + upperBound);
 
+        console.log('Segmented buffer size : ', segmentedBufferFromAccessor.byteLength, segmentedBufferFromAccessor.byteLength / 4);
+        
+        if (segmentedBufferFromAccessor.byteLength % 4 != 0){
+            debugger;
+        }
+        // return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
+    
+        if (primitiveAttributeType == 'indices') {
+            return new Int32Array(segmentedBufferFromAccessor)
+            // return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
+        }
+        else if (primitiveAttributeType == 'NORMAL' || primitiveAttributeType == 'POSITION') {
+            return new Float32Array(segmentedBufferFromAccessor)
+            // return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
+
+        }
 
 
     }
+
 
 
 
