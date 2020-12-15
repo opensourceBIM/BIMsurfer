@@ -139,11 +139,20 @@ export class GLTFLoader {
         var concernedBufferIndex = concernedBufferView['buffer'];
         var concernedBuffer = this.firstChunkObject['buffers'][concernedBufferIndex];
         var concernedBufferLength = concernedBuffer['byteLength'];
-
+        
         // Segment Buffer according to 1.BufferView offset, 2. Accessor offset, 3.BufferView stride
         var dataSize = WEBGL_TYPE_SIZES[accesorType];
-        var upperBound = accessorCount * dataSize
 
+        // Borrowed from ThreeJS GLTFLoader.js
+        var TypedArray = WEBGL_COMPONENT_TYPES[componentType ];
+        var elementBytes = TypedArray.BYTES_PER_ELEMENT;
+
+        // One acessor will have an accessor count number of, for example, VEC3.
+        // A VEC3 is represented by 3 floats, 1 float being written on 4 bytes,
+        // so the upperbound will be the the multiplication of these 3 variables. 
+
+        var upperBound = accessorCount * elementBytes * dataSize;
+    
         if (byteOffset) {
             var segmentedBuffer = this.secondChunkBits.slice(byteOffset, byteOffset + byteLength);
         }
@@ -158,17 +167,17 @@ export class GLTFLoader {
         if (segmentedBufferFromAccessor.byteLength % 4 != 0){
             debugger;
         }
-        // return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
+        return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
     
-        if (primitiveAttributeType == 'indices') {
-            return new Int32Array(segmentedBufferFromAccessor)
-            // return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
-        }
-        else if (primitiveAttributeType == 'NORMAL' || primitiveAttributeType == 'POSITION') {
-            return new Float32Array(segmentedBufferFromAccessor)
-            // return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
+        // if (primitiveAttributeType == 'indices') {
+        //     return new Int32Array(segmentedBufferFromAccessor)
+        //     // return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
+        // }
+        // else if (primitiveAttributeType == 'NORMAL' || primitiveAttributeType == 'POSITION') {
+        //     return new Float32Array(segmentedBufferFromAccessor)
+        //     // return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
 
-        }
+        // }
 
 
     }
