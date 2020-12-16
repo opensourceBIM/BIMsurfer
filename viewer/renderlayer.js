@@ -330,6 +330,13 @@ export class RenderLayer {
 			geometry.reuseMaterialized++;
 			if (geometry.reuseMaterialized == geometry.reused) {
 				this.addGeometryReusable(geometry, loader, gpuBufferManager);
+				loader.geometries.delete(geometry.id);
+			} else if (geometry.reuseMaterialized % 256 == 0) {
+				// TODO this 256 is now equal to the number in the vertex shader, at some point this should become dynamic, based on hardware capabilities
+				console.log("Flushing 256");
+				this.addGeometryReusable(geometry, loader, gpuBufferManager);
+				geometry.objects = [];
+				geometry.matrices = [];
 			}
 		}
 	}
@@ -404,7 +411,6 @@ export class RenderLayer {
 			this.viewer.uniqueIdToBufferSet.set(obj.uniqueId, [buffer]);
 		});
 
-		loader.geometries.delete(geometry.id);
 		gpuBufferManager.pushBuffer(buffer);
 
 		this.nrTrianglesLoaded += buffer.nrTrianglesToDraw;
