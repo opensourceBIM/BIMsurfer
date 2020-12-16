@@ -57,7 +57,7 @@ export class GLTFLoader {
         var fileFormat = decoder.decode(this.gltfBuffer.slice(0, 4))
         var version = hexa[1].toString(8);
         var length = bufferFourBits.slice(2, 3)[0];
-        
+
         // Get JSON Chunk
         var firstChunkLength = bufferFourBits.slice(3, 4)[0];
         var firstChunkType = decoder.decode(bufferFourBits.slice(4, 5))
@@ -76,39 +76,45 @@ export class GLTFLoader {
     }
 
     processGLTFBuffer() {
-        var meshesData = []
+        var meshesData = [];
+
         var meshes = this.firstChunkObject['meshes'];
         for (var i = 0; i < meshes.length; i++) {
+            var meshName = meshes[i]['name'];
+            var meshData = {'name':meshName, 'primitives': [], 'material': 'defaultmaterial' };
             var primitives = []
             for (var j = 0; j < meshes[i].primitives.length; j++) {
                 var primitive = meshes[i].primitives[j]
 
                 var primitiveData = {
-                    'positions' : this.getBufferData(primitive,'POSITION'),
-                    'normals':this.getBufferData(primitive, 'NORMAL'),
-                    'indices' : this.getBufferData(primitive, 'indices')
+                    'positions': this.getBufferData(primitive, 'POSITION'),
+                    'normals': this.getBufferData(primitive, 'NORMAL'),
+                    'indices': this.getBufferData(primitive, 'indices'),
+                    'material': this.getMaterial(primitive)
                 };
 
-                
-                var positions = this.getBufferData(primitive, 'POSITION');
-                var normals = this.getBufferData(primitive, 'NORMAL');
-                var indices = this.getBufferData(primitive, 'indices');
 
-                primitives.push(primitiveData)
+                primitives.push(primitiveData);
 
             }
 
-
-            if(primitives.length > 0){
-                meshesData.push(primitives);
+            if (primitives.length > 0) {
+                // meshesData.push(primitives);
+                meshData['primitives'].push(primitiveData);
             }
 
+            meshesData.push(meshData);
 
         }
 
-        
         return meshesData;
 
+    }
+
+
+    getMaterial(primitive) {
+        var materialIndex = primitive['material'];
+        return this.firstChunkObject['materials'][materialIndex];
     }
 
 
@@ -139,12 +145,12 @@ export class GLTFLoader {
         var concernedBufferIndex = concernedBufferView['buffer'];
         var concernedBuffer = this.firstChunkObject['buffers'][concernedBufferIndex];
         var concernedBufferLength = concernedBuffer['byteLength'];
-        
+
         // Segment Buffer according to 1.BufferView offset, 2. Accessor offset, 3.BufferView stride
         var dataSize = WEBGL_TYPE_SIZES[accesorType];
 
         // Borrowed from ThreeJS GLTFLoader.js
-        var TypedArray = WEBGL_COMPONENT_TYPES[componentType ];
+        var TypedArray = WEBGL_COMPONENT_TYPES[componentType];
         var elementBytes = TypedArray.BYTES_PER_ELEMENT;
 
         // One acessor will have an accessor count number of, for example, VEC3.
@@ -152,7 +158,7 @@ export class GLTFLoader {
         // so the upperbound will be the the multiplication of these 3 variables. 
 
         var upperBound = accessorCount * elementBytes * dataSize;
-    
+
         if (byteOffset) {
             var segmentedBuffer = this.secondChunkBits.slice(byteOffset, byteOffset + byteLength);
         }
@@ -162,23 +168,14 @@ export class GLTFLoader {
 
         var segmentedBufferFromAccessor = segmentedBuffer.slice(accessorOffset, accessorOffset + upperBound);
 
-        console.log('Segmented buffer size : ', segmentedBufferFromAccessor.byteLength, segmentedBufferFromAccessor.byteLength / 4);
-        
-        if (segmentedBufferFromAccessor.byteLength % 4 != 0){
+        //console.log('Segmented buffer size : ', segmentedBufferFromAccessor.byteLength, segmentedBufferFromAccessor.byteLength / 4);
+
+        if (segmentedBufferFromAccessor.byteLength % 4 != 0) {
             debugger;
         }
         return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
-    
-        // if (primitiveAttributeType == 'indices') {
-        //     return new Int32Array(segmentedBufferFromAccessor)
-        //     // return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
-        // }
-        // else if (primitiveAttributeType == 'NORMAL' || primitiveAttributeType == 'POSITION') {
-        //     return new Float32Array(segmentedBufferFromAccessor)
-        //     // return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
 
-        // }
-
+     
 
     }
 
