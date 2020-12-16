@@ -15,7 +15,7 @@ export class ProjectTreeModel extends TreeModel{
 	}
 
 	load(clickFn) {
-		this.bimServerApi.call("ServiceInterface", "getAllProjects", {
+		return this.bimServerApi.call("ServiceInterface", "getAllProjects", {
 			onlyTopLevel: false,
 			onlyActive: true
 		}, (projects) => {

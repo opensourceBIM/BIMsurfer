@@ -70,11 +70,25 @@ export class AbstractViewer {
 		return Utils.request({url: url, binary: true}).then((buffer)=>{
 			let stream = new DataInputStream(buffer);
 			const layer = new DefaultRenderLayer(this.viewer);
-			const gpuBufferManager = Array.from(this.viewer.renderLayers)[0].gpuBufferManager;
-			let loader = new GeometryLoader(null, layer, {quantizeVertices: false}, this.viewer.vertexQuantization, null, this.viewer.settings, null, gpuBufferManager);
-			this.viewer.renderLayers.add(layer);
-			loader.processPreparedBufferInit(stream, false);
-			return loader.processPreparedBuffer(stream, false);
+			
+			if (this.viewer.renderLayers.size === 0) {
+				var defaultRenderLayer = new DefaultRenderLayer(this.viewer, null);
+				this.viewer.renderLayers.add(defaultRenderLayer);
+			}
+
+			const proceed = () => {
+				const gpuBufferManager = Array.from(this.viewer.renderLayers)[0].gpuBufferManager;
+				let loader = new GeometryLoader(null, layer, {quantizeVertices: false}, this.viewer.vertexQuantization, null, this.viewer.settings, null, gpuBufferManager);
+				this.viewer.renderLayers.add(layer);
+				loader.processPreparedBufferInit(stream, false);
+				return loader.processPreparedBuffer(stream, false);
+			}
+
+			if (!this.viewer.quad2) {
+				return this.viewer.init().then(proceed);
+			} else {
+				return proceed();
+			}			
 		})
 	}
 

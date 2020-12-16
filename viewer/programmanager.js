@@ -10,13 +10,15 @@ export const PICKING = 32;
 export const LINE_PRIMITIVES = 64;
 export const NORMAL_OCT_ENCODE = 128;
 export const LINES = 256;
+export const QUANTIZE_COLOR_BUFFER = 512;
 
 /**
  * Keeps track of shader programs, glsl, uniform positions and vertex attributes
  */
 export class ProgramManager {
 	
-	constructor(gl, settings) {
+	constructor(viewer, gl, settings) {
+		this.viewer = viewer;
 		this.gl = gl;
 		this.settings = settings;
 		this.programs = [];
@@ -158,8 +160,6 @@ export class ProgramManager {
 	}
 	
 	generateShaders(defaultSetup, key) {
-		var vertexShaderName = this.getVertexShaderName();
-		var fragShaderName = "shaders/fragment.glsl";
 		this.setupProgram(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE, defaultSetup, this.generateSetup(key), key);
 	}
 
@@ -171,6 +171,7 @@ export class ProgramManager {
 		var key = 0;
 		key |= (this.settings.useObjectColors ? OBJECT_COLORS : 0);
 		key |= (this.settings.quantizeVertices ? VERTEX_QUANTIZATION : 0);
+		key |= (this.viewer.useFloatColorBuffer ? 0 : QUANTIZE_COLOR_BUFFER);
 		key |= ((!picking && this.settings.quantizeNormals) ? NORMAL_QUANTIZATION : 0);
 		key |= ((!picking && this.settings.loaderSettings.octEncodeNormals) ? NORMAL_OCT_ENCODE : 0);
 		key |= ((!picking && this.settings.quantizeColors) ? COLOR_QUANTIZATION : 0);
@@ -191,7 +192,8 @@ export class ProgramManager {
 			reuse: (key & REUSE) ? true : false,
 			picking: (key & PICKING) ? true : false,
 			linePrimitives: (key & LINE_PRIMITIVES) ? true : false,
-			lines: (key & LINES) ? true : false
+			lines: (key & LINES) ? true : false,
+			quantizeColorBuffer : (key & QUANTIZE_COLOR_BUFFER) ? true : false
 		};
 	}
 	
@@ -335,6 +337,9 @@ export class ProgramManager {
 		}
 		if (key & LINES) {
 			fullSource += `#define WITH_LINES\n`;
+		}
+		if (key & QUANTIZE_COLOR_BUFFER) {
+			fullSource += `#define QUANTIZE_COLOR_BUFFER\n`;
 		}
 		
 		fullSource += "\n" + source;

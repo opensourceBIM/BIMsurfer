@@ -6,58 +6,53 @@
  * - Opaque reused
  *  
  */
+const TRANSPARENCY = 1;
+const REUSE = 2;
+const TWO_SIDED_TRIANGLES = 4;
+
 export class GpuBufferManager {
 	constructor(viewer) {
 		this.viewer = viewer;
 		this.gl = this.viewer.gl;
 		this.settings = this.viewer.settings;
 		
-		this.liveBuffersTransparent = [];
-		this.liveBuffersOpaque = [];
-		this.liveReusedBuffersOpaque = [];
-		this.liveReusedBuffersTransparent = [];
+		this.buffers = new Map();
+		
+		for (var i=0; i<8; i++) {
+			this.buffers.set(i, []);
+		}
 	}
 	
 	isEmpty() {
-		// This variable is required because of bug in Firefox
-		var isEmpty =
-			(this.liveBuffersOpaque == null || this.liveBuffersOpaque.length == 0) && 
-			(this.liveBuffersTransparent == null || this.liveBuffersTransparent.length == 0) &&
-			(this.liveReusedBuffersOpaque == null || this.liveReusedBuffersOpaque.length == 0) &&
-			(this.liveReusedBuffersTransparent == null || this.liveReusedBuffersTransparent.length == 0);
-		return isEmpty;
+		for (var buffer of this.buffers) {
+			if (buffer.length != 0) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	/* 
 	 * Get a buffer based on two booleans: transparency and reuse
 	 */
-	getBuffers(transparency, reuse) {
-		if (reuse) {
-			if (transparency) {
-				return this.liveReusedBuffersTransparent;
-			} else {
-				return this.liveReusedBuffersOpaque;
-			}
-		} else {
-			if (transparency) {
-				return this.liveBuffersTransparent;
-			} else {
-				return this.liveBuffersOpaque;
-			}
-		}
+	getBuffers(transparency, twoSidedTriangles, reuse) {
+		return this.buffers.get(
+			(transparency ? TRANSPARENCY : 0) + 
+			(twoSidedTriangles ? TWO_SIDED_TRIANGLES : 0) + 
+			(reuse ? REUSE : 0));
 	}
 	
 	pushBuffer(buffer) {
 		// TODO this can potentially become slow when there are a lot of buffers
-		let buffers = this.getBuffers(buffer.hasTransparency, buffer.reuse);
+		let buffers = this.getBuffers(buffer.hasTransparency, buffer.hasTwoSidedTriangles, buffer.reuse);
 		buffers.push(buffer);
-		if (buffer.croid) {
-			this.sortBuffersByCroid(buffers);
+		if (buffer.uniqueModelId) {
+			this.sortBuffersByUniqueModelId(buffers);
 		}
 	}
 
 	deleteBuffer(buffer) {
-		let arr = this.getBuffers(buffer.hasTransparency, buffer.reuse);
+		let arr = this.getBuffers(buffer.hasTransparency, buffer.hasTwoSidedTriangles, buffer.reuse);
 		let idx = arr.indexOf(buffer);
 		if (idx === -1) {
 			throw "Unable to find buffer to delete";
@@ -66,10 +61,10 @@ export class GpuBufferManager {
 	}
 	
 	sortAllBuffersByColor() {
-		this.sortBuffersByColor(this.liveBuffersOpaque);
-		this.sortBuffersByColor(this.liveBuffersTransparent);
-		this.sortBuffersByColor(this.liveReusedBuffersOpaque);
-		this.sortBuffersByColor(this.liveReusedBuffersTransparent);
+		// Unused/untested
+		for (var buffer of this.buffers) {
+			this.sortBuffersByColor(buffer);
+		}
 	}
 	
 	sortBuffersByColor(buffers) {
@@ -85,9 +80,9 @@ export class GpuBufferManager {
 		});
 	}
 	
-	sortBuffersByCroid(buffers) {
+	sortBuffersByUniqueModelId(buffers) {
 		buffers.sort((a, b) => {
-			return a.croid - b.croid;
+			return a.uniqueModelId - b.uniqueModelId;
 		});
 	}
 	
@@ -96,6 +91,7 @@ export class GpuBufferManager {
 	 */
 	combineBuffers() {
 		// TODO this is not working currently
+		// TODO also twoSidedTriangles has not been refactored in this method
 		
 		for (var transparency of [false, true]) {
 			var buffers = this.getBuffers(transparency, false);

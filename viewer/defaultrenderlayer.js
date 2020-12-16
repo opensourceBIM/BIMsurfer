@@ -53,7 +53,7 @@ export class DefaultRenderLayer extends RenderLayer {
 			vertices: geometry.positions.length,
 			normals: geometry.normals.length,
 			indices: geometry.indices.length,
-			lineIndices: geometry.lineIndices.length,
+			lineIndices: geometry.lineIndices ? geometry.lineIndices.length : 0,
 			colors: (geometry.colors != null ? geometry.colors.length : 0),
 			pickColors: geometry.positions.length
 		};
@@ -120,9 +120,9 @@ export class DefaultRenderLayer extends RenderLayer {
 
 		return gpuBuffer;
 	}
-
-	renderBuffers(transparency, reuse, lines, visibleElements) {
-		var buffers = this.gpuBufferManager.getBuffers(transparency, reuse);
+	
+	renderBuffers(transparency, twoSidedTriangles, reuse, lines, visibleElements) {
+		var buffers = this.gpuBufferManager.getBuffers(transparency, twoSidedTriangles, reuse);
 		if (buffers.length > 0) {
 			let picking = visibleElements.pass === 'pick';
 			
@@ -143,7 +143,7 @@ export class DefaultRenderLayer extends RenderLayer {
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
 			this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 			this.gl.uniform3fv(programInfo.uniformLocations.postProcessingTranslation, this.postProcessingTranslation);
-			this.gl.uniform4fv(programInfo.uniformLocations.sectionPlane, this.viewer.sectionPlaneValues);
+			this.gl.uniform4fv(programInfo.uniformLocations.sectionPlane, this.viewer.sectionPlanes.buffer);
 
 			this.renderFinalBuffers(buffers, programInfo, visibleElements, lines);
 		}

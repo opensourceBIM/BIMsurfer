@@ -1,5 +1,6 @@
 import {AbstractBufferSet} from "./abstractbufferset.js";
 import {Utils} from "./utils.js";
+import {AvlTree} from "./collections/avltree.js";
 
 /**
  * @ignore
@@ -12,16 +13,13 @@ export class FrozenBufferSet extends AbstractBufferSet {
         color, colorHash,
         nrIndices, nrLineIndices, nrNormals, nrPositions, nrColors,
         vao, vaoPick, lineRenderVao,
-        hasTransparency, reuse, owner, manager, 
+        hasTransparency, hasTwoSidedTriangles, reuse, owner, manager, 
 
         // only in case of reuse
-        roid, croid)
+        roid, uniqueModelId)
     {
         super(viewer, true);
 
-        if (lineIndexBuffer == null) {
-        	debugger;
-        }
         if (originalBuffer) {
         	this.uniqueIdToIndex = originalBuffer.uniqueIdToIndex;
         	this.uniqueIdSet = originalBuffer.uniqueIdSet;
@@ -51,12 +49,13 @@ export class FrozenBufferSet extends AbstractBufferSet {
         this.lineRenderVao = lineRenderVao;
 
         this.hasTransparency = hasTransparency;
+        this.hasTwoSidedTriangles = hasTwoSidedTriangles;
         this.reuse = reuse;
         this.owner = owner;
         this.manager = manager;
         
         this.roid = roid;
-        this.croid = croid;
+        this.uniqueModelId = uniqueModelId;
         this.indexType = indexBuffer.attrib_type;
 
         this.instanceMatricesBuffer = null;
@@ -138,13 +137,15 @@ export class FrozenBufferSet extends AbstractBufferSet {
             null,
 
             this.hasTransparency,
+            this.hasTwoSidedTriangles,
             this.reuse,
             this.owner,
             this.manager,
 
             this.roid,
-            this.croid
+            this.uniqueModelId
         );
+        b.uniqueIdToIndex = new AvlTree(this.viewer.inverseUniqueIdCompareFunction);
         return b;
     }
 

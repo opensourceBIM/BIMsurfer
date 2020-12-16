@@ -12,7 +12,7 @@ import * as glMatrix from "./common.js";
  */
 export function create() {
   let out = new glMatrix.ARRAY_TYPE(2);
-  if(glMatrix.ARRAY_TYPE != Float32Array) {
+  if (glMatrix.ARRAY_TYPE != Float32Array) {
     out[0] = 0;
     out[1] = 0;
   }
@@ -22,7 +22,7 @@ export function create() {
 /**
  * Creates a new vec2 initialized with values from an existing vector
  *
- * @param {vec2} a vector to clone
+ * @param {ReadonlyVec2} a vector to clone
  * @returns {vec2} a new 2D vector
  */
 export function clone(a) {
@@ -50,7 +50,7 @@ export function fromValues(x, y) {
  * Copy the values from one vec2 to another
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the source vector
+ * @param {ReadonlyVec2} a the source vector
  * @returns {vec2} out
  */
 export function copy(out, a) {
@@ -77,8 +77,8 @@ export function set(out, x, y) {
  * Adds two vec2's
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the first operand
- * @param {vec2} b the second operand
+ * @param {ReadonlyVec2} a the first operand
+ * @param {ReadonlyVec2} b the second operand
  * @returns {vec2} out
  */
 export function add(out, a, b) {
@@ -91,8 +91,8 @@ export function add(out, a, b) {
  * Subtracts vector b from vector a
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the first operand
- * @param {vec2} b the second operand
+ * @param {ReadonlyVec2} a the first operand
+ * @param {ReadonlyVec2} b the second operand
  * @returns {vec2} out
  */
 export function subtract(out, a, b) {
@@ -105,8 +105,8 @@ export function subtract(out, a, b) {
  * Multiplies two vec2's
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the first operand
- * @param {vec2} b the second operand
+ * @param {ReadonlyVec2} a the first operand
+ * @param {ReadonlyVec2} b the second operand
  * @returns {vec2} out
  */
 export function multiply(out, a, b) {
@@ -119,8 +119,8 @@ export function multiply(out, a, b) {
  * Divides two vec2's
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the first operand
- * @param {vec2} b the second operand
+ * @param {ReadonlyVec2} a the first operand
+ * @param {ReadonlyVec2} b the second operand
  * @returns {vec2} out
  */
 export function divide(out, a, b) {
@@ -133,7 +133,7 @@ export function divide(out, a, b) {
  * Math.ceil the components of a vec2
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a vector to ceil
+ * @param {ReadonlyVec2} a vector to ceil
  * @returns {vec2} out
  */
 export function ceil(out, a) {
@@ -146,7 +146,7 @@ export function ceil(out, a) {
  * Math.floor the components of a vec2
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a vector to floor
+ * @param {ReadonlyVec2} a vector to floor
  * @returns {vec2} out
  */
 export function floor(out, a) {
@@ -159,8 +159,8 @@ export function floor(out, a) {
  * Returns the minimum of two vec2's
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the first operand
- * @param {vec2} b the second operand
+ * @param {ReadonlyVec2} a the first operand
+ * @param {ReadonlyVec2} b the second operand
  * @returns {vec2} out
  */
 export function min(out, a, b) {
@@ -173,8 +173,8 @@ export function min(out, a, b) {
  * Returns the maximum of two vec2's
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the first operand
- * @param {vec2} b the second operand
+ * @param {ReadonlyVec2} a the first operand
+ * @param {ReadonlyVec2} b the second operand
  * @returns {vec2} out
  */
 export function max(out, a, b) {
@@ -187,10 +187,10 @@ export function max(out, a, b) {
  * Math.round the components of a vec2
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a vector to round
+ * @param {ReadonlyVec2} a vector to round
  * @returns {vec2} out
  */
-export function round (out, a) {
+export function round(out, a) {
   out[0] = Math.round(a[0]);
   out[1] = Math.round(a[1]);
   return out;
@@ -200,7 +200,7 @@ export function round (out, a) {
  * Scales a vec2 by a scalar number
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the vector to scale
+ * @param {ReadonlyVec2} a the vector to scale
  * @param {Number} b amount to scale the vector by
  * @returns {vec2} out
  */
@@ -214,72 +214,72 @@ export function scale(out, a, b) {
  * Adds two vec2's after scaling the second operand by a scalar value
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the first operand
- * @param {vec2} b the second operand
+ * @param {ReadonlyVec2} a the first operand
+ * @param {ReadonlyVec2} b the second operand
  * @param {Number} scale the amount to scale b by before adding
  * @returns {vec2} out
  */
 export function scaleAndAdd(out, a, b, scale) {
-  out[0] = a[0] + (b[0] * scale);
-  out[1] = a[1] + (b[1] * scale);
+  out[0] = a[0] + b[0] * scale;
+  out[1] = a[1] + b[1] * scale;
   return out;
 }
 
 /**
  * Calculates the euclidian distance between two vec2's
  *
- * @param {vec2} a the first operand
- * @param {vec2} b the second operand
+ * @param {ReadonlyVec2} a the first operand
+ * @param {ReadonlyVec2} b the second operand
  * @returns {Number} distance between a and b
  */
 export function distance(a, b) {
   var x = b[0] - a[0],
     y = b[1] - a[1];
-  return Math.sqrt(x*x + y*y);
+  return Math.hypot(x, y);
 }
 
 /**
  * Calculates the squared euclidian distance between two vec2's
  *
- * @param {vec2} a the first operand
- * @param {vec2} b the second operand
+ * @param {ReadonlyVec2} a the first operand
+ * @param {ReadonlyVec2} b the second operand
  * @returns {Number} squared distance between a and b
  */
 export function squaredDistance(a, b) {
   var x = b[0] - a[0],
     y = b[1] - a[1];
-  return x*x + y*y;
+  return x * x + y * y;
 }
 
 /**
  * Calculates the length of a vec2
  *
- * @param {vec2} a vector to calculate length of
+ * @param {ReadonlyVec2} a vector to calculate length of
  * @returns {Number} length of a
  */
 export function length(a) {
   var x = a[0],
     y = a[1];
-  return Math.sqrt(x*x + y*y);
+  return Math.hypot(x, y);
 }
 
 /**
  * Calculates the squared length of a vec2
  *
- * @param {vec2} a vector to calculate squared length of
+ * @param {ReadonlyVec2} a vector to calculate squared length of
  * @returns {Number} squared length of a
  */
-export function squaredLength (a) {
+export function squaredLength(a) {
   var x = a[0],
     y = a[1];
-  return x*x + y*y;
+  return x * x + y * y;
 }
 
 /**
  * Negates the components of a vec2
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a vector to negate
+ * @param {ReadonlyVec2} a vector to negate
  * @returns {vec2} out
  */
 export function negate(out, a) {
@@ -292,7 +292,7 @@ export function negate(out, a) {
  * Returns the inverse of the components of a vec2
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a vector to invert
+ * @param {ReadonlyVec2} a vector to invert
  * @returns {vec2} out
  */
 export function inverse(out, a) {
@@ -305,17 +305,17 @@ export function inverse(out, a) {
  * Normalize a vec2
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a vector to normalize
+ * @param {ReadonlyVec2} a vector to normalize
  * @returns {vec2} out
  */
 export function normalize(out, a) {
   var x = a[0],
     y = a[1];
-  var len = x*x + y*y;
+  var len = x * x + y * y;
   if (len > 0) {
     //TODO: evaluate use of glm_invsqrt here?
     len = 1 / Math.sqrt(len);
-  }    
+  }
   out[0] = a[0] * len;
   out[1] = a[1] * len;
   return out;
@@ -324,8 +324,8 @@ export function normalize(out, a) {
 /**
  * Calculates the dot product of two vec2's
  *
- * @param {vec2} a the first operand
- * @param {vec2} b the second operand
+ * @param {ReadonlyVec2} a the first operand
+ * @param {ReadonlyVec2} b the second operand
  * @returns {Number} dot product of a and b
  */
 export function dot(a, b) {
@@ -337,8 +337,8 @@ export function dot(a, b) {
  * Note that the cross product must by definition produce a 3D vector
  *
  * @param {vec3} out the receiving vector
- * @param {vec2} a the first operand
- * @param {vec2} b the second operand
+ * @param {ReadonlyVec2} a the first operand
+ * @param {ReadonlyVec2} b the second operand
  * @returns {vec3} out
  */
 export function cross(out, a, b) {
@@ -352,8 +352,8 @@ export function cross(out, a, b) {
  * Performs a linear interpolation between two vec2's
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the first operand
- * @param {vec2} b the second operand
+ * @param {ReadonlyVec2} a the first operand
+ * @param {ReadonlyVec2} b the second operand
  * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
  * @returns {vec2} out
  */
@@ -384,8 +384,8 @@ export function random(out, scale) {
  * Transforms the vec2 with a mat2
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the vector to transform
- * @param {mat2} m matrix to transform with
+ * @param {ReadonlyVec2} a the vector to transform
+ * @param {ReadonlyMat2} m matrix to transform with
  * @returns {vec2} out
  */
 export function transformMat2(out, a, m) {
@@ -400,8 +400,8 @@ export function transformMat2(out, a, m) {
  * Transforms the vec2 with a mat2d
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the vector to transform
- * @param {mat2d} m matrix to transform with
+ * @param {ReadonlyVec2} a the vector to transform
+ * @param {ReadonlyMat2d} m matrix to transform with
  * @returns {vec2} out
  */
 export function transformMat2d(out, a, m) {
@@ -417,8 +417,8 @@ export function transformMat2d(out, a, m) {
  * 3rd vector component is implicitly '1'
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the vector to transform
- * @param {mat3} m matrix to transform with
+ * @param {ReadonlyVec2} a the vector to transform
+ * @param {ReadonlyMat3} m matrix to transform with
  * @returns {vec2} out
  */
 export function transformMat3(out, a, m) {
@@ -435,8 +435,8 @@ export function transformMat3(out, a, m) {
  * 4th vector component is implicitly '1'
  *
  * @param {vec2} out the receiving vector
- * @param {vec2} a the vector to transform
- * @param {mat4} m matrix to transform with
+ * @param {ReadonlyVec2} a the vector to transform
+ * @param {ReadonlyMat4} m matrix to transform with
  * @returns {vec2} out
  */
 export function transformMat4(out, a, m) {
@@ -450,60 +450,42 @@ export function transformMat4(out, a, m) {
 /**
  * Rotate a 2D vector
  * @param {vec2} out The receiving vec2
- * @param {vec2} a The vec2 point to rotate
- * @param {vec2} b The origin of the rotation
- * @param {Number} c The angle of rotation
+ * @param {ReadonlyVec2} a The vec2 point to rotate
+ * @param {ReadonlyVec2} b The origin of the rotation
+ * @param {Number} rad The angle of rotation in radians
  * @returns {vec2} out
  */
-export function rotate(out, a, b, c) {
+export function rotate(out, a, b, rad) {
   //Translate point to the origin
   let p0 = a[0] - b[0],
-  p1 = a[1] - b[1],
-  sinC = Math.sin(c),
-  cosC = Math.cos(c);
-  
+    p1 = a[1] - b[1],
+    sinC = Math.sin(rad),
+    cosC = Math.cos(rad);
+
   //perform rotation and translate to correct position
-  out[0] = p0*cosC - p1*sinC + b[0];
-  out[1] = p0*sinC + p1*cosC + b[1];
+  out[0] = p0 * cosC - p1 * sinC + b[0];
+  out[1] = p0 * sinC + p1 * cosC + b[1];
 
   return out;
 }
 
 /**
  * Get the angle between two 2D vectors
- * @param {vec2} a The first operand
- * @param {vec2} b The second operand
+ * @param {ReadonlyVec2} a The first operand
+ * @param {ReadonlyVec2} b The second operand
  * @returns {Number} The angle in radians
  */
 export function angle(a, b) {
   let x1 = a[0],
     y1 = a[1],
     x2 = b[0],
-    y2 = b[1];
-  
-  let len1 = x1*x1 + y1*y1;
-  if (len1 > 0) {
-    //TODO: evaluate use of glm_invsqrt here?
-    len1 = 1 / Math.sqrt(len1);
-  }
-  
-  let len2 = x2*x2 + y2*y2;
-  if (len2 > 0) {
-    //TODO: evaluate use of glm_invsqrt here?
-    len2 = 1 / Math.sqrt(len2);
-  }
-  
-  let cosine = (x1 * x2 + y1 * y2) * len1 * len2;
-  
-  
-  if(cosine > 1.0) {
-    return 0;
-  }
-  else if(cosine < -1.0) {
-    return Math.PI;
-  } else {
-    return Math.acos(cosine);
-  }
+    y2 = b[1],
+    // mag is the product of the magnitudes of a and b
+    mag = Math.sqrt(x1 * x1 + y1 * y1) * Math.sqrt(x2 * x2 + y2 * y2),
+    // mag &&.. short circuits if mag == 0
+    cosine = mag && (x1 * x2 + y1 * y2) / mag;
+  // Math.min(Math.max(cosine, -1), 1) clamps the cosine between -1 and 1
+  return Math.acos(Math.min(Math.max(cosine, -1), 1));
 }
 
 /**
@@ -521,18 +503,18 @@ export function zero(out) {
 /**
  * Returns a string representation of a vector
  *
- * @param {vec2} a vector to represent as a string
+ * @param {ReadonlyVec2} a vector to represent as a string
  * @returns {String} string representation of the vector
  */
 export function str(a) {
-  return 'vec2(' + a[0] + ', ' + a[1] + ')';
+  return "vec2(" + a[0] + ", " + a[1] + ")";
 }
 
 /**
  * Returns whether or not the vectors exactly have the same elements in the same position (when compared with ===)
  *
- * @param {vec2} a The first vector.
- * @param {vec2} b The second vector.
+ * @param {ReadonlyVec2} a The first vector.
+ * @param {ReadonlyVec2} b The second vector.
  * @returns {Boolean} True if the vectors are equal, false otherwise.
  */
 export function exactEquals(a, b) {
@@ -542,15 +524,21 @@ export function exactEquals(a, b) {
 /**
  * Returns whether or not the vectors have approximately the same elements in the same position.
  *
- * @param {vec2} a The first vector.
- * @param {vec2} b The second vector.
+ * @param {ReadonlyVec2} a The first vector.
+ * @param {ReadonlyVec2} b The second vector.
  * @returns {Boolean} True if the vectors are equal, false otherwise.
  */
 export function equals(a, b) {
-  let a0 = a[0], a1 = a[1];
-  let b0 = b[0], b1 = b[1];
-  return (Math.abs(a0 - b0) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-          Math.abs(a1 - b1) <= glMatrix.EPSILON*Math.max(1.0, Math.abs(a1), Math.abs(b1)));
+  let a0 = a[0],
+    a1 = a[1];
+  let b0 = b[0],
+    b1 = b[1];
+  return (
+    Math.abs(a0 - b0) <=
+      glMatrix.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+    Math.abs(a1 - b1) <=
+      glMatrix.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1))
+  );
 }
 
 /**
@@ -612,24 +600,26 @@ export const forEach = (function() {
 
   return function(a, stride, offset, count, fn, arg) {
     let i, l;
-    if(!stride) {
+    if (!stride) {
       stride = 2;
     }
 
-    if(!offset) {
+    if (!offset) {
       offset = 0;
     }
 
-    if(count) {
-      l = Math.min((count * stride) + offset, a.length);
+    if (count) {
+      l = Math.min(count * stride + offset, a.length);
     } else {
       l = a.length;
     }
 
-    for(i = offset; i < l; i += stride) {
-      vec[0] = a[i]; vec[1] = a[i+1];
+    for (i = offset; i < l; i += stride) {
+      vec[0] = a[i];
+      vec[1] = a[i + 1];
       fn(vec, vec, arg);
-      a[i] = vec[0]; a[i+1] = vec[1];
+      a[i] = vec[0];
+      a[i + 1] = vec[1];
     }
 
     return a;

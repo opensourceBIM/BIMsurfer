@@ -108,19 +108,23 @@ export class TilingRenderLayer extends RenderLayer {
 			node.stats.trianglesDrawing = 0;
 			var totalTriangles = 0;
 			for (var transparent of [false, true]) {
-				var buffers = node.gpuBufferManager.getBuffers(transparent, false);
-				for (var buffer of buffers) {
-					buffer.nrTrianglesToDraw = Math.floor(Math.min(buffer.nrIndices, Math.floor(buffer.nrIndices * factor)) / 3);
-					totalTriangles += buffer.nrIndices / 3;
-					node.stats.trianglesDrawing += buffer.nrTrianglesToDraw;
+				for (var twoSidedTriangles of [false, true]) {
+					var buffers = node.gpuBufferManager.getBuffers(transparent, twoSidedTriangles, false);
+					for (var buffer of buffers) {
+						buffer.nrTrianglesToDraw = Math.floor(Math.min(buffer.nrIndices, Math.floor(buffer.nrIndices * factor)) / 3);
+						totalTriangles += buffer.nrIndices / 3;
+						node.stats.trianglesDrawing += buffer.nrTrianglesToDraw;
+					}
 				}
 			}
 			for (var transparent of [false, true]) {
-				var buffers = node.gpuBufferManager.getBuffers(transparent, true);
-				for (var buffer of buffers) {
-					buffer.nrTrianglesToDraw = Math.floor(Math.min(buffer.nrIndices, Math.floor(buffer.nrIndices * factor)) / 3) * buffer.numInstances;
-					totalTriangles += (buffer.nrIndices / 3) * buffer.numInstances;
-					node.stats.trianglesDrawing += buffer.nrTrianglesToDraw;
+				for (var twoSidedTriangles of [false, true]) {
+					var buffers = node.gpuBufferManager.getBuffers(transparent, twoSidedTriangles, true);
+					for (var buffer of buffers) {
+						buffer.nrTrianglesToDraw = Math.floor(Math.min(buffer.nrIndices, Math.floor(buffer.nrIndices * factor)) / 3) * buffer.numInstances;
+						totalTriangles += (buffer.nrIndices / 3) * buffer.numInstances;
+						node.stats.trianglesDrawing += buffer.nrTrianglesToDraw;
+					}
 				}
 			}
 			node.normalizedDistanceFactor = node.stats.trianglesDrawing / totalTriangles;
@@ -182,7 +186,7 @@ export class TilingRenderLayer extends RenderLayer {
 		}
 	}
 	
-	renderBuffers(transparency, reuse, visibleElements) {
+	renderBuffers(transparency, twoSidedTriangles, reuse, lines, visibleElements) {
 		// TODO when navigation is active (rotating, panning etc...), this would be the place to decide to for example not-render anything in this layer, or maybe apply more aggressive culling
 		// if (this.viewer.navigationActive) {
 		// 	return;
@@ -204,7 +208,7 @@ export class TilingRenderLayer extends RenderLayer {
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, this.viewer.camera.projMatrix);
 		this.gl.uniformMatrix4fv(programInfo.uniformLocations.viewMatrix, false, this.viewer.camera.viewMatrix);
 		this.gl.uniform3fv(programInfo.uniformLocations.postProcessingTranslation, this.postProcessingTranslation);
-		this.gl.uniform4fv(programInfo.uniformLocations.sectionPlane, this.viewer.sectionPlaneValues);
+		this.gl.uniform4fv(programInfo.uniformLocations.sectionPlane, this.viewer.sectionPlanes.buffer);
 
 //		if (this.settings.quantizeVertices) {
 //			this.gl.uniformMatrix4fv(programInfo.uniformLocations.vertexQuantizationMatrix, false, this.viewer.vertexQuantization.getTransformedInverseVertexQuantizationMatrix());
@@ -222,7 +226,7 @@ export class TilingRenderLayer extends RenderLayer {
 					// Not initialized yet
 					return;
 				}
-				var buffers = node.gpuBufferManager.getBuffers(transparency, reuse);
+				var buffers = node.gpuBufferManager.getBuffers(transparency, twoSidedTriangles, reuse);
 				this.renderFinalBuffers(buffers, programInfo, visibleElements);
 			} else {
 				return false;

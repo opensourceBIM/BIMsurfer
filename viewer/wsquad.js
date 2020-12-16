@@ -11,6 +11,10 @@ import * as vec3 from "./glmatrix/vec3.js";
 export class WSQuad {
 
     constructor(viewer, gl) {
+
+        // @todo reuse the same program for all WS Quads
+
+
         this.gl = gl;
         this.viewer = viewer;
 
@@ -40,17 +44,27 @@ export class WSQuad {
             vec4 axis2;
             /* float size; size is in the position.w */
         } placement;
-        out vec2 uv;
+        out vec3 worldCoords;
+
         void main() {
-            gl_Position = projectionMatrix * viewMatrix * vec4(placement.position.xyz + 
+            vec4 floatVertex = vec4(placement.position.xyz + 
                 vertexPosition.x * placement.axis1.xyz * placement.position.w + 
                 vertexPosition.y * placement.axis2.xyz * placement.position.w, 1.);
+            worldCoords = floatVertex.xyz;
+            gl_Position = projectionMatrix * viewMatrix * floatVertex;
         }`;
 
         let fs_source = `#version 300 es
         precision highp float;
+        uniform vec4 sectionPlane[6];
+        in vec3 worldCoords;
         out vec4 fragColor;
         void main() {
+            for (int i = 0; i < 6; ++i) {
+                if (dot(worldCoords, sectionPlane[i].xyz) >= sectionPlane[i].w) {
+                   discard;
+                }
+            }
             fragColor = vec4(0.1, 0.1, 0.1, 1.0);
         }`;
 
@@ -77,7 +91,8 @@ export class WSQuad {
         this.locations = {
             placement: gl.getUniformBlockIndex(p, "Placement"),
             viewMatrix: gl.getUniformLocation(p, "viewMatrix"),
-            projectionMatrix: gl.getUniformLocation(p, "projectionMatrix")
+            projectionMatrix: gl.getUniformLocation(p, "projectionMatrix"),
+            sectionPlane: gl.getUniformLocation(p, "sectionPlane")
         };
 
         this.placementData = new Float32Array(12);
@@ -85,6 +100,11 @@ export class WSQuad {
 
     position(bounds, planeEq) {
         const Z = vec3.fromValues(0,0,1);
+
+        if (Math.abs(vec3.dot(Z, planeEq)) > 0) {
+            Z[0] = 1.;
+            Z[2] = 0.;
+        }
         
         let l = vec3.len(planeEq);
         for (var i = 0; i < 3; ++i) {
@@ -126,13 +146,21 @@ export class WSQuad {
         gl.bufferData(gl.UNIFORM_BUFFER, this.placementData, gl.DYNAMIC_DRAW);        
     }
 
-    draw(vm, pm) {
+    draw() {
+        if (!this._buffer) {
+            console.error("quad not initialized yet");
+            return;
+        }
+
         let gl = this.gl;
 
         gl.useProgram(this.program);
         
         gl.uniformMatrix4fv(this.locations.projectionMatrix, false, this.viewer.camera.projMatrix);
         gl.uniformMatrix4fv(this.locations.viewMatrix, false, this.viewer.camera.viewMatrix);
+        gl.uniform4fv(this.locations.sectionPlane, this.viewer.sectionPlanes.buffer);
+
+        // @todo can we skip uniform buffer and just use 4fv if we make it a vec4[3]?
         gl.bindBufferBase(gl.UNIFORM_BUFFER, this.locations.placement, this._buffer);
 
         gl.bindVertexArray(this.vao);
