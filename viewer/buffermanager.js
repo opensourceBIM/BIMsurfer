@@ -86,7 +86,7 @@ export class BufferManager {
 		var bufferSet = this.bufferSets.get(key);
 		if (bufferSet == null) {
 			// Create a new buffer according to the defaults and store it in the buffers Map
-			bufferSet = this.createBufferSetPooled(transparency, color, this.defaultSizes);
+			bufferSet = this.createBufferSet(transparency, color, this.defaultSizes);
 			this.bufferSets.set(key, bufferSet);
 		} else {
 			if (this.shouldFlush(sizes, bufferSet)) {

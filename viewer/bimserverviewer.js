@@ -3,7 +3,6 @@ import * as vec3 from "./glmatrix/vec3.js";
 
 import { GeometryLoader } from "./geometryloader.js";
 import { BimserverGeometryLoader } from "./bimservergeometryloader.js";
-import { GLTFLoader } from "./gltfLoader.js"
 import { Viewer } from "./viewer.js";
 import { DefaultRenderLayer } from "./defaultrenderlayer.js";
 import { TilingRenderLayer } from "./tilingrenderlayer.js";
@@ -90,12 +89,6 @@ export class BimServerViewer extends AbstractViewer {
 	loadModel(api, project, gltfBuffer) {
 
 		var defaultRenderLayer = new DefaultRenderLayer(this.viewer, this.geometryDataIdsToReuse);
-		if (gltfBuffer) {
-			var gltfLoader = new GLTFLoader(gltfBuffer, defaultRenderLayer)
-			var geometries = gltfLoader.processGLTFBuffer();
-			debugger; 
-		}
-
 
 		return new Promise((resolve, reject) => {
 			this.totalStart = performance.now();

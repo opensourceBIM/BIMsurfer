@@ -12,6 +12,8 @@ import {Stats} from "./stats.js";
 import {DefaultSettings} from "./defaultsettings.js";
 import {Utils} from "./utils.js";
 import {DataInputStream} from "./datainputstream.js";
+import { GLTFLoader } from "./gltfLoader.js"
+
 
 export class AbstractViewer {
 	constructor(settings, canvas, width, height, stats) {
@@ -64,6 +66,15 @@ export class AbstractViewer {
 			}
 		}
 		this.viewer.setDimensions(this.width, this.height);
+	}
+
+	loadGltf(params) {
+		fetch(params.url).then(function (response) {
+			return response.arrayBuffer();
+		}).then((buffer) => {
+			var gltfLoader = new GLTFLoader(this.viewer, buffer);
+			var geometries = gltfLoader.processGLTFBuffer();
+		});
 	}
 
 	loadAnnotationsFromPreparedBufferUrl(url) {

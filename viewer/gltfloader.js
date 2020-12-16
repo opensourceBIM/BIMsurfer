@@ -4,6 +4,7 @@ import * as mat3 from "./glmatrix/mat3.js";
 
 import { Utils } from "./utils.js";
 import { DataInputStream } from "./datainputstream.js";
+import {DefaultRenderLayer} from "./defaultrenderlayer.js"
 
 import { AvlTree } from "./collections/avltree.js";
 
@@ -36,11 +37,19 @@ var BINARY_EXTENSION_CHUNK_TYPES = { JSON: 0x4E4F534A, BIN: 0x004E4942 };
 
 export class GLTFLoader {
 
-    constructor(gltfBuffer, defaultRenderLayer) {
+    constructor(viewer, gltfBuffer) {
+        this.viewer = viewer;
+        const layer = new DefaultRenderLayer(this.viewer);
+        layer.registerLoader(1);
+        layer.settings = JSON.parse(JSON.stringify(layer.settings));
+        layer.settings.loaderSettings.quantizeVertices = false;
+        layer.settings.loaderSettings.quantizeNormals = false;
+        layer.settings.loaderSettings.quantizeColors = false;        
+        this.viewer.renderLayers.add(layer);
         this.gltfBuffer = gltfBuffer;
-        this.defaultRenderLayer = defaultRenderLayer;
+        this.renderLayer = layer;
+        layer.id = "gltf";
         this.primarilyProcess();
-
     }
 
     primarilyProcess() {
@@ -64,7 +73,7 @@ export class GLTFLoader {
         var offset = firstChunkLength / 4;
         var content = bufferFourBits.slice(5, offset + 5);
         var contentString = decoder.decode(content);
-        this.firstChunkObject = JSON.parse(contentString);
+        this.json = JSON.parse(contentString);
 
         // Get Binary Chunk 
         var secondChunkLength = bufferFourBits.slice(offset + 5, offset + 6)[0];
@@ -72,49 +81,111 @@ export class GLTFLoader {
         var secondOffset = secondChunkLength / 4;
         var secondChunkContent = bufferFourBits.slice(offset + 7, offset + 7 + secondOffset);
         this.secondChunkBits = this.gltfBuffer.slice((offset + 7) * 4, (offset + 7 + secondOffset) * 4);
+    }
 
+    join(a, b) {
+        let c = new a.constructor(a.length + b.length);
+        c.set(a);
+        c.set(b, a.length);
+        return c;
     }
 
     processGLTFBuffer() {
-        var meshesData = [];
+        let aabbs = {};
 
-        var meshes = this.firstChunkObject['meshes'];
-        for (var i = 0; i < meshes.length; i++) {
-            var meshName = meshes[i]['name'];
-            var meshData = {'name':meshName, 'primitives': [], 'material': 'defaultmaterial' };
-            var primitives = []
-            for (var j = 0; j < meshes[i].primitives.length; j++) {
-                var primitive = meshes[i].primitives[j]
+        this.json.meshes.forEach((mesh, i) => {
+            let positions, normals, indices, colors;
+            let aabb = Utils.emptyAabb();
 
-                var primitiveData = {
-                    'positions': this.getBufferData(primitive, 'POSITION'),
-                    'normals': this.getBufferData(primitive, 'NORMAL'),
-                    'indices': this.getBufferData(primitive, 'indices'),
-                    'material': this.getMaterial(primitive)
-                };
+            mesh.primitives.forEach((primitive, j) => {
+                let [psAccessor, ps] = this.getBufferData(primitive, 'POSITION');
+                let [_, ns] = this.getBufferData(primitive, 'NORMAL');
+                let [__, idxs] = this.getBufferData(primitive, 'indices');
+                let material = this.getMaterial(primitive);
 
+                let aabb_ = Utils.emptyAabb();
+                aabb_.set(psAccessor.min);
+                aabb_.set(psAccessor.max, 3);
+                aabb = Utils.unionAabb(aabb, aabb_);
 
-                primitives.push(primitiveData);
+                let color = material.pbrMetallicRoughness.baseColorFactor;
 
+                let cs = new Float32Array(ps.length / 3 * 4);
+                for (var k = 0; k < cs.length; k += 4) {
+                    cs.set(color, k);
+                }
+
+                if (j === 0) {
+                    [positions, normals, indices, colors] = [ps, ns, idxs, cs];
+                } else {
+                    positions = this.join(positions, ps);
+                    normals = this.join(normals, ns);
+                    for (let k = 0; k < idxs.length; ++k) {
+                        idxs[k] += positions.length / 3;
+                    }
+                    indices = this.join(indices, idxs);
+                    colors = this.join(colors, cs);
+                }
+            });
+
+            for (var k = 0; k < aabb.length; ++k) {
+                aabb[k] *= 1000.;
             }
 
-            if (primitives.length > 0) {
-                // meshesData.push(primitives);
-                meshData['primitives'].push(primitiveData);
+            this.renderLayer.createGeometry(
+                1,
+                null,
+                null,
+                i,
+                positions,
+                normals,
+                colors,
+                null,
+                indices,
+                null,
+                false,
+                false,
+                0
+            );
+
+            aabbs[i] = aabb;
+        });
+
+        this.json.nodes.forEach((n, i) => {
+            if (n.mesh) {
+                const aabb = aabbs[n.mesh];
+                let m4, m3;
+                if (n.matrix) {
+                    let m = n.matrix;
+                    m4 = new Float32Array([
+                        m[ 0], -m[ 2], m[ 1], m[ 3],
+                        m[ 4], -m[ 6], m[ 5], m[ 7],
+                        m[ 8], -m[10], m[ 9], m[11],
+                        m[12], -m[14], m[13], m[15]
+                    ]);
+                    m4[12] *= 1000.;
+                    m4[13] *= 1000.;
+                    m4[14] *= 1000.;
+
+                    m3 = mat3.create();
+                    mat3.fromMat4(m3, m4);
+                    mat3.invert(m3, m3);
+                    mat3.transpose(m3, m3);
+                } else {
+                    m4 = mat4.identity(mat4.create());
+                    m3 = mat3.identity(mat3.create());    
+                }
+                this.renderLayer.createObject(1, null, i, [n.mesh], m4, m3, m3, false, null, aabb);
             }
+        });
 
-            meshesData.push(meshData);
-
-        }
-
-        return meshesData;
-
+        this.renderLayer.flushAllBuffers();
     }
 
 
     getMaterial(primitive) {
         var materialIndex = primitive['material'];
-        return this.firstChunkObject['materials'][materialIndex];
+        return this.json['materials'][materialIndex];
     }
 
 
@@ -127,7 +198,7 @@ export class GLTFLoader {
             var accessorIndex = primitive[primitiveAttributeType]
         }
 
-        var accessor = this.firstChunkObject['accessors'][accessorIndex];
+        var accessor = this.json['accessors'][accessorIndex];
         var accessorOffset = accessor['byteOffset'];
         var accesorType = accessor['type'];
         var componentType = accessor['componentType'];
@@ -136,14 +207,14 @@ export class GLTFLoader {
 
         // BufferView
         var concernedBufferViewIndex = accessor['bufferView'];
-        var concernedBufferView = this.firstChunkObject['bufferViews'][concernedBufferViewIndex];
+        var concernedBufferView = this.json['bufferViews'][concernedBufferViewIndex];
         var byteOffset = concernedBufferView['byteOffset'];
         var byteStride = concernedBufferView['byteStride'];
         var byteLength = concernedBufferView['byteLength'];
 
         // Buffer
         var concernedBufferIndex = concernedBufferView['buffer'];
-        var concernedBuffer = this.firstChunkObject['buffers'][concernedBufferIndex];
+        var concernedBuffer = this.json['buffers'][concernedBufferIndex];
         var concernedBufferLength = concernedBuffer['byteLength'];
 
         // Segment Buffer according to 1.BufferView offset, 2. Accessor offset, 3.BufferView stride
@@ -167,20 +238,7 @@ export class GLTFLoader {
         }
 
         var segmentedBufferFromAccessor = segmentedBuffer.slice(accessorOffset, accessorOffset + upperBound);
-
-        //console.log('Segmented buffer size : ', segmentedBufferFromAccessor.byteLength, segmentedBufferFromAccessor.byteLength / 4);
-
-        if (segmentedBufferFromAccessor.byteLength % 4 != 0) {
-            debugger;
-        }
-        return new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor);
-
-     
-
+        return [accessor, new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor)];
     }
-
-
-
-
 
 }

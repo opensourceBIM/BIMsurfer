@@ -139,9 +139,9 @@ export class RenderLayer {
 				// we need to un-quantize the vertices, transform them, then quantize them again (so the shaders can again unquantize them).
 				// This because order does matter (object transformation sometimes even mirror stuff)
 				// Obviously quantization slows down both CPU (only initially) and GPU (all the time)
-				vertex[0] = geometry.positions[i + 0];
-				vertex[1] = geometry.positions[i + 1];
-				vertex[2] = geometry.positions[i + 2];
+				vertex[0] = geometry.positions[i + 0] * 1000.;
+				vertex[1] = geometry.positions[i + 1] * 1000.;
+				vertex[2] = geometry.positions[i + 2] * 1000.;
 				
 				// If the geometry loader loads quantized data we need to unquantize first
 				// TODO there is a possible performance improvement possible for all modelset where the totalBounds of the modelSet are the same as for each individual submodel (for example all projects without subprojects).
@@ -152,7 +152,7 @@ export class RenderLayer {
 				}
 				vec3.transformMat4(vertex, vertex, object.matrix);
 				if (this.settings.quantizeVertices) {
-					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.vertexQuantizationMatrixWithGlobalTranslation);
+					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.vertexQuantizationMatrix);
 				}
 				
 				buffer.positions.set(vertex, buffer.positionsIndex);
