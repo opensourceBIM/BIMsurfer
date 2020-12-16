@@ -12,7 +12,7 @@ import {Stats} from "./stats.js";
 import {DefaultSettings} from "./defaultsettings.js";
 import {Utils} from "./utils.js";
 import {DataInputStream} from "./datainputstream.js";
-import { GLTFLoader } from "./gltfLoader.js"
+import { GLTFLoader } from "./gltfloader.js"
 
 
 export class AbstractViewer {
