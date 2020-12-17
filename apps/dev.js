@@ -107,10 +107,9 @@ export class Dev {
 		this.bimServerViewer.loadModel(this.api, project);
 
 		// Example: load glTF
-		// setTimeout(() => { this.bimServerViewer.loadGltf({url:"/assets/eindhoven.glb"})) }, 2000);
+		// setTimeout(() => { this.bimServerViewer.loadGltf({url:"/assets/eindhoven.glb"}); }, 2000);
 
 		// Example: load 3D Tiles for schependomlaan
-		// schependomlaan
 		// const refLatitude = 51.841870;
 		// const refLongitude = 5.836210;
 		// new ThreeDTileLoader({
@@ -120,7 +119,13 @@ export class Dev {
 		// 	callback: (params) => {
 		// 		const factorX = (refLongitude - params.bounds[0]) / (params.bounds[2] - params.bounds[0]);
 		// 		const factorY = (refLatitude - params.bounds[1]) / (params.bounds[3] - params.bounds[1]);
-		// 		this.bimServerViewer.loadGltf({buffer: params.buffer, ignoreMatrix: true, Y_UP: true, translate: [factorX, factorY]});
+		// 		this.bimServerViewer.loadGltf({
+		// 			buffer: params.buffer,
+		// 			geospatial: true,
+		// 			ignoreMatrix: true, 
+		// 			Y_UP: true, 
+		// 			translate: [factorX, factorY]
+		// 		});
 		// 	}
 		// }).load();
 	}

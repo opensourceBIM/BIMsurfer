@@ -191,7 +191,7 @@ export class GLTFLoader {
                     m3 = mat3.create();
                     mat3.normalFromMat4(m3, m4);
                 }
-                this.renderLayer.createObject(1, null, i, [n.mesh], m4, m3, m3, false, null, aabb, true);
+                this.renderLayer.createObject(1, null, i, [n.mesh], m4, m3, m3, false, null, aabb, this.params.geospatial);
             }
         });
 
@@ -250,7 +250,7 @@ export class GLTFLoader {
 
         var upperBound = accessorCount * elementBytes * dataSize;
 
-        if (byteStride) {
+        if (byteStride && byteStride != (WEBGL_TYPE_SIZES[accesorType] * elementBytes)) {
             let arrayBufferSubset = this.secondChunkBits.slice(byteOffset, byteOffset + byteLength);
             let all = new WEBGL_COMPONENT_TYPES[componentType](arrayBufferSubset);
             let strideSubset = new WEBGL_COMPONENT_TYPES[componentType](accessorCount * dataSize);
