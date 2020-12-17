@@ -26,6 +26,8 @@ layout(location=1) out float myOutputAlpha;
 
 uniform vec4 sectionPlane[6];
 
+#define VIEW_THRESHOLD (200. * 1000.)
+
 void main(void) {
 #ifndef WITH_LINEPRIMITIVES
    // Lines are never rendered with the section plane enabled. So this is an
@@ -35,6 +37,14 @@ void main(void) {
          discard;
       }
    }
+
+   float L = length(worldCoords.xy);
+   // To give the geospatial context a more natural falloff.
+   if (L > VIEW_THRESHOLD)  {
+      discard;
+   }
+#else
+   const float L = 1.;
 #endif
 
 #ifdef WITH_PICKING
@@ -66,7 +76,11 @@ void main(void) {
 	#endif
 #else
   // TODO if we move the lighting to the fragment shader, we can enable back-face-culling (for those objects that can handle it) and use gl_FrontFacing to decide to invert the normal)
-   myOutputColor = color;// vec4(color.rgb * color.a, color.a);
+
+   float mist = 1. - L / (VIEW_THRESHOLD * 0.9);
+   mist = pow(mist, 0.5);
+
+   myOutputColor = vec4(color.rgb, color.a * mist);
    myOutputAlpha = 1.;
 #endif
 }

@@ -51,6 +51,10 @@ export class Viewer {
 
         this.defaultColors = settings.defaultColors ? settings.defaultColors : DefaultColors;
         
+        // Controls a couple of settings, such as no section plane cap, no automatic
+        // camera near and far planes.
+        this.geospatialMode = true;
+
         this.stats = stats;
         this.settings = settings;
         this.canvas = canvas;
@@ -571,7 +575,7 @@ export class Viewer {
             // On what side of the plane is the camera eye?
             let planeIsVisbible = (p) => vec3.dot(p.values, this.camera.eye) > p.values[3];
 
-            if (this.sectionPlanes.planes.some(p => !p.isDisabled && planeIsVisbible(p))) {
+            if (!this.geospatialMode && this.sectionPlanes.planes.some(p => !p.isDisabled && planeIsVisbible(p))) {
 
                 // Fill depth buffer with quads
                 // ----------------------------

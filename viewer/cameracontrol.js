@@ -343,7 +343,6 @@ export class CameraControl {
     }
 
     canvasKeyProcess(e, state) {
-        console.log("key" ,e.key);
         let axo = this.axoKeyMapping[e.key];
         if (axo && state == false) {
             this.moveToAxo(axo);

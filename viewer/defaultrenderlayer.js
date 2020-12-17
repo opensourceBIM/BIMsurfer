@@ -29,8 +29,8 @@ export class DefaultRenderLayer extends RenderLayer {
 		window.defaultRenderLayer = this;
 	}
 
-	createObject(loaderId, roid, uniqueId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb) {
-		return super.createObject(loaderId, roid, uniqueId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, this.gpuBufferManager);
+	createObject(loaderId, roid, uniqueId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, quantFromAabb) {
+		return super.createObject(loaderId, roid, uniqueId, geometryIds, matrix, normalMatrix, scaleMatrix, hasTransparency, type, aabb, this.gpuBufferManager, null, quantFromAabb);
 	}
 
 	addGeometryReusable(geometry, loader, gpuBufferManager) {
@@ -38,7 +38,7 @@ export class DefaultRenderLayer extends RenderLayer {
 		this.viewer.stats.inc("Drawing", "Draw calls per frame (L1)");
 	}
 	
-	addGeometry(loaderId, geometry, object) {
+	addGeometry(loaderId, geometry, object, quantFromAabb) {
 		// TODO some of this is duplicate code, also in tilingrenderlayer.js
 		if (geometry.reused > 1 && this.geometryDataToReuse != null && this.geometryDataToReuse.has(geometry.id)) {
 			geometry.matrices.push(object.matrix);
@@ -59,7 +59,7 @@ export class DefaultRenderLayer extends RenderLayer {
 		};
 		var buffer = this.bufferManager.getBufferSet(geometry.hasTransparency, geometry.color, sizes);
 
-		super.addGeometry(loaderId, geometry, object, buffer, sizes);
+		super.addGeometry(loaderId, geometry, object, buffer, sizes, quantFromAabb);
 	}
 
 	done(loaderId) {

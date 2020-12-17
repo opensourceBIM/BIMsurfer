@@ -67,7 +67,7 @@ export class Camera {
 
         this._orbitting = false;
 
-        this.autonear = true;
+        this.autonear = !this.viewer.geospatialMode;
 
         this._tmp_interpolate_current_dir = vec3.create();
 	    this._tmp_interpolate_new_dir = vec3.create();

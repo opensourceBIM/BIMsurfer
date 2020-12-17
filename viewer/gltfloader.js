@@ -37,7 +37,7 @@ var BINARY_EXTENSION_CHUNK_TYPES = { JSON: 0x4E4F534A, BIN: 0x004E4942 };
 
 export class GLTFLoader {
 
-    constructor(viewer, gltfBuffer) {
+    constructor(viewer, gltfBuffer, params) {
         this.viewer = viewer;
         const layer = new DefaultRenderLayer(this.viewer);
         layer.registerLoader(1);
@@ -48,7 +48,7 @@ export class GLTFLoader {
         this.viewer.renderLayers.add(layer);
         this.gltfBuffer = gltfBuffer;
         this.renderLayer = layer;
-        layer.id = "gltf";
+        this.params = params || {};
         this.primarilyProcess();
     }
 
@@ -103,12 +103,24 @@ export class GLTFLoader {
                 let [__, idxs] = this.getBufferData(primitive, 'indices');
                 let material = this.getMaterial(primitive);
 
+                // Apparently indices are optional in glTF. In case they are absent
+                // we just create a monotonically increasing sequence that stretches
+                // all vertices.
+                if (idxs === null) {
+                    idxs = new Uint32Array(ps.length / 3);
+                    for (let k = 0; k < idxs.length; ++k) {
+                        idxs[k] = k;
+                    }
+                }
+                
                 let aabb_ = Utils.emptyAabb();
                 aabb_.set(psAccessor.min);
                 aabb_.set(psAccessor.max, 3);
                 aabb = Utils.unionAabb(aabb, aabb_);
 
-                let color = material.pbrMetallicRoughness.baseColorFactor;
+                let color = material.pbrMetallicRoughness && material.pbrMetallicRoughness.baseColorFactor
+                    ? material.pbrMetallicRoughness.baseColorFactor
+                    : [0.6, 0.6, 0.6, 1.0];
 
                 let cs = new Float32Array(ps.length / 3 * 4);
                 for (var k = 0; k < cs.length; k += 4) {
@@ -152,10 +164,10 @@ export class GLTFLoader {
         });
 
         this.json.nodes.forEach((n, i) => {
-            if (n.mesh) {
+            if (typeof(n.mesh) !== 'undefined') {
                 const aabb = aabbs[n.mesh];
                 let m4, m3;
-                if (n.matrix) {
+                if (!this.params.ignoreMatrix && n.matrix) {
                     let m = n.matrix;
                     m4 = new Float32Array([
                         m[ 0], -m[ 2], m[ 1], m[ 3],
@@ -173,9 +185,13 @@ export class GLTFLoader {
                     mat3.transpose(m3, m3);
                 } else {
                     m4 = mat4.identity(mat4.create());
-                    m3 = mat3.identity(mat3.create());    
+                    if (this.params.Y_UP) {
+                        mat4.rotateX(m4, m4, Math.PI / -2.);
+                    }
+                    m3 = mat3.create();
+                    mat3.normalFromMat4(m3, m4);
                 }
-                this.renderLayer.createObject(1, null, i, [n.mesh], m4, m3, m3, false, null, aabb);
+                this.renderLayer.createObject(1, null, i, [n.mesh], m4, m3, m3, false, null, aabb, true);
             }
         });
 
@@ -198,8 +214,12 @@ export class GLTFLoader {
             var accessorIndex = primitive[primitiveAttributeType]
         }
 
+        if (typeof(accessorIndex) === 'undefined') {
+            return [null, null];
+        }
+
         var accessor = this.json['accessors'][accessorIndex];
-        var accessorOffset = accessor['byteOffset'];
+        var accessorOffset = accessor['byteOffset'] || 0;
         var accesorType = accessor['type'];
         var componentType = accessor['componentType'];
         // Accessor count property defines the number of elements in the bufferView
@@ -230,15 +250,29 @@ export class GLTFLoader {
 
         var upperBound = accessorCount * elementBytes * dataSize;
 
-        if (byteOffset) {
-            var segmentedBuffer = this.secondChunkBits.slice(byteOffset, byteOffset + byteLength);
-        }
-        else {
-            var segmentedBuffer = this.secondChunkBits
-        }
+        if (byteStride) {
+            let arrayBufferSubset = this.secondChunkBits.slice(byteOffset, byteOffset + byteLength);
+            let all = new WEBGL_COMPONENT_TYPES[componentType](arrayBufferSubset);
+            let strideSubset = new WEBGL_COMPONENT_TYPES[componentType](accessorCount * dataSize);
+            let j = 0;
+            for (let i = 0; i < all.length; ++i) {
+                let i_within_stride = (i % (byteStride / elementBytes)) - (accessorOffset / elementBytes);
+                if (i_within_stride >= 0 && i_within_stride < WEBGL_TYPE_SIZES[accesorType]) {
+                    strideSubset[j++] = all[i];
+                }
+            }
+            return [accessor, strideSubset];
+        } else {
+            if (byteOffset) {
+                var segmentedBuffer = this.secondChunkBits.slice(byteOffset, byteOffset + byteLength);
+            }
+            else {
+                var segmentedBuffer = this.secondChunkBits
+            }
 
-        var segmentedBufferFromAccessor = segmentedBuffer.slice(accessorOffset, accessorOffset + upperBound);
-        return [accessor, new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor)];
+            var segmentedBufferFromAccessor = segmentedBuffer.slice(accessorOffset, accessorOffset + upperBound);
+            return [accessor, new WEBGL_COMPONENT_TYPES[componentType](segmentedBufferFromAccessor)];
+        }
     }
 
 }

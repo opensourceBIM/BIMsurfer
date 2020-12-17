@@ -69,12 +69,19 @@ export class AbstractViewer {
 	}
 
 	loadGltf(params) {
-		fetch(params.url).then(function (response) {
-			return response.arrayBuffer();
-		}).then((buffer) => {
-			var gltfLoader = new GLTFLoader(this.viewer, buffer);
-			var geometries = gltfLoader.processGLTFBuffer();
-		});
+		let load = (buffer) => {
+			var gltfLoader = new GLTFLoader(this.viewer, buffer, params);
+			gltfLoader.processGLTFBuffer();
+		};
+		if (params.url) {
+			fetch(params.url).then(function (response) {
+				return response.arrayBuffer();
+			}).then(load);
+		} else if (params.buffer) {
+			load(params.buffer);
+		} else {
+			throw new Error("Expected buffer or url");
+		}
 	}
 
 	loadAnnotationsFromPreparedBufferUrl(url) {
