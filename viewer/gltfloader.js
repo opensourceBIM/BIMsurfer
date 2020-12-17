@@ -1,4 +1,4 @@
-import * as vec4 from "./glmatrix/vec4.js";
+import * as vec3 from "./glmatrix/vec3.js";
 import * as mat4 from "./glmatrix/mat4.js";
 import * as mat3 from "./glmatrix/mat3.js";
 
@@ -140,6 +140,24 @@ export class GLTFLoader {
                 }
             });
 
+            if (this.params.elevation) {
+                for (var k = 1; k < positions.length; k += 3) {
+                    positions[k] -= this.params.elevation;
+                }
+            }
+
+            if (this.params.translate) {
+                let [dx, dy] = this.params.translate;
+                dx = (dx - 0.5) * (aabb[3] - aabb[0]);
+                dy = (dy - 0.5) * (aabb[5] - aabb[2]);
+                for (var k = 0; k < positions.length; k += 3) {
+                    positions[k] += dy;
+                }
+                for (var k = 2; k < positions.length; k += 3) {
+                    positions[k] -= dx;
+                }
+            }
+
             for (var k = 0; k < aabb.length; ++k) {
                 aabb[k] *= 1000.;
             }
@@ -178,19 +196,29 @@ export class GLTFLoader {
                     m4[12] *= 1000.;
                     m4[13] *= 1000.;
                     m4[14] *= 1000.;
+                } else if (this.params.refMatrix && this.json.extensions && this.json.extensions.CESIUM_RTC)  {
+                    m4 = mat4.identity(mat4.create());
+                    
+                    let refInv = mat4.create();
+                    mat4.invert(refInv, this.params.refMatrix);
+                    
+                    let m = n.matrix;
+                    let nodeMatrixZup = new Float64Array([
+                        m[ 0], -m[ 2], m[ 1], m[ 3],
+                        m[ 4], -m[ 6], m[ 5], m[ 7],
+                        m[ 8], -m[10], m[ 9], m[11],
+                        m[12], -m[14], m[13], m[15]
+                    ]);
+                    nodeMatrixZup.subarray(12, 15).set(this.json.extensions.CESIUM_RTC.center);
 
-                    m3 = mat3.create();
-                    mat3.fromMat4(m3, m4);
-                    mat3.invert(m3, m3);
-                    mat3.transpose(m3, m3);
+                    mat4.multiply(m4, refInv, nodeMatrixZup);
                 } else {
                     m4 = mat4.identity(mat4.create());
-                    if (this.params.Y_UP) {
-                        mat4.rotateX(m4, m4, Math.PI / -2.);
-                    }
-                    m3 = mat3.create();
-                    mat3.normalFromMat4(m3, m4);
                 }
+                
+                m3 = mat3.create();
+                mat3.normalFromMat4(m3, m4);
+
                 this.renderLayer.createObject(1, null, i, [n.mesh], m4, m3, m3, false, null, aabb, this.params.geospatial);
             }
         });

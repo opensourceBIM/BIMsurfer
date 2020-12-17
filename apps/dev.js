@@ -7,6 +7,9 @@ import {ProjectTreeModel} from "../viewer/projecttreemodel.js"
 import {TreeView} from "../viewer/treeview.js"
 import {Credentials} from "./credentials.js"
 import {ThreeDTileLoader} from "../viewer/threedtileloader.js"
+import * as mat4 from "../viewer/glmatrix/mat4.js";
+import Cartesian3 from "../viewer/cesium/Core/Cartesian3.js";
+import Transforms from "../viewer/cesium/Core/Transforms.js";
 
 /*
  * This class is where the applications starts, it's a mess, needs to go when we change this into an API
@@ -110,8 +113,16 @@ export class Dev {
 		// setTimeout(() => { this.bimServerViewer.loadGltf({url:"/assets/eindhoven.glb"}); }, 2000);
 
 		// Example: load 3D Tiles for schependomlaan
-		// const refLatitude = 51.841870;
-		// const refLongitude = 5.836210;
+		// const refLatitude = 51.842005;
+		// const refLongitude = 5.83664;
+		// const refElevation = 11.;
+		// let cesiumMatrix = Transforms.eastNorthUpToFixedFrame(
+		// 	Cartesian3.fromDegrees(refLongitude, refLatitude, 0.)
+		// );
+		// let northRotation = new Float64Array(16);
+		// mat4.fromZRotation(northRotation, Math.PI / 8.);
+		// let cesiumMatrixGl = new Float64Array(cesiumMatrix);
+		// mat4.multiply(cesiumMatrixGl, cesiumMatrixGl, northRotation);
 		// new ThreeDTileLoader({
 		// 	url: 'https://www.nederlandin3d.nl/viewer/datasource-data/83812e58-981e-4461-b338-c95aa7212722/tileset.json',
 		// 	refLatitude: refLatitude,
@@ -124,7 +135,9 @@ export class Dev {
 		// 			geospatial: true,
 		// 			ignoreMatrix: true, 
 		// 			Y_UP: true, 
-		// 			translate: [factorX, factorY]
+		// 			translate: [factorX, factorY],
+		// 			elevation: refElevation,
+		// 			refMatrix: cesiumMatrixGl,
 		// 		});
 		// 	}
 		// }).load();
