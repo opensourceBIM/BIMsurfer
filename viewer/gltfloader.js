@@ -40,6 +40,9 @@ export class GLTFLoader {
     constructor(viewer, gltfBuffer, params) {
         this.viewer = viewer;
         const layer = new DefaultRenderLayer(this.viewer);
+		if (params.name) {
+			layer.name = params.name;
+		}
         layer.registerLoader(1);
         layer.settings = JSON.parse(JSON.stringify(layer.settings));
         layer.settings.loaderSettings.quantizeVertices = false;
