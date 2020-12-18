@@ -53,7 +53,7 @@ export class Viewer {
         
         // Controls a couple of settings, such as no section plane cap, no automatic
         // camera near and far planes.
-        this.geospatialMode = true;
+        this.geospatialMode = false;
 
         this.stats = stats;
         this.settings = settings;

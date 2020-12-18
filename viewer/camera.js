@@ -67,8 +67,6 @@ export class Camera {
 
         this._orbitting = false;
 
-        this.autonear = !this.viewer.geospatialMode;
-
         this._tmp_interpolate_current_dir = vec3.create();
 	    this._tmp_interpolate_new_dir = vec3.create();
 	    this._tmp_interpolate_a = vec3.create();
@@ -155,7 +153,7 @@ export class Camera {
         
         let [near, far] = [+Infinity, -Infinity];
 
-        if (this.autonear && this._modelBounds) {
+        if (!this.viewer.geospatialMode && this._modelBounds) {
         	for (var v of this._modelBounds) {
                 vec3.transformMat4(this.tmp_modelBounds, v, this._viewMatrix);
                 let z = -this.tmp_modelBounds[2];
@@ -171,7 +169,7 @@ export class Camera {
                 near = far / 1000.;
             }
         } else {
-            [near, far] = [+100, +1000000.];
+            [near, far] = [+1000, +200000. + vec3.length(this.eye)];
         }
 
         this.perspective.near = near - 1e-2;

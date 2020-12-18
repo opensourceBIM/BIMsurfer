@@ -128,6 +128,7 @@ export class Dev {
 		// 	refLatitude: refLatitude,
 		// 	refLongitude: refLongitude,
 		// 	callback: (params) => {
+		// 		this.bimServerViewer.viewer.geospatialMode = true;
 		// 		const factorX = (refLongitude - params.bounds[0]) / (params.bounds[2] - params.bounds[0]);
 		// 		const factorY = (refLatitude - params.bounds[1]) / (params.bounds[3] - params.bounds[1]);
 		// 		this.bimServerViewer.loadGltf({
