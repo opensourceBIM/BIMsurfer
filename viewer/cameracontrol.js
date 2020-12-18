@@ -450,7 +450,7 @@ export class CameraControl {
 
     getEyeLookDist() {
         let d = this.viewer.lastRecordedDepth;
-        if (!this.mouseDown && ((+new Date()) - this.viewer.recordedDepthAt) > 500) {
+        if (!this.mouseDown && !this.keysDown.size && ((+new Date()) - this.viewer.recordedDepthAt) > 500) {
             // Reread depth at mouse coordinates for sensitivity measures
             this.viewer.pick({canvasPos: this.mousePos, select: false});
         }
