@@ -277,7 +277,10 @@ class Box {
 		vec3.add(this.normalizedMinVector, this.normalizedMinVector, this.globalTranslationVector);
 		vec3.add(this.normalizedMaxVector, this.normalizedMaxVector, this.globalTranslationVector);
 		
-		this.minmax = [[this.normalizedMinVector[0], this.normalizedMinVector[1], this.normalizedMinVector[2]], [this.normalizedMaxVector[0] - this.normalizedMinVector[0], this.normalizedMaxVector[1] - this.normalizedMinVector[1], this.normalizedMaxVector[2] - this.normalizedMinVector[2]]];
+		this.minmax = [
+			[this.normalizedMinVector[0], this.normalizedMinVector[1], this.normalizedMinVector[2]],
+			[this.normalizedMaxVector[0], this.normalizedMaxVector[1], this.normalizedMaxVector[2]],
+		];
 	}
 	
 	set(min, max) {
