@@ -20,7 +20,6 @@ let WEBGL_multi_draw = null;
  * to a render layer, ie. the base geometries always visible vs. the
  * dynamically visible tiles based on camera orientation.
  * 
- * @export
  * @class RenderLayer
  */
 export class RenderLayer {
@@ -32,7 +31,7 @@ export class RenderLayer {
 		WEBGL_multi_draw = this.gl.getExtension("WEBGL_multi_draw");
 		this.geometryDataToReuse = geometryDataToReuse;
 		this.geometryCache = new GeometryCache(this);
-		this.instanceSelectionData = new Uint32Array(1024);
+		this.instanceSelectionData = new Uint32Array(256);
 		this.previousInstanceVisibilityState = null;
 
 		this.selectionOutlineMatrix = mat4.create();
@@ -105,6 +104,7 @@ export class RenderLayer {
 		var globalizedAabb = Utils.transformBounds(aabb, this.viewer.globalTranslationVector);
 		
 		var viewObject = {
+			renderLayer: this,
             type: type,
 			aabb: aabb,
 			globalizedAabb: globalizedAabb,
