@@ -39,7 +39,6 @@ const OVERRIDE_FLAG = (1 << 30);
  * - Keeps track of dirty scene
  * - Contains the basic render loop (and delegates to the render layers)
  *
- * @export
  * @class Viewer
  */
 
@@ -95,20 +94,22 @@ export class Viewer {
         this.oidCounter = 1;
         
         // User can override this, default assumes strings to be used as unique object identifiers
-        if (this.settings.loaderSettings.useUuidAndRid) {
-        	const collator = new Intl.Collator();
-        	// TODO there is really no need to use a locale-aware comparator here, but somehow > or < does not seem to work, where it work should for string
-        	this.uniqueIdCompareFunction = (a, b) => {
-//        		return a == b ? 0 : (a > b ? 1 : -1);
-        		return collator.compare(a, b);
-            };
+		if (this.settings.loaderSettings.uniqueIdCompareFunction) {
+			this.uniqueIdCompareFunction = this.settings.loaderSettings.uniqueIdCompareFunction;
             this.idAugmentationFunction = (id) => ("O" + id);
-        } else {
-        	this.uniqueIdCompareFunction = (a, b) => {
-        		return a - b;
-            };
-            this.idAugmentationFunction = (id) => (id | OVERRIDE_FLAG);
-        }
+		} else {
+	        if (this.settings.loaderSettings.useUuidAndRid) {
+	        	const collator = new Intl.Collator();
+	        	// TODO there is really no need to use a locale-aware comparator here, but somehow > or < does not seem to work, where it work should for string
+	        	this.uniqueIdCompareFunction = collator.compare;
+	            this.idAugmentationFunction = (id) => ("O" + id);
+	        } else {
+	        	this.uniqueIdCompareFunction = (a, b) => {
+	        		return a - b;
+	            };
+	            this.idAugmentationFunction = (id) => (id | OVERRIDE_FLAG);
+	        }
+		}
         
         /* Next function serves two purposes:
          *	- We invert the uniqueIdCompareFunction because for some reason AvlTree sort is descending
@@ -160,7 +161,7 @@ export class Viewer {
         if ("OffscreenCanvas" in window && canvas instanceof OffscreenCanvas) {
         } else {
         	// Tabindex required to be able add a keypress listener to canvas
-        	canvas.setAttribute("tabindex", "0");
+			canvas.setAttribute("tabindex", "0");
 			if (!this.settings.disableDefaultKeyBindings) {
 	        	canvas.addEventListener("keypress", (evt) => {
 	        		if (evt.key === 'H') {
@@ -225,14 +226,32 @@ export class Viewer {
             };
 
             this.dirty = 2;
-            
             if (fireEvent) {
-            	this.eventHandler.fire("visbility_changed", elems, visible);
+	            var map = this.splitElementsPerRenderLayer(elems);
+				for (const [renderLayer, elems] of map) {
+	            	this.eventHandler.fire("visbility_changed", renderLayer, elems, visible);
+				}
             }
             
             return Promise.resolve();
         });
     }
+
+	splitElementsPerRenderLayer(elems) {
+		var map = new Map();
+		for (var elem of elems) {
+			var viewObject = this.viewObjects.get(elem);
+			if (viewObject) {
+				var set = map.get(viewObject.renderLayer);
+				if (!set) {
+					set = [];
+					map.set(viewObject.renderLayer, set);
+				}
+				set.push(elem);
+			}
+		}
+		return map;
+	}
 
     setSelectionState(elems, selected, clear, fireEvent=true) {
         return this.selectedElements.batch(() => {
@@ -413,7 +432,10 @@ export class Viewer {
 				}
 				this._dirty = 2;
 				if (fireEvent) {
-					this.eventHandler.fire("color_changed", elems, clr);
+					var map = this.splitElementsPerRenderLayer(elems);
+					for (const [renderLayer, elems] of map) {
+						this.eventHandler.fire("color_changed", renderLayer, elems, clr);
+					}
 				}
 			});
 		});
@@ -457,11 +479,16 @@ export class Viewer {
     }
 
     setDimensions(width, height) {
+		if (width == null || height == null) {
+			debugger;
+			throw "Invalid dimensions: " + width + ", " + height;
+		}
         this.width = width;
         this.height = height;
         this.camera.perspective._dirty = true;
         this.updateViewport();
 		this.overlay.resize();
+		this.render();
     }
 
     render(now) {
@@ -856,9 +883,8 @@ export class Viewer {
             	var triggered = false;
                 if (!params.shiftKey) {
                 	if (this.selectedElements.size > 0) {
-                		this.eventHandler.fire("selection_state_set", new Set([uniqueId]), true);
+                		this.eventHandler.fire("selection_state_set", viewObject.renderLayer, [uniqueId], true);
                 		triggered = true;
-//                		this.eventHandler.fire("selection_state_changed", this.selectedElements, false);
                 		this.selectedElements.clear();
                 		this.addToSelection(uniqueId);
                 	}
@@ -866,10 +892,10 @@ export class Viewer {
                 if (!triggered) {
                 	if (this.selectedElements.has(uniqueId) && !params.onlyAdd) {
                 		this.selectedElements.delete(uniqueId);
-                		this.eventHandler.fire("selection_state_changed", [uniqueId], false);
+                		this.eventHandler.fire("selection_state_changed", viewObject.renderLayer, [uniqueId], false);
                 	} else {
                 		this.addToSelection(uniqueId);
-                		this.eventHandler.fire("selection_state_changed", [uniqueId], true);
+                		this.eventHandler.fire("selection_state_changed", viewObject.renderLayer, [uniqueId], true);
                 	}
                 }
             }
@@ -879,7 +905,10 @@ export class Viewer {
             return {object: viewObject, normal: normal, coordinates: this.tmp_unproject, depth: depth};
         } else if (params.select !== false) {
         	if (this.selectedElements.size > 0) {
-        		this.eventHandler.fire("selection_state_changed", this.selectedElements, false);
+				var map = this.splitElementsPerRenderLayer(this.selectedElements);
+				for (const [renderLayer, elems] of map) {
+	        		this.eventHandler.fire("selection_state_changed", renderLayer, elems, false);
+				}
         		this.selectedElements.clear();
         	}
         }
