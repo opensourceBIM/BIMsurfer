@@ -50,22 +50,26 @@ export class AbstractViewer {
         if ("OffscreenCanvas" in window && canvas instanceof OffscreenCanvas) {
 			
 		} else {
-			if (this.settings.autoResize) {
-				this.autoResizeCanvas();
-				this.resizeHandler = () => {
-					this.autoResizeCanvas();
-				};
-				window.addEventListener("resize", this.resizeHandler, false);
+			if (this.settings.resizing == "manual") {
+				// Do nothing, let the embedder deal with resizing
 			} else {
-				this.canvas.width = this.width;
-				this.canvas.height = this.height;
-				this.resizeHandler = () => {
+				if (this.settings.autoResize) {
 					this.autoResizeCanvas();
-				};
-				window.addEventListener("resize", this.resizeHandler, false);
+					this.resizeHandler = () => {
+						this.autoResizeCanvas();
+					};
+					window.addEventListener("resize", this.resizeHandler, false);
+				} else {
+					this.canvas.width = this.width;
+					this.canvas.height = this.height;
+					this.resizeHandler = () => {
+						this.autoResizeCanvas();
+					};
+					window.addEventListener("resize", this.resizeHandler, false);
+				}
+				this.viewer.setDimensions(this.width, this.height);
 			}
 		}
-		this.viewer.setDimensions(this.width, this.height);
 	}
 
 	loadGltf(params) {
@@ -111,8 +115,8 @@ export class AbstractViewer {
 	}
 
 	autoResizeCanvas() {
-		this.canvas.width = this.canvas.clientWidth;
-		this.canvas.height = this.canvas.clientHeight;
+//		this.canvas.width = this.canvas.clientWidth;
+//		this.canvas.height = this.canvas.clientHeight;
 		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
 	}
 
@@ -332,6 +336,9 @@ export class AbstractViewer {
 	
 	cleanup() {
 		window.removeEventListener("resize", this.resizeHandler, false);
+		if (this.stats) {
+			this.stats.cleanup();
+		}
 		this.viewer.cleanup();
 	}
 	
