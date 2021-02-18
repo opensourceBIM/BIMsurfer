@@ -3,7 +3,6 @@ import {FatLineRenderer} from "./fatlinerenderer.js";
 /**
  * Simple (reusable) class to draw a linebox
  *
- * @export
  * @class LineBoxGeometry
  * @extends {FatLineRenderer}
  */

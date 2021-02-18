@@ -4,7 +4,6 @@ export const COLOR_ALPHA_DEPTH = 0xff02;
 /**
  *
  * @ignore
- * @export
  * @class RenderBuffer
  */
 export class RenderBuffer {

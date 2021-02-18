@@ -2,7 +2,6 @@
  * A Screen-space quadrangle used for deferred rendering. Currently only used for
  * Order Independent Transparency which is hard-coded here in the constructor.
  *
- * @export
  * @class SSQuad
  */
 export class SSQuad {
