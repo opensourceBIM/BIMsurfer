@@ -6,7 +6,6 @@ import {FrustumPlane} from "./frustumplane.js";
 /**
  * Frustum for fast World-space frustum-AABB collision testing
  * 
- * @export
  * @class Frustum
  */
 export class Frustum {
