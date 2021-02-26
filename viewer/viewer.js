@@ -480,7 +480,6 @@ export class Viewer {
 
     setDimensions(width, height) {
 		if (width == null || height == null) {
-			debugger;
 			throw "Invalid dimensions: " + width + ", " + height;
 		}
         this.width = width;
