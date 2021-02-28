@@ -3,13 +3,7 @@ import * as mat4 from "./glmatrix/mat4.js";
 import * as mat3 from "./glmatrix/mat3.js";
 
 import { Utils } from "./utils.js";
-import { DataInputStream } from "./datainputstream.js";
 import {DefaultRenderLayer} from "./defaultrenderlayer.js"
-
-import { AvlTree } from "./collections/avltree.js";
-
-const PROTOCOL_VERSION = 20;
-
 
 var WEBGL_TYPE_SIZES = {
     'SCALAR': 1,
@@ -30,7 +24,7 @@ var WEBGL_COMPONENT_TYPES = {
     5126: Float32Array
 };
 
-var BINARY_EXTENSION_HEADER_MAGIC = 'glTF';
+var BINARY_EXTENSION_HEADER_MAGIC = 0x46546C67;
 var BINARY_EXTENSION_HEADER_LENGTH = 12;
 var BINARY_EXTENSION_CHUNK_TYPES = { JSON: 0x4E4F534A, BIN: 0x004E4942 };
 
@@ -53,37 +47,35 @@ export class GLTFLoader {
         this.renderLayer = layer;
         this.params = params || {};
         this.primarilyProcess();
+        this.debug = params.debug;
     }
 
     primarilyProcess() {
         var decoder = new TextDecoder("utf-8");
 
         // Parse header
-        var bufferFourBits = new Int32Array(this.gltfBuffer);
-        var firstBits = bufferFourBits.slice(0, 2);
-        var hexa = new Int16Array(firstBits);
-
-        //Todo: Add an assertion to check if the file is glTF
-        var magic = hexa[0];
-        var magicValue = magic.toString(16);
-        var fileFormat = decoder.decode(this.gltfBuffer.slice(0, 4))
-        var version = hexa[1].toString(8);
-        var length = bufferFourBits.slice(2, 3)[0];
+        var bufferFourBits = new Uint32Array(this.gltfBuffer.slice(0, 20));
+        if (bufferFourBits[0] != BINARY_EXTENSION_HEADER_MAGIC) {
+            throw Error("Expected glTF");
+        }
 
         // Get JSON Chunk
-        var firstChunkLength = bufferFourBits.slice(3, 4)[0];
-        var firstChunkType = decoder.decode(bufferFourBits.slice(4, 5))
-        var offset = firstChunkLength / 4;
-        var content = bufferFourBits.slice(5, offset + 5);
+        var firstChunkLength = bufferFourBits[3];
+        var firstChunkType = bufferFourBits[4];
+        if (firstChunkType !== BINARY_EXTENSION_CHUNK_TYPES.JSON) {
+            throw Error("Expected JSON");
+        }
+        var content = this.gltfBuffer.slice(20, 20 + firstChunkLength);
         var contentString = decoder.decode(content);
         this.json = JSON.parse(contentString);
 
         // Get Binary Chunk 
-        var secondChunkLength = bufferFourBits.slice(offset + 5, offset + 6)[0];
-        var secondChunkType = decoder.decode(bufferFourBits.slice(offset + 6, offset + 7));
-        var secondOffset = secondChunkLength / 4;
-        var secondChunkContent = bufferFourBits.slice(offset + 7, offset + 7 + secondOffset);
-        this.secondChunkBits = this.gltfBuffer.slice((offset + 7) * 4, (offset + 7 + secondOffset) * 4);
+        var secondChunkLength = new Uint32Array(this.gltfBuffer.slice(firstChunkLength + 20, firstChunkLength + 24))[0];
+        var secondChunkType = new Uint32Array(this.gltfBuffer.slice(firstChunkLength + 24, firstChunkLength + 28))[0];
+        if (secondChunkType !== BINARY_EXTENSION_CHUNK_TYPES.BIN) {
+            throw Error("Expected BIN");
+        }
+        this.secondChunkBits = this.gltfBuffer.slice(28 + firstChunkLength, 28 + firstChunkLength + secondChunkLength);
     }
 
     join(a, b) {
@@ -105,6 +97,9 @@ export class GLTFLoader {
                 let [_, ns] = this.getBufferData(primitive, 'NORMAL');
                 let [__, idxs] = this.getBufferData(primitive, 'indices');
                 let material = this.getMaterial(primitive);
+
+                // console.log("ps", JSON.stringify(Array.from(ps)));
+                // console.log("idxs", JSON.stringify(Array.from(idxs)));
 
                 // Apparently indices are optional in glTF. In case they are absent
                 // we just create a monotonically increasing sequence that stretches
@@ -149,18 +144,6 @@ export class GLTFLoader {
                 }
             }
 
-            if (this.params.translate) {
-                let [dx, dy] = this.params.translate;
-                dx = (dx - 0.5) * (aabb[3] - aabb[0]);
-                dy = (dy - 0.5) * (aabb[5] - aabb[2]);
-                for (var k = 0; k < positions.length; k += 3) {
-                    positions[k] += dy;
-                }
-                for (var k = 2; k < positions.length; k += 3) {
-                    positions[k] -= dx;
-                }
-            }
-
             for (var k = 0; k < aabb.length; ++k) {
                 aabb[k] *= 1000.;
             }
@@ -196,25 +179,72 @@ export class GLTFLoader {
                         m[ 8], -m[10], m[ 9], m[11],
                         m[12], -m[14], m[13], m[15]
                     ]);
-                    m4[12] *= 1000.;
-                    m4[13] *= 1000.;
-                    m4[14] *= 1000.;
                 } else if (this.params.refMatrix && this.json.extensions && this.json.extensions.CESIUM_RTC)  {
                     m4 = mat4.identity(mat4.create());
-                    
-                    let refInv = mat4.create();
-                    mat4.invert(refInv, this.params.refMatrix);
-                    
-                    let m = n.matrix;
-                    let nodeMatrixZup = new Float64Array([
-                        m[ 0], -m[ 2], m[ 1], m[ 3],
-                        m[ 4], -m[ 6], m[ 5], m[ 7],
-                        m[ 8], -m[10], m[ 9], m[11],
-                        m[12], -m[14], m[13], m[15]
-                    ]);
-                    nodeMatrixZup.subarray(12, 15).set(this.json.extensions.CESIUM_RTC.center);
 
-                    mat4.multiply(m4, refInv, nodeMatrixZup);
+                    function dump(m) {
+                        let t = mat4.transpose(mat4.create(), m);
+                        console.log(...t.subarray(0, 4));
+                        console.log(...t.subarray(4, 8));
+                        console.log(...t.subarray(8, 12));
+                        console.log(...t.subarray(12, 16));
+                    }
+                    
+                    let m = new Float64Array(this.params.refMatrix);
+                    let uff = new Float64Array([
+                        m[ 0],  +m[ 2],  -m[ 1], m[ 3],
+                        m[ 4],  +m[ 6],  -m[ 5], m[ 7],
+                        m[ 8],  +m[10],  -m[ 9], m[11],
+                        m[12],  +m[14],  -m[13], m[15]
+                    ]);
+                    
+                    let ref = new Float64Array(uff.subarray(12, 15));
+                    uff.subarray(12, 15).set([0,0,0]);
+
+                    mat4.transpose(uff, uff);
+
+                    if (this.debug) {
+                        console.log("uff")
+                        dump(uff);
+                    }
+                    
+                    let uffi = new Float64Array(16);                   
+                    mat4.invert(uffi, uff);
+                    mat4.transpose(uffi, uffi);
+
+                    if (this.debug) {
+                        console.log("uffi")
+                        dump(uffi);
+                    }
+
+                    m = n.matrix;
+                    if (!m) {
+                        m = new Float64Array(16);
+                        mat4.identity(m);
+                    }
+
+                    let c = this.json.extensions.CESIUM_RTC.center;
+                    c = new Float64Array([c[0], c[2], -c[1]]);
+                    vec3.subtract(c, c, ref);
+
+                    let nodeMatrixZup = new Float64Array([
+                        m[ 0], m[ 1],  m[ 2],  m[ 3],
+                        m[ 4], m[ 5],  m[ 6],  m[ 7],
+                        m[ 8], m[ 9],  m[10],  m[11],
+                        c[ 0], c[ 1],  c[ 2],  m[15]
+                    ]);
+
+                    if (this.debug) {
+                        console.log("nodeMatrixZup")
+                        dump(nodeMatrixZup);
+                    }
+
+                    mat4.multiply(m4, uffi, nodeMatrixZup);
+
+                    if (this.debug) {
+                        console.log("m4");
+                        dump(m4);
+                    }
                 } else {
                     m4 = mat4.identity(mat4.create());
                 }
