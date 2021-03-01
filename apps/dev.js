@@ -55,7 +55,7 @@ export class Dev {
 		this.projectTreeModel = new ProjectTreeModel(this.api, treeView);
 		let onload = (function() {
 			if (this.projectTreeModel.children.length == 1) {
-				this.loadModel(this.projectTreeModel.children[0].project);
+//				this.loadModel(this.projectTreeModel.children[0].project);
 			}
 		}).bind(this);
 		this.projectTreeModel.load((node) => {

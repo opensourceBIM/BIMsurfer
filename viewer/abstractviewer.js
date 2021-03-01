@@ -115,8 +115,8 @@ export class AbstractViewer {
 	}
 
 	autoResizeCanvas() {
-//		this.canvas.width = this.canvas.clientWidth;
-//		this.canvas.height = this.canvas.clientHeight;
+		this.canvas.width = this.canvas.clientWidth;
+		this.canvas.height = this.canvas.clientHeight;
 		this.viewer.setDimensions(this.canvas.width, this.canvas.height);
 	}
 
