@@ -1132,7 +1132,6 @@ var util = require(13);
 /**
  * Constructs a new RPC service instance.
  * @classdesc An RPC service as returned by {@link Service#create}.
- * @exports rpc.Service
  * @extends util.EventEmitter
  * @augments rpc.ServiceMethodMixin
  * @constructor

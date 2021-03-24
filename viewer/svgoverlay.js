@@ -83,7 +83,6 @@ class PathOverlayNode extends SvgOverlayNode {
  * A SVG overlay that is synced with the WebGL viewport for efficiently rendering
  * two-dimensional elements such as text, that are not easily rendered using WebGL.
  *
- * @export
  * @class SvgOverlay
  */
 export class SvgOverlay {

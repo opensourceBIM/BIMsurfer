@@ -6,7 +6,6 @@ import { Stats } from "./stats.js";
 /**
  * Entry point for the public BimSurfer API.
  *
- * @export
  * @class BimSurfer
  * @extends {EventHandler}
  */

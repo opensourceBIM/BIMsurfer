@@ -310,6 +310,7 @@ export class GeometryLoader {
 						globalizedAabb = aabb;
 					}
 					const viewobj = this.renderLayer.viewer.getViewObject(oid);
+					viewobj.renderLayer = this.renderLayer;
 					viewobj.aabb = aabb;
 					viewobj.globalizedAabb = globalizedAabb;
 					this.renderLayer.viewer.setModelBounds(aabb);
