@@ -158,14 +158,15 @@ export class RenderLayer {
 
 		try {
 			var vertex = vec3.create();
+			let outOfBounds = new Set();
 			for (var i=0; i<geometry.positions.length; i+=3) {
 				// When quantizeVertices is on and we use the buffers in a combined buffer (which is what this method, addGeometry does),
 				// we need to un-quantize the vertices, transform them, then quantize them again (so the shaders can again unquantize them).
 				// This because order does matter (object transformation sometimes even mirror stuff)
 				// Obviously quantization slows down both CPU (only initially) and GPU (all the time)
-				vertex[0] = geometry.positions[i + 0] * 1000.;
-				vertex[1] = geometry.positions[i + 1] * 1000.;
-				vertex[2] = geometry.positions[i + 2] * 1000.;
+				vertex[0] = geometry.positions[i + 0];
+				vertex[1] = geometry.positions[i + 1];
+				vertex[2] = geometry.positions[i + 2];
 				
 				// If the geometry loader loads quantized data we need to unquantize first
 				// TODO there is a possible performance improvement possible for all modelset where the totalBounds of the modelSet are the same as for each individual submodel (for example all projects without subprojects).
@@ -174,9 +175,15 @@ export class RenderLayer {
 				if (this.settings.loaderSettings.quantizeVertices) {
 					vec3.transformMat4(vertex, vertex, this.viewer.vertexQuantization.getUntransformedInverseVertexQuantizationMatrixForUniqueModelId(geometry.uniqueModelId));
 				}
-				vec3.transformMat4(vertex, vertex, object.matrix);
+				vec3.transformMat4(vertex, vertex, object.matrix);				
+				vec3.scale(vertex, vertex, 1000);
+
 				if (this.settings.quantizeVertices) {
 					vec3.transformMat4(vertex, vertex, QM);
+					// Detect vertices going out of bounds of the quantization window.
+					if (Math.abs(vertex[0]) > 16000 || Math.abs(vertex[1]) > 16000 || Math.abs(vertex[1]) > 16000) {
+						outOfBounds.add(i / 3);
+					}
 				}
 				
 				buffer.positions.set(vertex, buffer.positionsIndex);
@@ -267,6 +274,19 @@ export class RenderLayer {
 			
 			var index = Array(3);
 			for (var i=0; i<geometry.indices.length; i+=3) {
+				let anyOutOfBounds = false;
+				for (let j = 0; j < 3; ++j) {
+					if (outOfBounds.has(geometry.indices[i + j])) {
+						anyOutOfBounds = true;
+						break;
+					}
+				}
+				if (anyOutOfBounds) {
+					buffer.indices.set([0,0,0], buffer.indicesIndex);
+					buffer.indicesIndex += 3;
+					continue;
+				}				
+
 				index[0] = geometry.indices[i + 0] + startIndex;
 				index[1] = geometry.indices[i + 1] + startIndex;
 				index[2] = geometry.indices[i + 2] + startIndex;
