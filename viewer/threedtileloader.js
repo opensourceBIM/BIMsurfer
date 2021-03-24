@@ -41,9 +41,6 @@ export class ThreeDTileLoader {
             let content = r.slice(headerSize + featureTableJSONByteLength + featureTableBinaryByteLength,
                 headerSize + featureTableJSONByteLength + featureTableBinaryByteLength + batchTableJSONByteLength + batchTableBinaryByteLength);
             let contentString = decoder.decode(content);
-            console.log(u.split("/").reverse()[0])
-            // console.log(JSON.parse(contentString.trim())["gml_id"]);
-            // console.dir(contentString);
 
             let glbOffset = headerSize + featureTableJSONByteLength + featureTableBinaryByteLength + batchTableJSONByteLength + batchTableBinaryByteLength;
             let b2 = new Uint32Array(r.slice(glbOffset, glbOffset+4));
@@ -55,7 +52,6 @@ export class ThreeDTileLoader {
             this.callback({
                 buffer: glbContent,
                 bounds: bounds,
-                debug: name == "data3328.b3dm" || name == "data3356.b3dm"
             });
         });
     }

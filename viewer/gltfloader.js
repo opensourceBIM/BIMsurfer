@@ -98,9 +98,6 @@ export class GLTFLoader {
                 let [__, idxs] = this.getBufferData(primitive, 'indices');
                 let material = this.getMaterial(primitive);
 
-                // console.log("ps", JSON.stringify(Array.from(ps)));
-                // console.log("idxs", JSON.stringify(Array.from(idxs)));
-
                 // Apparently indices are optional in glTF. In case they are absent
                 // we just create a monotonically increasing sequence that stretches
                 // all vertices.
