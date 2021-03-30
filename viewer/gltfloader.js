@@ -28,6 +28,7 @@ var BINARY_EXTENSION_HEADER_MAGIC = 0x46546C67;
 var BINARY_EXTENSION_HEADER_LENGTH = 12;
 var BINARY_EXTENSION_CHUNK_TYPES = { JSON: 0x4E4F534A, BIN: 0x004E4942 };
 
+const IDENTITY = mat4.identity(mat4.create());
 
 export class GLTFLoader {
 
@@ -164,6 +165,13 @@ export class GLTFLoader {
             aabbs[i] = aabb;
         });
 
+        let childToParent = {};
+        this.json.nodes.forEach((n, i) => {
+            (n.children || []).forEach(c => {
+                childToParent[c] = i;
+            });
+        });
+
         this.json.nodes.forEach((n, i) => {
             if (typeof(n.mesh) !== 'undefined') {
                 const aabb = aabbs[n.mesh];
@@ -215,6 +223,11 @@ export class GLTFLoader {
                     }
 
                     m = n.matrix;
+                    // @todo multiply the complete stack of matrices, 
+                    // it's likely not needed for a city model thouhgh
+                    if ((!m || mat4.equals(m, IDENTITY)) && i in childToParent) {
+                        m = this.json.nodes[childToParent[i]].matrix;
+                    }
                     if (!m) {
                         m = new Float64Array(16);
                         mat4.identity(m);
