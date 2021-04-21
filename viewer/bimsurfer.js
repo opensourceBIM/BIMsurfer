@@ -204,8 +204,8 @@ export class BimSurfer extends EventHandler {
 		let projectionType = v.camera.projectionType;
 		let json = {
 			type: projectionType,
-			eye: v.camera._eye.slice(0),
-			target: v.camera._target.slice(0),
+			eye: v.camera._eye.get().slice(0),
+			target: v.camera._target.get().slice(0),
 			up: v.camera._up.slice(0)
 		}
 		if (projectionType === "persp") {
