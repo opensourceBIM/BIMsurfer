@@ -980,7 +980,11 @@ export class Viewer {
     }
     
     addViewObject(uniqueId, viewObject) {
-    	viewObject.pickId = this.pickIdCounter++;
+        if (this.viewObjects.has(uniqueId)) {
+            viewObject.pickId = this.viewObjects.get(uniqueId).pickId;
+        } else {
+            viewObject.pickId = this.pickIdCounter++;
+        }    	
     	this.viewObjects.set(uniqueId, viewObject);
         this.pickIdToViewObject[viewObject.pickId] = viewObject;
 
