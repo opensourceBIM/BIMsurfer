@@ -47,11 +47,22 @@ export class ThreeDTileLoader {
             if (b2[0] !== gltf) {
                 throw new Error();
             }
+
+            // sigh another fix for broken glTF exporters: length includes padding
+            contentString = contentString.replace(/\x00+$/, "");
+
+            // sigh and yet another fix: garbage after JSON
+            try {
+                JSON.parse(contentString);
+            } catch {
+                contentString = contentString.substr(0, contentString.lastIndexOf("}")+1);
+            }
+
             let glbContent = r.slice(glbOffset);
-            let name = u.split("/").reverse()[0] ;
             this.callback({
                 buffer: glbContent,
                 bounds: bounds,
+                features: JSON.parse(contentString)
             });
         });
     }

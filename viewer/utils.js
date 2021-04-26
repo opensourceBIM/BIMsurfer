@@ -182,6 +182,13 @@ export class Utils {
 		return r;
 	}
 
+	static growAabb(aabb, pnt) {
+		for (let i = 0; i < 6; ++i) {
+			let fn = i < 3 ? Math.min : Math.max;
+			aabb[i] = fn(aabb[i], pnt[i % 3]);
+		}
+	}
+
 	static emptyAabb() {
 		let i = Infinity;
 		return new Float32Array([i,i,i,-i,-i,-i]);

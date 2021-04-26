@@ -1,4 +1,5 @@
 import * as vec3 from "./glmatrix/vec3.js";
+import * as vec4 from "./glmatrix/vec3.js";
 import * as mat4 from "./glmatrix/mat4.js";
 import * as mat3 from "./glmatrix/mat3.js";
 
@@ -47,6 +48,7 @@ export class GLTFLoader {
         this.gltfBuffer = gltfBuffer;
         this.renderLayer = layer;
         this.params = params || {};
+        this.features = params.features;
         this.primarilyProcess();
         this.debug = params.debug;
     }
@@ -86,18 +88,106 @@ export class GLTFLoader {
         return c;
     }
 
+    computeAabb(positions, matrix) {
+        let aabb = Utils.emptyAabb();
+
+        let v = vec4.create();
+        v[3] = 1.;
+        
+        for (let i = 0; i < positions.length; i += 3) {
+            v.set(positions.subarray(i, i + 3));
+            vec4.transformMat4(v, v, matrix);
+            Utils.growAabb(aabb, v);
+        }
+
+        return aabb;
+    }
+
+    transformAabb(aabb_local, matrix) {
+        // @nb this is a transformation of the aabb bounds and not the
+        // individual vertices, so we won't get an optimal aabb.
+        let aabb = new Float32Array(6);
+        let v = vec4.create();
+        v[3] = 1.;
+        for (var i = 0; i < 2; i ++) {
+            v.set(aabb_local.subarray(3 * i, 3 * i + 3));
+            vec4.transformMat4(v, v, matrix);
+            aabb.subarray(3 * i, 3 * i + 3).set(v.subarray(0, 3));
+        }
+        return aabb;
+    }
+
+    * segmentBuffer(positions, normals, colors, indices, ids) {
+        // Actually, in theory, we could have forwarded the _BATCHID attribute
+        // to the viewer as it more or less corresponds to the way object
+        // identification is handled in the viewer.
+
+        // We do however (a) need to compute AABB's for the elements and
+        // when multiple glTFs are loaded we need to make sure the batch ids
+        // do not overlap. In that sense it's cleaner to reuse the existing
+        // createGeometry() createObject() calls and segment the buffers in JS.
+
+        let last = -1;
+        let vStart = null;
+        let iStart = 0;
+        for (var i = 0; i < ids.length; ++i) {
+            if (ids[i] < last) {
+                throw Error("Non monotonic ids");
+            } else if (ids[i] !== last) {
+                if (vStart !== null) {                    
+                    let j;
+                    for (j = iStart;; ++j) {
+                        if ((j == indices.length -1) || (indices[j + 1] > i)) {
+                            if ((j % 3) !== 0) {
+                                throw Error("Indices shared between batches");
+                            }
+                            break;
+                        }
+                    }
+
+                    let idxs = indices.subarray(iStart, j);
+                    for (let k = idxs.length - 1; k >= 0; --k) {
+                        idxs[k] -= idxs[0];
+                    }
+                    
+                    yield [
+                        last,
+                        positions.subarray(vStart * 3, i * 3),
+                        normals.subarray(vStart * 3, i * 3),
+                        colors.subarray(vStart * 4, i * 4),
+                        idxs
+                    ];
+
+                    iStart = j;
+                }
+                vStart = i;
+            } 
+            last = ids[i];
+        }
+    }
+
     processGLTFBuffer() {
         let aabbs = {};
+        let idRanges = {};
+        let meshes = {};
 
         this.json.meshes.forEach((mesh, i) => {
             let positions, normals, indices, colors;
             let aabb = Utils.emptyAabb();
 
+            let batchedPrimitive = mesh.primitives.length == 1;
+
             mesh.primitives.forEach((primitive, j) => {
                 let [psAccessor, ps] = this.getBufferData(primitive, 'POSITION');
                 let [_, ns] = this.getBufferData(primitive, 'NORMAL');
                 let [__, idxs] = this.getBufferData(primitive, 'indices');
+                let [___, ids] = this.getBufferData(primitive, '_BATCHID');
                 let material = this.getMaterial(primitive);
+
+                batchedPrimitive = batchedPrimitive && ids !== null;
+
+                // @nb we assume glTF with _BATCHID has a single primitive
+                idRanges[i] = ids;
 
                 // Apparently indices are optional in glTF. In case they are absent
                 // we just create a monotonically increasing sequence that stretches
@@ -146,21 +236,30 @@ export class GLTFLoader {
                 aabb[k] *= 1000.;
             }
 
-            this.renderLayer.createGeometry(
-                1,
-                null,
-                null,
-                i,
-                positions,
-                normals,
-                colors,
-                null,
-                indices,
-                null,
-                false,
-                false,
-                0
-            );
+            if (batchedPrimitive) {
+                meshes[i] = {
+                    positions: positions,
+                    normals: normals,
+                    colors: colors,
+                    indices: indices
+                }
+            } else {
+                this.renderLayer.createGeometry(
+                    1,
+                    null,
+                    null,
+                    i,
+                    positions,
+                    normals,
+                    colors,
+                    null,
+                    indices,
+                    null,
+                    false,
+                    false,
+                    0
+                );
+            }
 
             aabbs[i] = aabb;
         });
@@ -175,6 +274,8 @@ export class GLTFLoader {
         this.json.nodes.forEach((n, i) => {
             if (typeof(n.mesh) !== 'undefined') {
                 const aabb = aabbs[n.mesh];
+                const idRange = idRanges[n.mesh];
+
                 let m4, m3;
                 if (!this.params.ignoreMatrix && n.matrix) {
                     let m = n.matrix;
@@ -262,7 +363,81 @@ export class GLTFLoader {
                 m3 = mat3.create();
                 mat3.normalFromMat4(m3, m4);
 
-                this.renderLayer.createObject(1, null, i, [n.mesh], m4, m3, m3, false, null, aabb, this.params.geospatial);
+                
+                if (idRange) {
+                    let m = meshes[n.mesh];
+
+                    let geomId = 1;
+                    for (let subarrays of this.segmentBuffer(m.positions, m.normals, m.colors, m.indices, idRange)) {
+                        let [batchId, positions, normals, colors, indices] = subarrays;
+
+                        let uniqueId = this.renderLayer.viewer.oidCounter ++;
+
+                        let aabb_global = this.computeAabb(positions, m4);
+
+                        this.renderLayer.createGeometry(
+                            1,
+                            null,
+                            null,
+                            geomId,
+                            positions,
+                            normals,
+                            colors,
+                            null,
+                            indices,
+                            null,
+                            false,
+                            false,
+                            0
+                        );
+
+                        this.renderLayer.createObject(1, null, uniqueId, [geomId++], m4, m3, m3, false, null, aabb_global, this.params.geospatial);
+                        let globalizedAabb;
+                        if (this.renderLayer.viewer.globalTranslationVector) {
+                            globalizedAabb = Utils.transformBounds(aabb_global, this.renderLayer.viewer.globalTranslationVector);
+                        } else {
+                            globalizedAabb = aabb_global;
+                        }
+
+                        let featureData = this.features
+                            ? Object.fromEntries(
+                                Object.keys(this.features)
+                                    .map(k => [k, this.features[k][batchId]]))
+                            : null;
+
+                        let viewObject = {
+                            renderLayer: this.renderLayer,
+                            type: "glTF Object",
+                            data: featureData,
+                            aabb: aabb_global,
+                            globalizedAabb: globalizedAabb,
+                            uniqueId: uniqueId
+                        };
+                        
+                        this.viewer.addViewObject(uniqueId, viewObject);
+                    }
+                } else {
+                    let uniqueId = this.renderLayer.viewer.oidCounter ++;
+
+                    let aabb_global = this.transformAabb(aabb, m4);
+
+                    this.renderLayer.createObject(1, null, uniqueId, [n.mesh], m4, m3, m3, false, null, aabb, this.params.geospatial);
+                    let globalizedAabb;
+                    if (this.renderLayer.viewer.globalTranslationVector) {
+                        globalizedAabb = Utils.transformBounds(aabb_global, this.renderLayer.viewer.globalTranslationVector);
+                    } else {
+                        globalizedAabb = aabb_global;
+                    }
+
+                    let viewObject = {
+                        renderLayer: this.renderLayer,
+                        type: "glTF Object",
+                        aabb: aabb_global,
+                        globalizedAabb: globalizedAabb,
+                        uniqueId: uniqueId
+                    };
+                    this.viewer.addViewObject(uniqueId, viewObject);
+                }
             }
         });
 
@@ -278,10 +453,8 @@ export class GLTFLoader {
 
     getBufferData(primitive, primitiveAttributeType) {
 
-        if (primitiveAttributeType == 'NORMAL' || primitiveAttributeType == 'POSITION') {
-            var accessorIndex = primitive['attributes'][primitiveAttributeType];
-        }
-        else if (primitiveAttributeType == 'indices') {
+        var accessorIndex = primitive.attributes[primitiveAttributeType];
+        if (typeof(accessorIndex) === 'undefined') {
             var accessorIndex = primitive[primitiveAttributeType]
         }
 
