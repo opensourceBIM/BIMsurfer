@@ -231,7 +231,18 @@ export class AbstractBufferSet {
             quantize: this.positionBuffer.js_type !== Float32Array.name
         }, this.unquantizationMatrix);
 
-		if (this.lineIndexBuffer != null) {
+		var offset, length;
+		if (this.uniqueIdToIndex == null) {
+			offset = 0;
+			length = this.nrLineIndices;
+		} else {
+			let index = this.uniqueIdToIndex.get(uniqueId);
+			let idx = index[0];
+			offset = idx.lineIndicesStart;
+			length = idx.lineIndicesLength;
+		}
+
+		if (this.lineIndexBuffer != null && typeof(offset) !== 'undefined' && typeof(length) !== 'undefined') {
 			// TODO this is where we are
 			// Problem here is that the buffer is now already created on the GPU, but we need to convert it to a fatlinerenderer...
 			// So we could either generate the line render buffers as fat lines already (taking more network), but real quick to send to GPU, or
@@ -242,20 +253,8 @@ export class AbstractBufferSet {
 			const bounds = this.batchGpuBuffers.bounds;
 			const vertexOffset = -bounds.minIndex * 3;
 			
-			let gpu_data = this.batchGpuBuffers["positionBuffer"];
-
-			var offset, length;
-			
-			if (this.uniqueIdToIndex == null) {
-				offset = 0;
-				length = this.nrLineIndices;
-			} else {
-				let index = this.uniqueIdToIndex.get(uniqueId);
-				let idx = index[0];
-				offset = idx.lineIndicesStart;
-				length = idx.lineIndicesLength;
-			}
-			
+			let gpu_data = this.batchGpuBuffers.positionBuffer;
+						
 			var indexOffset = offset - bounds.startLineIndex;
 
 			lineRenderer.init(length);
@@ -280,12 +279,10 @@ export class AbstractBufferSet {
 			let [offset, length] = [idx.start, idx.length];
 			let [minIndex, maxIndex] = [idx.minIndex, idx.maxIndex];
 
-			let numVertices = maxIndex - minIndex + 1;
-			let gpu_data = this.batchGpuBuffers["positionBuffer"];
+			let gpu_data = this.batchGpuBuffers.positionBuffer;
+			let gpu_data_norm = this.batchGpuBuffers.normalBuffer;
 
 			const bounds = this.batchGpuBuffers.bounds;
-			
-			var size = 0;
 			
 			// A more efficient (and certainly more compact) version that used bitshifting was working fine up until 16bits, unfortunately JS only does bitshifting < 32 bits, so now we have this crappy solution
 			
@@ -294,10 +291,27 @@ export class AbstractBufferSet {
 			const s = new Set();
 			
 			const indices = this.batchGpuBuffers.indices;
+
+			// A rather good indiation that we have redundant indices.
+			let use_positions = (indices[indices.length - 1] - indices[0]) == indices.length - 1;
+
 			for (var i=0; i<length; i+=3) {
 				for (let j = 0; j < 3; ++j) {
 					let a = indices[indexOffset + i + j];
 					let b = indices[indexOffset + i + (j+1)%3];
+
+					if (use_positions) {
+						a -= indices[0];
+						b -= indices[0];
+						a = [
+							gpu_data.subarray(a * 3, a * 3 + 3).join(" "),
+							gpu_data_norm.subarray(a * 3, a * 3 + 3).join(" ")
+						].join(',');
+						b = [
+							gpu_data.subarray(b* 3, b * 3 + 3).join(" "),
+							gpu_data_norm.subarray(b * 3, b * 3 + 3).join(" ")
+						].join(',');
+					}
 					
 					if (a > b) {
 						const tmp = a;
@@ -305,8 +319,13 @@ export class AbstractBufferSet {
 						b = tmp;
 					}
 
-					// First tried to do this with bit shifting, but bit shifting in JS is 32bit
-					const abs = a * 67108864 + b; // 2^26=67108864. A maximum of 52 bits is used, staying just under 2^53, which is the max safe int
+					let abs;
+					if (use_positions) {
+						abs = [a, b].join(";");
+					} else {
+						// First tried to do this with bit shifting, but bit shifting in JS is 32bit
+						abs = a * 67108864 + b; // 2^26=67108864. A maximum of 52 bits is used, staying just under 2^53, which is the max safe int
+					}
 					if (s.has(abs)) {
 						s.delete(abs);
 					} else {
@@ -315,15 +334,27 @@ export class AbstractBufferSet {
 				}
 			}
 			
+			let AA = new gpu_data.constructor(3);
+			let BB = new gpu_data.constructor(3);
+
 			lineRenderer.init(s.size);
 			const vertexOffset = -bounds.minIndex * 3;
 			for (let e of s) {
-				const a = Math.floor(e / 67108864);
-				const b = e - a * 67108864;
-				const as = vertexOffset + a * 3;
-				const bs = vertexOffset + b * 3;
-				let A = gpu_data.subarray(as, as + 3);
-				let B = gpu_data.subarray(bs, bs + 3);
+				let A, B;
+				if (use_positions) {
+					let [a_, b_] = e.split(";");
+					AA.set(a_.split(",")[0].split(' '));
+					BB.set(b_.split(",")[0].split(' '));
+					A = AA;
+					B = BB;
+				} else {
+					const a = Math.floor(e / 67108864);
+					const b = e - a * 67108864;
+					const as = vertexOffset + a * 3;
+					const bs = vertexOffset + b * 3;
+					let A = gpu_data.subarray(as, as + 3);
+					let B = gpu_data.subarray(bs, bs + 3);
+				}
 				lineRenderer.pushVertices(A, B);
 			}
 			
@@ -647,7 +678,9 @@ export class AbstractBufferSet {
 			let lineRenderer = this.createLineRenderer(gl, requestedId, 0, 0);
 			this.lineIndexBuffers.set(requestedId, lineRenderer);
 		} else {
-			this.batchGpuRead(gl, ["positionBuffer"], bounds, () => {
+			// @todo normalBuffer is actually only required when we don't have indices,
+			// so we need to decide which lines to render based on positions and normals
+			this.batchGpuRead(gl, ["positionBuffer", "normalBuffer"], bounds, () => {
 				id_ranges.forEach((range, i) => {
 					let [id, [a, b]] = range;
 					if (id == requestedId) {
