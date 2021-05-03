@@ -805,6 +805,35 @@ export class Viewer {
         this.dirty = 2;
     }
 
+    setMeasurementPoint(params) {        
+        let p = this.pick({canvasPos: params.canvasPos, select: false});
+        if (p.normal && p.coordinates && p.depth) {
+            if (this.activeMeasurement) {
+                this.activeMeasurement.setSecondPoint(p.coordinates);
+                if (params.commit) {
+                    this.activeMeasurement.fixed = true;
+                    this.activeMeasurement = null;
+                    this.overlay.update();
+                }
+            } else {
+                this.activeMeasurement = this.overlay.addMeasurement(p.coordinates, p.normal, params.shift);
+            }
+        }
+    }
+
+    setMeasurementConstrained(b) {
+        this.activeMeasurement.constrain = b;
+        this.overlay.update();
+    }
+
+    deleteAllMeasurements() {
+        for(let n of this.overlay.nodes) {
+           if (n.constructor.name == 'MeasurementNode') {
+               n.destroy();
+           }
+        }
+    }
+
     /**
      Attempts to pick an object at the given canvas coordinates.
 
