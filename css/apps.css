@@ -80,7 +80,7 @@ a {
 	height: 100%;
 }
 
-#settings {
+#settingsContainer {
 	z-index: 10;
 	position: absolute;
 	right: 0px;

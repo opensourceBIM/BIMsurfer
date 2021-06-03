@@ -10,6 +10,7 @@ import {ThreeDTileLoader} from "../viewer/threedtileloader.js"
 import * as mat4 from "../viewer/glmatrix/mat4.js";
 import Cartesian3 from "../viewer/cesium/Core/Cartesian3.js";
 import Transforms from "../viewer/cesium/Core/Transforms.js";
+import { CLICK_MEASURE_PATH, CLICK_MEASURE_DIST, CLICK_SELECT } from "../viewer/cameracontrol.js";
 
 /*
  * This class is where the applications starts, it's a mess, needs to go when we change this into an API
@@ -108,6 +109,42 @@ export class Dev {
 		document.addEventListener("keypress", this.keyPressHandler);
 		
 		this.bimServerViewer.loadModel(this.api, project);
+
+		let buttons = Array.from(document.querySelector("#toolbar").children);
+		buttons.forEach((bt, i) => {
+			if (i == 0) {
+				bt.onclick = () => { 
+					this.bimServerViewer.viewer.cameraControl.clickMode = CLICK_SELECT;
+					if (this.bimServerViewer.viewer.activeMeasurement) {
+						if (this.bimServerViewer.viewer.activeMeasurement.num_points > 1) {
+							this.bimServerViewer.viewer.commitActiveMeasurement();
+						} else {
+							this.bimServerViewer.viewer.destroyActiveMeasurement();
+						}
+					}
+				};
+			}
+			if (i == 1) {
+				bt.onclick = () => { 
+					if (!this.bimServerViewer.viewer.activeMeasurement) {
+						this.bimServerViewer.viewer.cameraControl.clickMode = CLICK_MEASURE_DIST;
+					}
+				};
+			}
+			if (i == 2) {
+				bt.onclick = () => { 
+					if (!this.bimServerViewer.viewer.activeMeasurement) {
+						this.bimServerViewer.viewer.cameraControl.clickMode = CLICK_MEASURE_PATH; 
+					}
+				};
+			}
+			if (i == 3) {
+				bt.onclick = () => { 
+					this.bimServerViewer.viewer.deleteAllMeasurements(); 
+					this.bimServerViewer.viewer.cameraControl.clickMode = CLICK_SELECT;
+				};
+			}
+		});
 
 		// @todo Elevation does not need to be multiplied into the glTF positions, but can
 		// be supplied in Cartesian3.fromDegrees().

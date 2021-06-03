@@ -7,6 +7,7 @@ class SvgOverlayNode {
     constructor(overlay, svgElem) {
         this.overlay = overlay;
         this.svgElem = svgElem;
+        this.additionalElems = [];
         this._lastVisibilityState = null;
     }
 
@@ -25,7 +26,11 @@ class SvgOverlayNode {
 
     destroy() {
         this.overlay.nodes.splice(this.overlay.nodes.indexOf(this), 1);
-        this.svgElem.parentElement.removeChild(this.svgElem);
+        let deleteSvgElem = (el) => {
+            el.parentElement.removeChild(el);
+        };
+        deleteSvgElem(this.svgElem);
+        this.additionalElems.forEach(deleteSvgElem);
     }
 }
 
@@ -164,8 +169,8 @@ class MeasurementNode extends SvgOverlayNode {
     constructor(overlay, point, normal, constrain) {
         super(overlay, null);
         
-        this._points = [new Float32Array(point)];
-        this._points_constrained = [new Float32Array(point)];
+        this._points = [new Float32Array(point), new Float32Array(point)];
+        this._points_constrained = [new Float32Array(point), new Float32Array(point)];
         this._constrain = !!constrain;
         this.fixed = false;
         this.normal = normal;
@@ -175,6 +180,7 @@ class MeasurementNode extends SvgOverlayNode {
         
         this.svgElem = overlay.create("path", {
             stroke: "black",
+            fill: "none",
             d: this.createPathAttribute()
         }, {
             markerStart: "url(#m1)",
@@ -193,6 +199,8 @@ class MeasurementNode extends SvgOverlayNode {
             alignmentBaseline: "middle"        
         });
         this.label.appendChild(document.createTextNode(""));
+
+        this.additionalElems.push(this.label);
     }
 
     createPathAttribute() {
@@ -208,6 +216,15 @@ class MeasurementNode extends SvgOverlayNode {
         return true;
     }
 
+    get num_points() {
+        let n = this._points.length;
+        if (!this.fixed) {
+            // last point is still in progress
+            n --;
+        }
+        return n;
+    }
+
     get constrain() {
         return this._constrain;
     }
@@ -218,32 +235,66 @@ class MeasurementNode extends SvgOverlayNode {
     }
 
     get length() {
-        if (this.points.length !== 2) {
+        if (this.points.length < 2) {
             return 0;
         }
-        vec3.subtract(tmp_measurement_, this.points[0], this.points[1]);
-        return vec3.length(tmp_measurement_);
+        let L = 0;
+        for (let i = 0; i < this.points.length - 1; ++i) {
+            vec3.subtract(tmp_measurement_, this.points[i], this.points[i + 1]);    
+            L += vec3.length(tmp_measurement_);
+        }
+        return L;
     }
 
     get midpoint() {
-        if (this.points.length !== 2) {
+        if (this.points.length < 2) {
             return null;
+        } else if (this.points.length == 2) {
+            vec3.copy(tmp_measurement_, this.overlay.transformPoint(this.points[0]));
+            let t = this.overlay.transformPoint(this.points[1]);
+            vec2.add(tmp_measurement_, tmp_measurement_, t);
+            vec2.scale(tmp_measurement_, tmp_measurement_, 0.5);
+        } else {
+            let M = this.length / 2.;
+            let accum = 0.;
+            for (let i = 0; i < this.points.length - 1; ++i) {
+                vec3.subtract(tmp_measurement_, this.points[i], this.points[i + 1]);    
+                let segmentLength = vec3.length(tmp_measurement_);
+                if (M - accum < segmentLength) {
+                    vec3.copy(tmp_measurement_, this.overlay.transformPoint(this.points[i]));
+                    let t = this.overlay.transformPoint(this.points[i + 1]);
+                    vec2.lerp(tmp_measurement_, tmp_measurement_, t, (M - accum) / segmentLength);
+                    break;
+                }
+                accum += segmentLength;
+            }
         }
-        vec3.copy(tmp_measurement_, this.overlay.transformPoint(this.points[0]));
-        let t = this.overlay.transformPoint(this.points[1]);
-        vec2.add(tmp_measurement_, tmp_measurement_, t);
-        vec2.scale(tmp_measurement_, tmp_measurement_, 0.5);
         return tmp_measurement_;
     }
 
     get angle() {
-        if (this.points.length !== 2) {
+        if (this.points.length < 2) {
             return null;
+        } else if (this.points.length == 2) {
+            vec3.copy(tmp_measurement_, this.overlay.transformPoint(this.points[0]));
+            let t = this.overlay.transformPoint(this.points[1]);
+            vec2.subtract(tmp_measurement_, t, tmp_measurement_);
+            return Math.atan2(tmp_measurement_[1], tmp_measurement_[0]) * 180. / Math.PI;
+        } else {
+            let M = this.length / 2.;
+            let accum = 0.;
+            for (let i = 0; i < this.points.length - 1; ++i) {
+                vec3.subtract(tmp_measurement_, this.points[i], this.points[i + 1]);    
+                let segmentLength = vec3.length(tmp_measurement_);
+                if (M - accum < segmentLength) {
+                    vec3.copy(tmp_measurement_, this.overlay.transformPoint(this.points[i]));
+                    let t = this.overlay.transformPoint(this.points[i + 1]);
+                    vec2.subtract(tmp_measurement_, t, tmp_measurement_);
+                    return Math.atan2(tmp_measurement_[1], tmp_measurement_[0]) * 180. / Math.PI;
+                }
+                accum += segmentLength;
+            }
         }
-        vec3.copy(tmp_measurement_, this.overlay.transformPoint(this.points[0]));
-        let t = this.overlay.transformPoint(this.points[1]);
-        vec2.subtract(tmp_measurement_, t, tmp_measurement_);
-        return Math.atan2(tmp_measurement_[1], tmp_measurement_[0]) * 180. / Math.PI;
     }
 
     get points() {
@@ -254,18 +305,26 @@ class MeasurementNode extends SvgOverlayNode {
         }
     }
 
-    set points(p) {
-        this._points = p;
-        vec3.subtract(tmp_measurement_, p[1], p[0]);
-        let l = vec3.dot(tmp_measurement_, this.normal);
-        vec3.scale(tmp_measurement_, this.normal, l);
-        vec3.add(tmp_measurement_, tmp_measurement_, p[0]);
-        this._points_constrained = [p[0], new Float32Array(tmp_measurement_)];
+    updatePoint(p) {
+        this.points[this.points.length - 1] = new Float32Array(p);
+        if (this.constrain) {
+            let p = this.points;
+            vec3.subtract(tmp_measurement_, p[1], p[0]);
+            let l = vec3.dot(tmp_measurement_, this.normal);
+            vec3.scale(tmp_measurement_, this.normal, l);
+            vec3.add(tmp_measurement_, tmp_measurement_, p[0]);
+            this._points_constrained = [p[0], new Float32Array(tmp_measurement_)];
+        }
         this.doUpdate();
     }
 
-    setSecondPoint(p) {
-        this.points = [this.points[0], new Float32Array(p)];
+    fixPoint(p) {
+        this.points.push(new Float32Array(this.points[this.points.length - 1]));
+    }
+
+    popLastPoint() {
+        this.points.pop();
+        this.doUpdate();
     }
 
     doUpdate() {

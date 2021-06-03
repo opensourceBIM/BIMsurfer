@@ -4,7 +4,7 @@ import {ProgramManager} from "./programmanager.js";
 import {Lighting} from "./lighting.js";
 import {BufferSetPool} from "./buffersetpool.js";
 import {Camera} from "./camera.js";
-import {CameraControl} from "./cameracontrol.js";
+import {CameraControl, CLICK_MEASURE_DIST} from "./cameracontrol.js";
 import {RenderBuffer} from "./renderbuffer.js";
 import {SvgOverlay} from "./svgoverlay.js";
 import {FrozenBufferSet} from "./frozenbufferset.js";
@@ -809,28 +809,53 @@ export class Viewer {
         let p = this.pick({canvasPos: params.canvasPos, select: false});
         if (p.normal && p.coordinates && p.depth) {
             if (this.activeMeasurement) {
-                this.activeMeasurement.setSecondPoint(p.coordinates);
+                this.activeMeasurement.updatePoint(p.coordinates);
                 if (params.commit) {
-                    this.activeMeasurement.fixed = true;
-                    this.activeMeasurement = null;
+                    if (this.activeMeasurement.constrain) {
+                        this.commitActiveMeasurement();
+                    } else {
+                        this.activeMeasurement.fixPoint();
+                    }
                     this.overlay.update();
                 }
             } else {
                 this.activeMeasurement = this.overlay.addMeasurement(p.coordinates, p.normal, params.shift);
+                if (params.mode == CLICK_MEASURE_DIST) {
+                    this.activeMeasurement.constrain = true;
+                }
+                this.overlay.update();
             }
         }
     }
 
-    setMeasurementConstrained(b) {
-        this.activeMeasurement.constrain = b;
-        this.overlay.update();
-    }
-
     deleteAllMeasurements() {
-        for(let n of this.overlay.nodes) {
-           if (n.constructor.name == 'MeasurementNode') {
+        // @nb make a copy of list because destroy() removes from sequence
+        for(let n of Array.from(this.overlay.nodes)) {
+           if (n.constructor.name == 'MeasurementNode' || n.constructor.name == 'InfiniteLine') {
                n.destroy();
            }
+        }
+        this.activeMeasurement = null;
+    }
+
+    destroyActiveMeasurement() {
+        if (this.activeMeasurement) {
+            if (this.activeMeasurement.line) {
+                this.activeMeasurement.line.destroy();
+            }
+            this.activeMeasurement.destroy();
+            this.activeMeasurement = null;
+        }
+    }
+
+    commitActiveMeasurement() {
+        if (this.activeMeasurement) {
+            if (!this.activeMeasurement.constrain) {
+                // last point is still in progress
+                this.activeMeasurement.popLastPoint();
+            }
+            this.activeMeasurement.fixed = true;
+            this.activeMeasurement = null;
         }
     }
 

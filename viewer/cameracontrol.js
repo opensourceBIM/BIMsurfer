@@ -7,6 +7,10 @@ export const DRAG_ORBIT = 0xfe01;
 export const DRAG_PAN = 0xfe02;
 export const DRAG_SECTION = 0xfe03;
 
+export const CLICK_SELECT = 0xfe11;
+export const CLICK_MEASURE_PATH = 0xfe12;
+export const CLICK_MEASURE_DIST = 0xfe13;
+
 /**
  Controls the camera with user input.
  */
@@ -56,6 +60,7 @@ export class CameraControl {
 
         this.mouseDown = false;
         this.dragMode = DRAG_ORBIT;
+        this.clickMode = CLICK_SELECT;
 
 	    this._tmp_topleftfront_0 = vec3.create();
 	    this._tmp_topleftfront_1 = vec3.create();
@@ -274,12 +279,16 @@ export class CameraControl {
         this.mouseDown = false;
 
         let handleMeasurement = () => {
-            this.viewer.setMeasurementPoint({canvasPos:[this.lastX, this.lastY], commit: true});
+            this.viewer.setMeasurementPoint({
+                canvasPos:[this.lastX, this.lastY],
+                commit: true,
+                mode: this.clickMode
+            });
         }
 
         const handleClick = () => {
             if (dt < 500. && this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
-                if (this.viewer.activeMeasurement || (e.ctrlKey && e.altKey)) {
+                if (this.viewer.activeMeasurement || this.clickMode == CLICK_MEASURE_PATH || this.clickMode == CLICK_MEASURE_DIST) {
                     return handleMeasurement();
                 }
 
@@ -371,8 +380,6 @@ export class CameraControl {
             } else {
                 this.viewer.removeSectionPlaneWidget();
             }
-        } else if (e.key == "Shift" && this.viewer.activeMeasurement) {
-            this.viewer.setMeasurementConstrained(state);
         } else if (e.key == "Home") {
             this.camera.viewFit({animate:true});
             this.viewer.dirty = 2;
@@ -381,6 +388,12 @@ export class CameraControl {
 			this.camera.target = [0, 0, 0];
 			this.camera.eye = [1, 0, 0];
 			this.camera.viewFit({aabb: this.camera.modelBounds, animate: true});
+        } else if (e.key == "Escape") {
+            //@nb works when no measurement is present
+            this.viewer.destroyActiveMeasurement();
+            this.clickMode = CLICK_SELECT;
+        } else if (e.key == "Enter") {
+            this.viewer.commitActiveMeasurement();
         }
     }
 
