@@ -484,7 +484,7 @@ export class Viewer {
 		}
         this.width = width;
         this.height = height;
-        this.camera.perspective._dirty = true;
+        this.camera.forceBuild();
         this.updateViewport();
 		this.overlay.resize();
 		this.render();
