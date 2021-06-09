@@ -130,14 +130,14 @@ export class GLTFLoader {
         let last = -1;
         let vStart = null;
         let iStart = 0;
-        for (var i = 0; i < ids.length; ++i) {
-            if (ids[i] < last) {
+        for (var i = 0; i <= ids.length; ++i) {
+            if (i < ids.length && ids[i] < last) {
                 throw Error("Non monotonic ids");
-            } else if (ids[i] !== last) {
+            } else if (i == ids.length || ids[i] !== last) {
                 if (vStart !== null) {                    
                     let j;
                     for (j = iStart;; ++j) {
-                        if ((j == indices.length -1) || (indices[j + 1] > i)) {
+                        if ((j == indices.length) || (indices[j + 1] > i)) {
                             if ((j % 3) !== 0) {
                                 throw Error("Indices shared between batches");
                             }

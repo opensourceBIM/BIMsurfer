@@ -6,6 +6,8 @@ import Transforms from "../viewer/cesium/Core/Transforms.js";
 const b3dm = 0x6D643362;
 const gltf = 0x46546c67;
 
+const VIEW_THRESHOLD = 200;
+
 export class ThreeDTileLoader {
     constructor(params) {
         this.url = params.url;
@@ -100,7 +102,7 @@ export class ThreeDTileLoader {
             for (let d of [x_dir, y_dir]) {
                 let extent = vec2.len(d);
                 let norm = vec2.normalize(vec2.create(), d);
-                if (Math.abs(vec2.dot(relative, norm)) > extent) {
+                if (Math.abs(vec2.dot(relative, norm)) > (extent + VIEW_THRESHOLD)) {
                     return;
                 }
             }
