@@ -50,6 +50,8 @@ export class ThreeDTileLoader {
                 throw new Error();
             }
 
+            let originalLength = contentString.length;
+
             // sigh another fix for broken glTF exporters: length includes padding
             contentString = contentString.replace(/\x00+$/, "");
 
@@ -57,14 +59,30 @@ export class ThreeDTileLoader {
             try {
                 JSON.parse(contentString);
             } catch {
-                contentString = contentString.substr(0, contentString.lastIndexOf("}")+1);
+                while (true) {
+                    // peel off garbage until we arrive at a valid substring.
+                    contentString = contentString.substr(0, contentString.lastIndexOf("}", contentString.length-2)+1);
+                    if (contentString.length === 0) {
+                        break;
+                    }
+                    try {
+                        JSON.parse(contentString);
+                        break;
+                    } catch {
+                        continue;
+                    }
+                }
+            }
+
+            if (contentString.length !== originalLength) {
+                console.warn(`Truncated b3dm feature string with ${originalLength - contentString.length} / ${originalLength} characters`);
             }
 
             let glbContent = r.slice(glbOffset);
             this.callback({
                 buffer: glbContent,
                 bounds: bounds,
-                features: JSON.parse(contentString)
+                features: contentString ? JSON.parse(contentString) : null
             });
         });
     }
