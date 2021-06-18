@@ -41,7 +41,7 @@ export class ThreeDTileLoader {
 
             let decoder = new TextDecoder("utf-8");
             let content = r.slice(headerSize + featureTableJSONByteLength + featureTableBinaryByteLength,
-                headerSize + featureTableJSONByteLength + featureTableBinaryByteLength + batchTableJSONByteLength + batchTableBinaryByteLength);
+                headerSize + featureTableJSONByteLength + featureTableBinaryByteLength + batchTableJSONByteLength);
             let contentString = decoder.decode(content);
 
             let glbOffset = headerSize + featureTableJSONByteLength + featureTableBinaryByteLength + batchTableJSONByteLength + batchTableBinaryByteLength;
@@ -50,39 +50,20 @@ export class ThreeDTileLoader {
                 throw new Error();
             }
 
-            let originalLength = contentString.length;
-
-            // sigh another fix for broken glTF exporters: length includes padding
-            contentString = contentString.replace(/\x00+$/, "");
-
-            // sigh and yet another fix: garbage after JSON
-            try {
-                JSON.parse(contentString);
-            } catch {
-                while (true) {
-                    // peel off garbage until we arrive at a valid substring.
-                    contentString = contentString.substr(0, contentString.lastIndexOf("}", contentString.length-2)+1);
-                    if (contentString.length === 0) {
-                        break;
-                    }
-                    try {
-                        JSON.parse(contentString);
-                        break;
-                    } catch {
-                        continue;
-                    }
+            let tryParse = () => { 
+                try {
+                    return JSON.parse(contentString);
+                } catch {
+                    logger.console.error("Failed to parse b3dm feature JSON data");
+                    return null;
                 }
-            }
-
-            if (contentString.length !== originalLength) {
-                console.warn(`Truncated b3dm feature string with ${originalLength - contentString.length} / ${originalLength} characters`);
-            }
-
+             };
+            
             let glbContent = r.slice(glbOffset);
             this.callback({
                 buffer: glbContent,
                 bounds: bounds,
-                features: contentString ? JSON.parse(contentString) : null
+                features: tryParse()
             });
         });
     }
