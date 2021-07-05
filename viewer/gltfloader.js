@@ -216,11 +216,11 @@ export class GLTFLoader {
                 if (j === 0) {
                     [positions, normals, indices, colors] = [ps, ns, idxs, cs];
                 } else {
-                    positions = this.join(positions, ps);
                     normals = this.join(normals, ns);
                     for (let k = 0; k < idxs.length; ++k) {
                         idxs[k] += positions.length / 3;
                     }
+                    positions = this.join(positions, ps);
                     indices = this.join(indices, idxs);
                     colors = this.join(colors, cs);
                 }
