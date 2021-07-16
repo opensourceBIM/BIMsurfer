@@ -7,7 +7,6 @@ import DeveloperError from "./DeveloperError.js";
 /**
  * Math functions.
  *
- * @exports CesiumMath
  * @alias Math
  */
 var CesiumMath = {};

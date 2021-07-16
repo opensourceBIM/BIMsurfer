@@ -41,7 +41,7 @@ void main(void) {
    float L = length(worldCoords.xy);
    // To give the geospatial context a more natural falloff.
    if (L > VIEW_THRESHOLD)  {
-      discard;
+     discard;
    }
 #else
    const float L = 1.;
@@ -77,10 +77,11 @@ void main(void) {
 #else
   // TODO if we move the lighting to the fragment shader, we can enable back-face-culling (for those objects that can handle it) and use gl_FrontFacing to decide to invert the normal)
 
-   float mist = 1. - L / (VIEW_THRESHOLD * 0.9);
-   mist = pow(mist, 0.5);
+//   float mist = 1. - L / (VIEW_THRESHOLD * 0.9);
+//   mist = pow(mist, 0.5);
 
-   myOutputColor = vec4(color.rgb, color.a * mist);
+//   myOutputColor = vec4(color.rgb, color.a * mist);
+   myOutputColor = color;
    myOutputAlpha = 1.;
 #endif
 }

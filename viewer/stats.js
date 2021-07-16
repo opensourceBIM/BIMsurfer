@@ -8,6 +8,8 @@ export class Stats {
 		this.dirty = true;
 		this.updateRequested = true;
 		
+		this.statsId = "stats";
+		
 		this.groups = {
 			"Tiling": [
 				"Rendering",
@@ -64,7 +66,11 @@ export class Stats {
 				"Quantize vertices",
 			]
 		};
-		
+
+		this.init();		
+	}
+	
+	init() {
 		for (var groupName in this.groups) {
 			var group = this.groups[groupName];
 			var groupObject = {};
@@ -123,7 +129,7 @@ export class Stats {
 	}
 	
 	update() {
-		if (this.active && document.getElementById("stats")) {
+		if (this.active && document.getElementById(this.statsId)) {
 			if (!this.updateRequested) {
 				return;
 			}
@@ -135,7 +141,7 @@ export class Stats {
 				if (groupElement == null) {
 					groupElement = document.createElement("div");
 					groupElement.id = groupName + "-group";
-					document.getElementById("stats").appendChild(groupElement);
+					document.getElementById(this.statsId).appendChild(groupElement);
 					
 					var groupTitle = document.createElement("h3");
 					groupTitle.innerHTML = groupName;
@@ -171,7 +177,9 @@ export class Stats {
 	}
 	
 	cleanup() {
-		var stats = document.getElementById("stats");
+		this.parameters = {};
+		this.init();
+		var stats = document.getElementById(this.statsId);
 		if (stats != null) {
 			while (stats.firstChild) {
 				stats.removeChild(stats.firstChild);

@@ -10,6 +10,7 @@ import {ThreeDTileLoader} from "../viewer/threedtileloader.js"
 import * as mat4 from "../viewer/glmatrix/mat4.js";
 import Cartesian3 from "../viewer/cesium/Core/Cartesian3.js";
 import Transforms from "../viewer/cesium/Core/Transforms.js";
+import { CLICK_MEASURE_PATH, CLICK_MEASURE_DIST, CLICK_SELECT } from "../viewer/cameracontrol.js";
 
 /*
  * This class is where the applications starts, it's a mess, needs to go when we change this into an API
@@ -55,7 +56,7 @@ export class Dev {
 		this.projectTreeModel = new ProjectTreeModel(this.api, treeView);
 		let onload = (function() {
 			if (this.projectTreeModel.children.length == 1) {
-				this.loadModel(this.projectTreeModel.children[0].project);
+//				this.loadModel(this.projectTreeModel.children[0].project);
 			}
 		}).bind(this);
 		this.projectTreeModel.load((node) => {
@@ -109,13 +110,84 @@ export class Dev {
 		
 		this.bimServerViewer.loadModel(this.api, project);
 
+		let buttons = Array.from(document.querySelector("#toolbar").children);
+		buttons.forEach((bt, i) => {
+			if (i == 0) {
+				bt.onclick = () => { 
+					this.bimServerViewer.viewer.cameraControl.clickMode = CLICK_SELECT;
+					if (this.bimServerViewer.viewer.activeMeasurement) {
+						if (this.bimServerViewer.viewer.activeMeasurement.num_points > 1) {
+							this.bimServerViewer.viewer.commitActiveMeasurement();
+						} else {
+							this.bimServerViewer.viewer.destroyActiveMeasurement();
+						}
+					}
+				};
+			}
+			if (i == 1) {
+				bt.onclick = () => { 
+					if (!this.bimServerViewer.viewer.activeMeasurement) {
+						this.bimServerViewer.viewer.cameraControl.clickMode = CLICK_MEASURE_DIST;
+					}
+				};
+			}
+			if (i == 2) {
+				bt.onclick = () => { 
+					if (!this.bimServerViewer.viewer.activeMeasurement) {
+						this.bimServerViewer.viewer.cameraControl.clickMode = CLICK_MEASURE_PATH; 
+					}
+				};
+			}
+			if (i == 3) {
+				bt.onclick = () => { 
+					this.bimServerViewer.viewer.deleteAllMeasurements(); 
+					this.bimServerViewer.viewer.cameraControl.clickMode = CLICK_SELECT;
+				};
+			}
+		});
+
+		// @todo Elevation does not need to be multiplied into the glTF positions, but can
+		// be supplied in Cartesian3.fromDegrees().
+
+		// @todo this needs to be encapsulated in some function of some sorts, preferably also
+		// a UI that displays where the data is coming from. We make very little use of
+		// Cesium functionality maybe better to do a quick reimplementation using glMatrix.
+
 		// Example: load glTF
 		// setTimeout(() => { this.bimServerViewer.loadGltf({url:"/assets/eindhoven.glb"}); }, 2000);
 
-		// Example: load 3D Tiles for schependomlaan
-		// const refLatitude = 51.842005;
-		// const refLongitude = 5.83664;
-		// const refElevation = 11.;
+		// Example1: load 3D Tiles for schependomlaan
+        // const refLatitude = 51.841982;
+        // const refLongitude = 5.836029;
+        // const refElevation = 11.;
+        // let cesiumMatrix = Transforms.eastNorthUpToFixedFrame(
+        //     Cartesian3.fromDegrees(refLongitude, refLatitude, 0.)
+        // );
+		// let northRotation = new Float64Array(16);
+		// mat4.fromZRotation(northRotation, Math.PI / 8.);
+        // let cesiumMatrixGl = new Float64Array(cesiumMatrix);
+        // mat4.multiply(cesiumMatrixGl, cesiumMatrixGl, northRotation);
+        // new ThreeDTileLoader({
+        //     url: 'https://www.nederlandin3d.nl/viewer/datasource-data/83812e58-981e-4461-b338-c95aa7212722/tileset.json',
+        //     refLatitude: refLatitude,
+        //     refLongitude: refLongitude,
+        //     callback: (params) => {
+        //         this.bimServerViewer.viewer.geospatialMode = true;
+        //         this.bimServerViewer.loadGltf({
+        //             buffer: params.buffer,
+        //             geospatial: true,
+        //             ignoreMatrix: true, 
+        //             Y_UP: true, 
+        //             elevation: refElevation,
+        //             refMatrix: cesiumMatrixGl,
+        //         });
+        //     }
+        // }).load();
+
+		// Example2: somewhere in Estonia
+		// const refLatitude = 59.426735;
+		// const refLongitude = 24.740299;
+		// const refElevation = 25.;
 		// let cesiumMatrix = Transforms.eastNorthUpToFixedFrame(
 		// 	Cartesian3.fromDegrees(refLongitude, refLatitude, 0.)
 		// );
@@ -124,19 +196,16 @@ export class Dev {
 		// let cesiumMatrixGl = new Float64Array(cesiumMatrix);
 		// mat4.multiply(cesiumMatrixGl, cesiumMatrixGl, northRotation);
 		// new ThreeDTileLoader({
-		// 	url: 'https://www.nederlandin3d.nl/viewer/datasource-data/83812e58-981e-4461-b338-c95aa7212722/tileset.json',
+		// 	url: '...',
 		// 	refLatitude: refLatitude,
 		// 	refLongitude: refLongitude,
 		// 	callback: (params) => {
 		// 		this.bimServerViewer.viewer.geospatialMode = true;
-		// 		const factorX = (refLongitude - params.bounds[0]) / (params.bounds[2] - params.bounds[0]);
-		// 		const factorY = (refLatitude - params.bounds[1]) / (params.bounds[3] - params.bounds[1]);
 		// 		this.bimServerViewer.loadGltf({
 		// 			buffer: params.buffer,
 		// 			geospatial: true,
 		// 			ignoreMatrix: true, 
 		// 			Y_UP: true, 
-		// 			translate: [factorX, factorY],
 		// 			elevation: refElevation,
 		// 			refMatrix: cesiumMatrixGl,
 		// 		});

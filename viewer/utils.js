@@ -27,7 +27,6 @@ const typedArrayToGlTypeMap = new Map([
 /**
  * Generic utils
  *
- * @export
  * @class Utils
  */
 export class Utils {
@@ -164,10 +163,14 @@ export class Utils {
 	}
 
 	static transformBounds(inputBounds, translation) {
-		let newBounds = new Float32Array(6);
-		vec3.add(newBounds, inputBounds, translation);
-		vec3.add(newBounds.subarray(3), inputBounds.subarray(3), translation);
-		return newBounds;
+		return Float32Array.of(
+			inputBounds[0] + translation[0],
+			inputBounds[1] + translation[1],
+			inputBounds[2] + translation[2],
+			inputBounds[3] + translation[0],
+			inputBounds[4] + translation[1],
+			inputBounds[5] + translation[2]
+		);
 	}
 	
 	static unionAabb(a, b) {
@@ -177,6 +180,13 @@ export class Utils {
 			r[i] = fn(a[i], b[i]);
 		}
 		return r;
+	}
+
+	static growAabb(aabb, pnt) {
+		for (let i = 0; i < 6; ++i) {
+			let fn = i < 3 ? Math.min : Math.max;
+			aabb[i] = fn(aabb[i], pnt[i % 3]);
+		}
 	}
 
 	static emptyAabb() {

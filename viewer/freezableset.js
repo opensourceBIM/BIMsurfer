@@ -5,7 +5,6 @@
  * This class is a wrapper around such a Set() but with a `frozen'
  * getter to convert to String for equality testing.
  *
- * @export
  * @class FreezableSet
  */
 export class FreezableSet {

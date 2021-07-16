@@ -7,6 +7,10 @@ export const DRAG_ORBIT = 0xfe01;
 export const DRAG_PAN = 0xfe02;
 export const DRAG_SECTION = 0xfe03;
 
+export const CLICK_SELECT = 0xfe11;
+export const CLICK_MEASURE_PATH = 0xfe12;
+export const CLICK_MEASURE_DIST = 0xfe13;
+
 /**
  Controls the camera with user input.
  */
@@ -56,6 +60,7 @@ export class CameraControl {
 
         this.mouseDown = false;
         this.dragMode = DRAG_ORBIT;
+        this.clickMode = CLICK_SELECT;
 
 	    this._tmp_topleftfront_0 = vec3.create();
 	    this._tmp_topleftfront_1 = vec3.create();
@@ -247,7 +252,7 @@ export class CameraControl {
                 handleSection();
             }
         } else {
-            if (e.which == 1 && e.ctrlKey) {
+            if (e.which == 1 && e.ctrlKey && !e.altKey) {
                 handleSection();
             } else if (e.which == 1) {
                 handleOrbit();
@@ -273,9 +278,21 @@ export class CameraControl {
         let dt = e.timeStamp - this.mouseDownTime;
         this.mouseDown = false;
 
+        let handleMeasurement = () => {
+            this.viewer.setMeasurementPoint({
+                canvasPos:[this.lastX, this.lastY],
+                commit: true,
+                mode: this.clickMode
+            });
+        }
+
         const handleClick = () => {
             if (dt < 500. && this.closeEnoughCanvas(this.mouseDownPos, this.mousePos)) {
-				                var viewObject = this.viewer.pick({
+                if (this.viewer.activeMeasurement || this.clickMode == CLICK_MEASURE_PATH || this.clickMode == CLICK_MEASURE_DIST) {
+                    return handleMeasurement();
+                }
+
+                var viewObject = this.viewer.pick({
                     canvasPos: this.mousePos,
                     select: true, // e.which == 3,
                     shiftKey: (e.which == 1 || e.which == 0) ? e.shiftKey : this.viewer.selectedElements.size > 0, // e.which == 0 on touch events
@@ -355,14 +372,14 @@ export class CameraControl {
             } else {
                 this.keysDown.delete(action);
             }
-        } else if (e.key == "Control") {
-            if (state) {
+        } else if (e.key == "Control" || e.key == "Alt") {
+            if (state == (e.key == "Control")) {
                 if (this.viewer.sectionPlaneIsDisabled) {
                     this.viewer.positionSectionPlaneWidget({canvasPos: [this.lastX, this.lastY]});
                 }
             } else {
                 this.viewer.removeSectionPlaneWidget();
-            }            
+            }
         } else if (e.key == "Home") {
             this.camera.viewFit({animate:true});
             this.viewer.dirty = 2;
@@ -371,6 +388,12 @@ export class CameraControl {
 			this.camera.target = [0, 0, 0];
 			this.camera.eye = [1, 0, 0];
 			this.camera.viewFit({aabb: this.camera.modelBounds, animate: true});
+        } else if (e.key == "Escape") {
+            //@nb works when no measurement is present
+            this.viewer.destroyActiveMeasurement();
+            this.clickMode = CLICK_SELECT;
+        } else if (e.key == "Enter") {
+            this.viewer.commitActiveMeasurement();
         }
     }
 
@@ -391,9 +414,11 @@ export class CameraControl {
         if (!this.over) {
             return;
         }
-        if (this.mouseDown || e.ctrlKey) {
+        if (this.mouseDown || (e.ctrlKey && !e.altKey) || this.viewer.activeMeasurement) {
             this.getCanvasPosFromEvent(e, this.mousePos);
-            if (this.dragMode == DRAG_SECTION) {
+            if (this.viewer.activeMeasurement && !this.mouseDown) {
+                this.viewer.setMeasurementPoint({canvasPos: this.mousePos, commit: false});
+            } else if (this.dragMode == DRAG_SECTION) {
                 this.viewer.moveSectionPlane({canvasPos: this.mousePos});
             } else if (e.ctrlKey) {
                 this.viewer.positionSectionPlaneWidget({canvasPos: this.mousePos});
