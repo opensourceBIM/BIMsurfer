@@ -199,8 +199,7 @@ export class CameraControl {
             this.mouseDownTime = 0;
             if (this.viewer.enableSectionPlane({canvasPos:[this.lastX, this.lastY]})) {
                 this.dragMode = DRAG_SECTION;
-            } else if (!this.viewer.sectionPlaneIsDisabled){
-                this.viewer.disableSectionPlane();
+            } else {
                 this.dragMode = DRAG_ORBIT;
             }
             this.viewer.removeSectionPlaneWidget();

@@ -87,7 +87,12 @@ export class Viewer {
         this.animationListeners = [];
         this.colorRestore = [];
 
-        this.sectionPlanes = new SectionPlaneSet({viewer: this, n: 6});
+        this.sectionPlanes = new SectionPlaneSet({viewer: this, n: 7});
+        // We de not keep an index but rather return the first available or
+        // parallel plane. Therefore we mark the last one as a plane that
+        // cannot be enabled, to limit the total number of planes to n - 1 = 6.
+        this.sectionPlanes.planes[6].tail = true;
+        this.currentSectionPlane = null;
         
         // For geometry loaded from non-bimserver sources we auto-increment
         // an ID on the spot in the loader.
@@ -156,8 +161,6 @@ export class Viewer {
 
         this.eventHandler = new EventHandler();
         
-		this.sectionPlaneIndex = 0;
-
         if ("OffscreenCanvas" in window && canvas instanceof OffscreenCanvas) {
         } else {
         	// Tabindex required to be able add a keypress listener to canvas
@@ -769,10 +772,11 @@ export class Viewer {
     }
 
     positionSectionPlaneWidget(params) {
-        if (this.sectionPlaneIndex < this.sectionPlanes.planes.length) {
-            let p = this.pick({canvasPos: params.canvasPos, select: false});
-            if (p.normal && p.coordinates) {
-                this.sectionPlanes.planes[this.sectionPlaneIndex].position(p.coordinates, p.normal);
+        let p = this.pick({canvasPos: params.canvasPos, select: false});
+        if (p.normal && p.coordinates) {
+            let pln = this.currentSectionPlane = this.sectionPlanes.firstDisabled();
+            if (pln) {
+                pln.position(p.coordinates, p.normal);
             }
         }
     }
@@ -780,29 +784,27 @@ export class Viewer {
     enableSectionPlane(params) {        
         let p = this.pick({canvasPos: params.canvasPos, select: false});
         if (p.normal && p.coordinates && p.depth) {
-            if (this.sectionPlaneIndex < this.sectionPlanes.planes.length) {
-                this.sectionPlanes.planes[this.sectionPlaneIndex].enable(params.canvasPos, p.coordinates, p.normal, p.depth);
-                this.sectionPlaneIndex ++;
+            let pln = this.sectionPlanes.firstDisabledOrParallelTo(p.normal);
+            console.log("enabled plane", pln.index);
+            if (!pln.tail) {
+                this.currentSectionPlane = pln;
+                pln.enable(params.canvasPos, p.coordinates, p.normal, p.depth);
                 this.dirty = 2;
             }
             return true;
         } else {
+            // clicked outside of model, disable all.
             this.sectionPlanes.disable();
-            this.sectionPlaneIndex = 0;
+            this.dirty = 2;
             return false;
         }
     }
 
-    disableSectionPlane() {
-        this.sectionPlanes.planes[0].disable();
-
-        this.dirty = 2;
-    }
-
     moveSectionPlane(params) {
-        this.sectionPlanes.planes[this.sectionPlaneIndex - 1].move(params.canvasPos);
-
-        this.dirty = 2;
+        if (this.currentSectionPlane) {
+            this.currentSectionPlane.move(params.canvasPos);
+            this.dirty = 2;
+        }
     }
 
     setMeasurementPoint(params) {        
