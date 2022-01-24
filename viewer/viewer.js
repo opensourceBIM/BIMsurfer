@@ -204,7 +204,7 @@ export class Viewer {
     callByType(method, types, ...args) {
         let elems = types.map((i) => this.viewObjectsByType.get(i) || [])
             .reduce((a, b) => a.concat(b), [])
-            .map((o) => o.oid);
+            .map((o) => o.uniqueId);
         // Assuming all passed methods return a promise
         return method.call(this, elems, ...args);
     }
