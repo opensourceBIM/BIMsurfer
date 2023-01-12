@@ -28,19 +28,7 @@ export class BimServerViewer extends AbstractViewer {
 	}
 
 	loadRevisionByRoid(api, roid) {
-		return new Promise((resolve, reject) => {
-			api.call("ServiceInterface", "listBoundingBoxes", {
-				roids: [roid]
-			}, (bbs) => {
-				if (bbs.length > 1) {
-					this.settings.regionSelector(bbs).then((bb) => {
-						this.genDensityThreshold(api, [roid], bb).then(resolve);
-					});
-				} else {
-					this.genDensityThreshold(api, [roid], bbs[0]).then(resolve);
-				}
-			});
-		});
+        return this.loadRevisionsByRoids(api, [roid]);
 	}
 
 	unloadRevisionByRoid(roid) {
@@ -75,7 +63,7 @@ export class BimServerViewer extends AbstractViewer {
 	}
 
 	loadRevision(api, revision) {
-		this.loadRevisionByRoid(api, revision.oid);
+		return this.loadRevisionByRoid(api, revision.oid);
 	}
 
 	/*

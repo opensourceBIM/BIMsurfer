@@ -490,7 +490,7 @@ export class Viewer {
         this.camera.forceBuild();
         this.updateViewport();
 		this.overlay.resize();
-		this.render();
+		if(this.running) this.render();
     }
 
     render(now) {
