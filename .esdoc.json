@@ -1,5 +1,6 @@
 {
   "source": "./viewer",
   "destination": "./docs",
+  "excludes": ["cesium"],
   "plugins": [{"name": "esdoc-standard-plugin"}]
 }

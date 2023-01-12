@@ -27,7 +27,6 @@
   <scm>
     <connection>scm:git:https://github.com/TNOBIM/BIMSurfer.git</connection>
     <developerConnection>scm:git:https://github.com/TNOBIM/BIMSurfer.git</developerConnection>
-    <tag>bimsurfer3-0.0.6</tag>
     <url>https://github.com/TNOBIM/BIMSurfer.git</url>
   </scm>
   <issueManagement>
@@ -54,7 +53,7 @@
     <dependency>
       <groupId>org.opensourcebim</groupId>
       <artifactId>pluginbase</artifactId>
-      <version>1.5.183-SNAPSHOT</version>
+      <version>1.5.183</version>
     </dependency>
   </dependencies>
   <build>
@@ -71,7 +70,7 @@
       </resource>
       <resource>
         <targetPath>apps</targetPath>
-        <directory>../../output</directory>
+        <directory>apps</directory>
       </resource>
       <resource>
         <targetPath>css</targetPath>
@@ -79,7 +78,7 @@
       </resource>
       <resource>
         <targetPath>docs</targetPath>
-        <directory>../../docs</directory>
+        <directory>docs</directory>
       </resource>
       <resource>
         <targetPath>img</targetPath>
@@ -90,16 +89,12 @@
         <directory>plugin</directory>
       </resource>
       <resource>
-        <targetPath>shaders</targetPath>
-        <directory>shaders</directory>
-      </resource>
-      <resource>
         <targetPath>viewer</targetPath>
         <directory>viewer</directory>
       </resource>
       <resource>
         <targetPath>deps</targetPath>
-        <directory>../../deps</directory>
+        <directory>deps</directory>
       </resource>
       <resource>
         <targetPath>.</targetPath>
@@ -153,7 +148,7 @@
         <configuration>
           <serverId>ossrh</serverId>
           <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-          <autoReleaseAfterClose>true</autoReleaseAfterClose>
+          <autoReleaseAfterClose>false</autoReleaseAfterClose>
           <stagingProgressTimeoutMinutes>60</stagingProgressTimeoutMinutes>
         </configuration>
       </plugin>
@@ -161,7 +156,6 @@
         <artifactId>maven-release-plugin</artifactId>
         <version>2.5.3</version>
         <configuration>
-          <project.scm.id>github.com</project.scm.id>
           <useReleaseProfile>false</useReleaseProfile>
           <releaseProfiles>release</releaseProfiles>
           <goals>deploy</goals>
@@ -197,6 +191,8 @@
                     <arg>--pinentry-mode</arg>
                     <arg>loopback</arg>
                   </gpgArguments>
+                  <keyname>${gpg.keyname}</keyname>
+                  <passphraseServerId>${gpg.keyname}</passphraseServerId>
                 </configuration>
               </execution>
             </executions>
