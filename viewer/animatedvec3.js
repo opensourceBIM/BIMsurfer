@@ -28,7 +28,7 @@ export class AnimatedVec3 {
                 t = 1;
                 b = true;
             }
-            vec3.lerp(this.tmp, this.a, this.b, t);
+            vec3.cerp(this.tmp, this.a, this.b, t);
             if (b) {
                 if (this.t2) {
                     this.t0 = this.t1;
