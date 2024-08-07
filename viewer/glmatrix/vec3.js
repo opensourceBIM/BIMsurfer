@@ -400,6 +400,27 @@ export function lerp(out, a, b, t) {
 }
 
 /**
+ * Performs a cosine interpolation between two vec3's
+ *
+ * @param {vec3} out the receiving vector
+ * @param {ReadonlyVec3} a the first operand
+ * @param {ReadonlyVec3} b the second operand
+ * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
+ * @returns {vec3} out
+ */
+export function cerp(out, a, b, t) {
+  let ax = a[0];
+  let ay = a[1];
+  let az = a[2];
+
+  let delta = (1-Math.cos(t*Math.PI))/2;
+  out[0] = ax + delta * (b[0] - ax);
+  out[1] = ay + delta * (b[1] - ay);
+  out[2] = az + delta * (b[2] - az);
+  return out;
+}
+
+/**
  * Performs a hermite interpolation with two control points
  *
  * @param {vec3} out the receiving vector
