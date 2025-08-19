@@ -1,4 +1,5 @@
 import * as mat4 from "./glmatrix/mat4.js";
+import * as vec4 from "./glmatrix/vec4.js";
 import * as vec3 from "./glmatrix/vec3.js";
 import * as vec2 from "./glmatrix/vec2.js"
 import * as mat2 from "./glmatrix/mat2.js"
@@ -209,7 +210,13 @@ class MeasurementNode extends SvgOverlayNode {
         /*if (this.points.length < 2 || this.length <= 1) {
             return "";
         }*/
-        return "M" + this.points.map((p) => this.overlay.toString(this.overlay.transformPoint(p))).join(" L");
+        
+        // return "M" + this.points.map((p) => this.overlay.toString(this.overlay.transformPoint(p))).join(" L");
+        return "M" + this.points
+            .map(this.overlay.transformPoint.bind(this.overlay))
+            .filter(p => p[3] > 0.)
+            .map(this.overlay.toString.bind(this.overlay))
+            .join(" L");
     }
 
     isVisible() {
@@ -250,10 +257,15 @@ class MeasurementNode extends SvgOverlayNode {
         if (this.points.length < 2) {
             return null;
         } else if (this.points.length == 2) {
-            vec3.copy(tmp_measurement_, this.overlay.transformPoint(this.points[0]));
-            let t = this.overlay.transformPoint(this.points[1]);
-            vec2.add(tmp_measurement_, tmp_measurement_, t);
-            vec2.scale(tmp_measurement_, tmp_measurement_, 0.5);
+            let x = this.overlay.transformPoint(this.points[0]);
+            if (x[3] < 0.) {
+                tmp_measurement_.fill(-100);
+            } else {
+                vec3.copy(tmp_measurement_, x);
+                let t = this.overlay.transformPoint(this.points[1]);
+                vec2.add(tmp_measurement_, tmp_measurement_, t);
+                vec2.scale(tmp_measurement_, tmp_measurement_, 0.5);
+            }
         } else {
             let M = this.length / 2.;
             let accum = 0.;
@@ -261,9 +273,14 @@ class MeasurementNode extends SvgOverlayNode {
                 vec3.subtract(tmp_measurement_, this.points[i], this.points[i + 1]);    
                 let segmentLength = vec3.length(tmp_measurement_);
                 if (M - accum < segmentLength) {
-                    vec3.copy(tmp_measurement_, this.overlay.transformPoint(this.points[i]));
-                    let t = this.overlay.transformPoint(this.points[i + 1]);
-                    vec2.lerp(tmp_measurement_, tmp_measurement_, t, (M - accum) / segmentLength);
+                    let x = this.overlay.transformPoint(this.points[i]);
+                    if (x[3] < 0.) {
+                        tmp_measurement_.fill(-100);
+                    } else {
+                        vec3.copy(tmp_measurement_, x);
+                        let t = this.overlay.transformPoint(this.points[i + 1]);
+                        vec2.lerp(tmp_measurement_, tmp_measurement_, t, (M - accum) / segmentLength);
+                    }
                     break;
                 }
                 accum += segmentLength;
@@ -423,9 +440,14 @@ export class SvgOverlay {
     }
 
     transformPoint(p) {
-        let t = this.tmp;
-        vec3.transformMat4(t, p, this.camera.viewProjMatrix);
+        // let t = this.tmp;
+        let t = vec4.create();
+        let x = new Float32Array(4);
+        x.set(p, 0);
+        x[3] = 1.;
+        vec4.transformMat4(t, x, this.camera.viewProjMatrix);
         t[1] *= -1;
+        vec3.scale(t, t, 1. / t[3]);
         vec2.multiply(t, t, this.wh);
         vec2.add(t, t, this.wh);
         return t;
